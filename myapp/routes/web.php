@@ -1,14 +1,62 @@
 <?php
 
+use App\Models\Plan;
+use App\Models\PromoCode;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
-Route::inertia('/', 'Welcome', [
-    'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+Route::get('/', function () {
+    return inertia('Welcome', [
+        'canRegister' => Features::enabled(Features::registration()),
+        'plans' => Plan::active()->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
+    ]);
+})->name('home');
+
+Route::get('/about', function () {
+    return inertia('About', [
+        'canRegister' => Features::enabled(Features::registration()),
+    ]);
+})->name('about');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::get('dashboard', function () {
+        $user = auth()->user();
+        $tenant = $user->tenants()->first();
+
+        if ($tenant) {
+            return redirect("/{$tenant->slug}/dashboard");
+        }
+
+        return inertia('Dashboard');
+    })->name('dashboard');
 });
+
+Route::post('/promo-codes/validate', function (Request $request) {
+    $request->validate([
+        'code' => ['required', 'string'],
+        'plan' => ['required', 'string'],
+    ]);
+
+    $promo = PromoCode::where('code', strtoupper($request->code))->first();
+
+    if (! $promo || ! $promo->isValidForPlan($request->plan)) {
+        return response()->json([
+            'valid' => false,
+            'message' => 'Invalid or expired promo code.',
+        ], 422);
+    }
+
+    $message = $promo->discount_type->value === 'percentage'
+        ? "{$promo->discount_value}% discount applied!"
+        : '₱' . number_format($promo->discount_value, 2) . ' discount applied!';
+
+    return response()->json([
+        'valid' => true,
+        'message' => $message,
+        'discount_type' => $promo->discount_type->value,
+        'discount_value' => $promo->discount_value,
+    ]);
+})->middleware('throttle:10,1');
 
 require __DIR__.'/settings.php';
