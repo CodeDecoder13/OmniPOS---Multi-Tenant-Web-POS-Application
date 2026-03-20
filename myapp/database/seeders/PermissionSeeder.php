@@ -37,6 +37,20 @@ class PermissionSeeder extends Seeder
             ['name' => 'View Shifts', 'slug' => 'shifts.view', 'group' => 'shifts'],
             ['name' => 'Manage Shifts', 'slug' => 'shifts.manage', 'group' => 'shifts'],
             ['name' => 'Manage Settings', 'slug' => 'settings.manage', 'group' => 'settings'],
+            ['name' => 'View Suppliers', 'slug' => 'suppliers.view', 'group' => 'suppliers'],
+            ['name' => 'Create Suppliers', 'slug' => 'suppliers.create', 'group' => 'suppliers'],
+            ['name' => 'Edit Suppliers', 'slug' => 'suppliers.edit', 'group' => 'suppliers'],
+            ['name' => 'Delete Suppliers', 'slug' => 'suppliers.delete', 'group' => 'suppliers'],
+            ['name' => 'View Tables', 'slug' => 'tables.view', 'group' => 'tables'],
+            ['name' => 'Create Tables', 'slug' => 'tables.create', 'group' => 'tables'],
+            ['name' => 'Edit Tables', 'slug' => 'tables.edit', 'group' => 'tables'],
+            ['name' => 'Delete Tables', 'slug' => 'tables.delete', 'group' => 'tables'],
+            ['name' => 'View Promotions', 'slug' => 'promotions.view', 'group' => 'promotions'],
+            ['name' => 'Create Promotions', 'slug' => 'promotions.create', 'group' => 'promotions'],
+            ['name' => 'Edit Promotions', 'slug' => 'promotions.edit', 'group' => 'promotions'],
+            ['name' => 'Delete Promotions', 'slug' => 'promotions.delete', 'group' => 'promotions'],
+            ['name' => 'Access Kitchen Display', 'slug' => 'kitchen.access', 'group' => 'kitchen'],
+            ['name' => 'Manage Kitchen Orders', 'slug' => 'kitchen.manage', 'group' => 'kitchen'],
         ];
 
         foreach ($permissions as $permission) {

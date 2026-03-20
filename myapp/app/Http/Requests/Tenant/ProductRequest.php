@@ -47,6 +47,14 @@ class ProductRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'cost_price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'is_active' => ['sometimes', 'boolean'],
+            'variation_groups' => ['nullable', 'array'],
+            'variation_groups.*.name' => ['required', 'string', 'max:255'],
+            'variation_groups.*.is_required' => ['sometimes', 'boolean'],
+            'variation_groups.*.options' => ['required', 'array', 'min:1'],
+            'variation_groups.*.options.*.name' => ['required', 'string', 'max:255'],
+            'variation_groups.*.options.*.price_modifier' => ['sometimes', 'numeric', 'min:0'],
+            'addon_ids' => ['nullable', 'array'],
+            'addon_ids.*' => ['integer', 'exists:addons,id'],
         ];
     }
 }

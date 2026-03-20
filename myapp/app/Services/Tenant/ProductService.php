@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\Product;
+use App\Models\Tenant\VariationGroup;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -90,5 +91,32 @@ class ProductService
         if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
             Storage::disk('public')->deleteDirectory("products/{$product->id}");
         }
+    }
+
+    public function syncVariations(Product $product, array $groups): void
+    {
+        $product->variationGroups()->delete();
+
+        foreach ($groups as $index => $group) {
+            $vg = $product->variationGroups()->create([
+                'tenant_id' => $product->tenant_id,
+                'name' => $group['name'],
+                'sort_order' => $index,
+                'is_required' => $group['is_required'] ?? false,
+            ]);
+
+            foreach ($group['options'] as $optIndex => $option) {
+                $vg->options()->create([
+                    'name' => $option['name'],
+                    'price_modifier' => $option['price_modifier'] ?? 0,
+                    'sort_order' => $optIndex,
+                ]);
+            }
+        }
+    }
+
+    public function syncAddons(Product $product, array $addonIds): void
+    {
+        $product->addons()->sync($addonIds);
     }
 }

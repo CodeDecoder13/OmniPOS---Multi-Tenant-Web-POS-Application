@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Package, Plus, Search, Trash2 } from 'lucide-vue-next';
+import { Barcode, Edit, Package, Plus, Search, Trash2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import type { BreadcrumbItem, Category, PaginatedData, Product } from '@/types';
+import BarcodeLabel from '@/components/BarcodeLabel.vue';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
 
@@ -86,6 +87,14 @@ function deleteProduct() {
             productToDelete.value = null;
         },
     });
+}
+
+const barcodeDialog = ref(false);
+const barcodeProduct = ref<Product | null>(null);
+
+function showBarcode(product: Product) {
+    barcodeProduct.value = product;
+    barcodeDialog.value = true;
 }
 
 function formatPrice(value: string | number): string {
@@ -188,6 +197,9 @@ function formatPrice(value: string | number): string {
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
+                                    <Button v-if="product.sku" variant="ghost" size="icon" @click="showBarcode(product)" title="Print Barcode">
+                                        <Barcode class="h-4 w-4" />
+                                    </Button>
                                     <Button v-if="can('products.edit')" variant="ghost" size="icon" as-child>
                                         <Link :href="tenantUrl(`products/${product.id}/edit`)">
                                             <Edit class="h-4 w-4" />
@@ -242,6 +254,21 @@ function formatPrice(value: string | number): string {
                     <Button variant="destructive" @click="deleteProduct" :disabled="deleting">
                         {{ deleting ? 'Deleting...' : 'Delete' }}
                     </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Barcode Dialog -->
+        <Dialog v-model:open="barcodeDialog">
+            <DialogContent class="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Product Barcode</DialogTitle>
+                </DialogHeader>
+                <div v-if="barcodeProduct?.sku" class="flex justify-center py-4">
+                    <BarcodeLabel :sku="barcodeProduct.sku" :product-name="barcodeProduct.name" :price="barcodeProduct.price" />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" @click="barcodeDialog = false">Close</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

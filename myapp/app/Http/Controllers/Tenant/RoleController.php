@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\RoleRequest;
+use App\Services\Tenant\ActivityLogService;
 use App\Services\Tenant\RoleService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,7 @@ class RoleController extends Controller
 {
     public function __construct(
         private RoleService $roleService,
+        private ActivityLogService $activityLog,
     ) {}
 
     public function index(Request $request, string $tenantSlug): Response
@@ -37,7 +39,11 @@ class RoleController extends Controller
     public function store(RoleRequest $request, string $tenantSlug): RedirectResponse
     {
         $tenant = $request->attributes->get('current_tenant');
-        $this->roleService->create($tenant, $request->validated(), $request->validated('permissions'));
+        $role = $this->roleService->create($tenant, $request->validated(), $request->validated('permissions'));
+
+        $this->activityLog->log($tenant, $request->user()->id, 'role.created', 'Role', $role->id, [
+            'name' => $role->name,
+        ]);
 
         return redirect()->route('tenant.roles.index', $tenantSlug)
             ->with('success', 'Role created successfully.');
@@ -60,6 +66,10 @@ class RoleController extends Controller
         $roleModel = $this->roleService->find($tenant, $role);
         $this->roleService->update($roleModel, $request->validated(), $request->validated('permissions'));
 
+        $this->activityLog->log($tenant, $request->user()->id, 'role.updated', 'Role', $roleModel->id, [
+            'name' => $roleModel->name,
+        ]);
+
         return redirect()->route('tenant.roles.index', $tenantSlug)
             ->with('success', 'Role updated successfully.');
     }
@@ -74,6 +84,10 @@ class RoleController extends Controller
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         }
+
+        $this->activityLog->log($tenant, $request->user()->id, 'role.deleted', 'Role', $roleModel->id, [
+            'name' => $roleModel->name,
+        ]);
 
         return redirect()->route('tenant.roles.index', $tenantSlug)
             ->with('success', 'Role deleted successfully.');

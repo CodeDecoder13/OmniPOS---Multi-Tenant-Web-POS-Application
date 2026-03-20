@@ -17,7 +17,29 @@ import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
 import { usePosAuth } from '@/composables/usePosAuth';
 import { usePosShift } from '@/composables/usePosShift';
-import type { Category, Product } from '@/types';
+import { useBarcodeScanner } from '@/composables/useBarcodeScanner';
+import { usePrinter } from '@/composables/usePrinter';
+import type { KotData } from '@/composables/usePrinter';
+import { useBranchSettings } from '@/composables/useBranchSettings';
+import { useI18n } from 'vue-i18n';
+import type { Category, Product, VariationGroup, Addon, Table } from '@/types';
+
+interface CartItemVariation {
+    variation_group_name: string;
+    option_name: string;
+    price_modifier: number;
+}
+
+interface VariationSelection {
+    group_name: string;
+    option_name: string;
+    price_modifier: number;
+}
+
+interface CartItemAddon {
+    addon_name: string;
+    addon_price: number;
+}
 
 interface CartItem {
     product_id: number;
@@ -25,6 +47,8 @@ interface CartItem {
     price: number;
     quantity: number;
     image_url?: string | null;
+    variations?: CartItemVariation[];
+    addons?: CartItemAddon[];
 }
 
 interface PosCustomer {
@@ -36,12 +60,17 @@ interface PosCustomer {
 
 const props = defineProps<{
     categories: Pick<Category, 'id' | 'name'>[];
+    tables: Pick<Table, 'id' | 'name' | 'capacity' | 'status'>[];
+    branchSettings?: Record<string, boolean> | null;
 }>();
 
 const { tenantUrl, tenant } = useTenant();
 const { can } = usePermissions();
 const { isAuthenticated, operatorCan, operatorUserId, operatorName } = usePosAuth();
 const { hasActiveShift, checkShiftStatus, refreshSummary, clearShift } = usePosShift();
+const { printReceipt: doPrintReceipt, printKot } = usePrinter();
+const { isEnabled } = useBranchSettings();
+const { t } = useI18n();
 
 const showStartShift = ref(false);
 
@@ -86,10 +115,67 @@ const hasMoreProducts = ref(false);
 
 // Cart state
 const cart = ref<CartItem[]>([]);
-const orderType = ref<'dine_in' | 'take_out'>('dine_in');
+const availableOrderTypes = computed(() => {
+    const types: ('dine_in' | 'take_out')[] = [];
+    if (isEnabled('dine_in')) types.push('dine_in');
+    if (isEnabled('takeout')) types.push('take_out');
+    return types;
+});
+const orderType = ref<'dine_in' | 'take_out'>(isEnabled('dine_in') ? 'dine_in' : 'take_out');
+const selectedTable = ref<number | null>(null);
 const discountAmount = ref<number>(0);
 const discountType = ref<'percentage' | 'fixed'>('percentage');
 const orderNotes = ref('');
+
+// Promo code state
+const promoCode = ref('');
+const appliedPromo = ref<{ id: number; code: string; name: string; type: string; value: string } | null>(null);
+const promoDiscount = ref(0);
+const promoLoading = ref(false);
+const promoError = ref('');
+
+async function applyPromoCode() {
+    if (!promoCode.value.trim()) return;
+    promoLoading.value = true;
+    promoError.value = '';
+
+    try {
+        const xsrfToken = decodeURIComponent(
+            document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
+        );
+        const res = await fetch(tenantUrl('pos/promotions/apply'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrfToken,
+            },
+            body: JSON.stringify({
+                code: promoCode.value.trim(),
+                subtotal: afterDiscount.value,
+            }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            appliedPromo.value = data.promotion;
+            promoDiscount.value = data.discount;
+            promoCode.value = '';
+        } else {
+            promoError.value = data.message;
+        }
+    } catch {
+        promoError.value = 'Failed to apply promo code.';
+    } finally {
+        promoLoading.value = false;
+    }
+}
+
+function removePromo() {
+    appliedPromo.value = null;
+    promoDiscount.value = 0;
+    promoError.value = '';
+}
 
 // Customer state
 const selectedCustomer = ref<PosCustomer | null>(null);
@@ -97,6 +183,107 @@ const customerSearch = ref('');
 const customerResults = ref<PosCustomer[]>([]);
 const showCustomerSearch = ref(false);
 const searchingCustomers = ref(false);
+
+// Barcode scanner state
+const barcodeInput = ref('');
+
+async function handleBarcodeScan() {
+    const sku = barcodeInput.value.trim();
+    if (!sku) return;
+
+    try {
+        const params = new URLSearchParams({ search: sku });
+        const res = await fetch(`${tenantUrl('pos/products')}?${params}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await res.json();
+        const product = data.data?.find((p: Product) => p.sku === sku);
+        if (product) {
+            handleProductClick(product);
+        }
+    } catch { /* silently fail */ }
+    barcodeInput.value = '';
+}
+
+// Barcode scanner composable (detects rapid keystrokes from hardware scanner)
+async function handleBarcodeDetected(barcode: string): Promise<boolean> {
+    try {
+        const params = new URLSearchParams({ search: barcode });
+        const res = await fetch(`${tenantUrl('pos/products')}?${params}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await res.json();
+        const product = data.data?.find((p: Product) => p.sku === barcode);
+        if (product) {
+            handleProductClick(product);
+            return true;
+        }
+    } catch { /* silently fail */ }
+    return false;
+}
+
+const { scanStatus } = useBarcodeScanner(handleBarcodeDetected);
+
+// Variation/addon modal state
+const showVariationModal = ref(false);
+const variationProduct = ref<(Product & { variation_groups?: VariationGroup[]; addons?: Addon[] }) | null>(null);
+const selectedVariations = ref<Record<number, VariationSelection>>({});
+const selectedAddons = ref<Record<number, boolean>>({});
+
+function handleProductClick(product: Product & { variation_groups?: VariationGroup[]; addons?: Addon[] }) {
+    const hasVariations = product.variation_groups && product.variation_groups.length > 0;
+    const hasAddons = product.addons && product.addons.length > 0;
+
+    if (hasVariations || hasAddons) {
+        variationProduct.value = product;
+        selectedVariations.value = {};
+        selectedAddons.value = {};
+        showVariationModal.value = true;
+    } else {
+        addToCart(product);
+    }
+}
+
+function confirmVariationSelection() {
+    if (!variationProduct.value) return;
+    const product = variationProduct.value;
+
+    const variations: CartItemVariation[] = Object.values(selectedVariations.value).map(v => ({
+        variation_group_name: v.group_name,
+        option_name: v.option_name,
+        price_modifier: v.price_modifier,
+    }));
+    const addons: CartItemAddon[] = [];
+
+    if (product.addons) {
+        for (const addon of product.addons) {
+            if (selectedAddons.value[addon.id]) {
+                addons.push({ addon_name: addon.name, addon_price: Number(addon.price) });
+            }
+        }
+    }
+
+    const variationTotal = variations.reduce((sum, v) => sum + v.price_modifier, 0);
+    const addonTotal = addons.reduce((sum, a) => sum + a.addon_price, 0);
+    const totalPrice = Number(product.price) + variationTotal + addonTotal;
+
+    // Build display name
+    const extras = [...variations.map(v => v.option_name), ...addons.map(a => a.addon_name)];
+    const displayName = extras.length > 0 ? `${product.name} (${extras.join(', ')})` : product.name;
+
+    cart.value.push({
+        product_id: product.id,
+        name: displayName,
+        price: totalPrice,
+        quantity: 1,
+        image_url: product.image_url,
+        variations,
+        addons,
+    });
+
+    showVariationModal.value = false;
+    variationProduct.value = null;
+}
 
 // Payment dialog state
 const showPaymentDialog = ref(false);
@@ -124,6 +311,7 @@ const discountValue = computed(() => {
 });
 
 const afterDiscount = computed(() => Math.max(0, subtotal.value - discountValue.value));
+const afterPromo = computed(() => Math.max(0, afterDiscount.value - promoDiscount.value));
 
 const taxRate = computed(() => Number(tenant.value?.settings?.tax_rate) || 0);
 const taxInclusive = computed(() => tenant.value?.settings?.tax_inclusive ?? false);
@@ -132,14 +320,14 @@ const taxLabel = computed(() => tenant.value?.settings?.tax_label || 'Tax');
 const taxAmount = computed(() => {
     if (taxRate.value <= 0) return 0;
     if (taxInclusive.value) {
-        return Math.round((afterDiscount.value - afterDiscount.value / (1 + taxRate.value / 100)) * 100) / 100;
+        return Math.round((afterPromo.value - afterPromo.value / (1 + taxRate.value / 100)) * 100) / 100;
     }
-    return Math.round(afterDiscount.value * (taxRate.value / 100) * 100) / 100;
+    return Math.round(afterPromo.value * (taxRate.value / 100) * 100) / 100;
 });
 
 const total = computed(() => {
-    if (taxInclusive.value || taxRate.value <= 0) return afterDiscount.value;
-    return afterDiscount.value + taxAmount.value;
+    if (taxInclusive.value || taxRate.value <= 0) return afterPromo.value;
+    return afterPromo.value + taxAmount.value;
 });
 const changeAmount = computed(() => paymentMethod.value === 'cash' ? Math.max(0, amountTendered.value - total.value) : 0);
 const canCheckout = computed(() => {
@@ -234,10 +422,14 @@ function removeFromCart(index: number) {
 
 function clearCart() {
     cart.value = [];
-    orderType.value = 'dine_in';
+    orderType.value = availableOrderTypes.value[0] ?? 'dine_in';
+    selectedTable.value = null;
     discountAmount.value = 0;
     orderNotes.value = '';
     selectedCustomer.value = null;
+    appliedPromo.value = null;
+    promoCode.value = '';
+    promoDiscount.value = 0;
 }
 
 // Category filter
@@ -307,7 +499,12 @@ async function processCheckout() {
         );
 
         const payload = {
-            items: cart.value.map(item => ({ product_id: item.product_id, quantity: item.quantity })),
+            items: cart.value.map(item => ({
+                product_id: item.product_id,
+                quantity: item.quantity,
+                variations: item.variations ?? [],
+                addons: item.addons ?? [],
+            })),
             customer_id: selectedCustomer.value?.id ?? null,
             payment_method: paymentMethod.value,
             amount_tendered: paymentMethod.value === 'cash' ? amountTendered.value : null,
@@ -317,6 +514,8 @@ async function processCheckout() {
             notes: orderNotes.value || null,
             order_type: orderType.value,
             pos_operator_id: operatorUserId.value,
+            table_id: selectedTable.value ?? null,
+            promotion_id: appliedPromo.value?.id ?? null,
         };
 
         const res = await fetch(tenantUrl('pos/checkout'), {
@@ -342,6 +541,36 @@ async function processCheckout() {
         showReceiptDialog.value = true;
         clearCart();
         refreshSummary();
+
+        // Auto-print receipt if branch setting is enabled
+        nextTick(() => {
+            if (props.branchSettings?.receipt_printing && completedReceiptData.value) {
+                doPrintReceipt(completedReceiptData.value, true);
+            }
+            // Auto-print KOT if kitchen display is enabled
+            if (props.branchSettings?.kitchen_display && data.order) {
+                const o = data.order;
+                const kotData: KotData = {
+                    orderNumber: o.order_number,
+                    dateTime: new Date(o.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }),
+                    tableName: o.table?.name ?? null,
+                    orderType: o.order_type === 'take_out' ? 'TAKE OUT' : 'DINE IN',
+                    items: (o.items ?? []).map((item: any) => ({
+                        name: item.product_name,
+                        quantity: item.quantity,
+                        variations: item.variations?.map((v: any) => ({
+                            group_name: v.variation_group_name,
+                            option_name: v.option_name,
+                        })),
+                        addons: item.item_addons?.map((a: any) => ({
+                            name: a.addon_name,
+                        })),
+                    })),
+                    notes: o.notes,
+                };
+                printKot(kotData);
+            }
+        });
     } catch {
         alert('Checkout failed. Please try again.');
     } finally {
@@ -367,9 +596,12 @@ const previewReceiptData = computed<ReceiptData>(() => ({
     })),
     subtotal: subtotal.value,
     discount: discountValue.value > 0 ? discountValue.value : undefined,
+    promotionDiscount: promoDiscount.value > 0 ? promoDiscount.value : undefined,
+    promotionCode: appliedPromo.value?.code ?? null,
     tax: taxAmount.value > 0 ? taxAmount.value : undefined,
     taxLabel: taxLabel.value,
     total: total.value,
+    tableName: selectedTable.value ? props.tables.find(t => t.id === selectedTable.value)?.name : null,
     orderType: orderType.value === 'take_out' ? 'TAKE OUT' : 'DINE IN',
 }));
 
@@ -396,9 +628,12 @@ const completedReceiptData = computed<ReceiptData>(() => {
         })),
         subtotal: Number(o.subtotal),
         discount: Number(o.discount_amount) > 0 ? Number(o.discount_amount) : undefined,
+        promotionDiscount: Number(o.promotion_discount) > 0 ? Number(o.promotion_discount) : undefined,
+        promotionCode: o.promotion?.code ?? null,
         tax: Number(o.tax_amount) > 0 ? Number(o.tax_amount) : undefined,
         taxLabel: tenant.value?.settings?.tax_label || 'Tax',
         total: Number(o.total),
+        tableName: o.table?.name ?? null,
         paymentMethod: payment?.method,
         amountTendered: payment?.amount_tendered ? Number(payment.amount_tendered) : undefined,
         change: payment?.change_amount ? Number(payment.change_amount) : undefined,
@@ -408,7 +643,9 @@ const completedReceiptData = computed<ReceiptData>(() => {
 });
 
 function printReceipt() {
-    window.print();
+    if (completedReceiptData.value) {
+        doPrintReceipt(completedReceiptData.value, true);
+    }
 }
 
 function downloadPdf() {
@@ -452,11 +689,26 @@ onMounted(() => {
         <div class="flex h-full">
             <!-- Left Panel: Products -->
             <div class="flex flex-1 flex-col border-r">
-                <!-- Search bar -->
+                <!-- Search bar + Barcode scanner -->
                 <div class="flex items-center gap-2 border-b p-3">
                     <div class="relative flex-1">
                         <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input v-model="productSearch" placeholder="Search products..." class="pl-9" />
+                        <Input v-model="productSearch" :placeholder="$t('common.search') + '...'" class="pl-9" />
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span
+                            :class="[
+                                'h-2.5 w-2.5 shrink-0 rounded-full transition-colors',
+                                scanStatus === 'scanned' ? 'bg-green-500' : scanStatus === 'not_found' ? 'bg-red-500' : 'bg-gray-400',
+                            ]"
+                            :title="scanStatus === 'scanned' ? 'Product found' : scanStatus === 'not_found' ? 'Not found' : 'Scanner ready'"
+                        />
+                        <Input
+                            v-model="barcodeInput"
+                            :placeholder="$t('pos.scanBarcode')"
+                            class="w-40"
+                            @keydown.enter="handleBarcodeScan"
+                        />
                     </div>
                 </div>
 
@@ -490,14 +742,14 @@ onMounted(() => {
                         <p class="text-muted-foreground">Loading products...</p>
                     </div>
                     <div v-else-if="products.length === 0" class="flex h-full items-center justify-center">
-                        <p class="text-muted-foreground">No products found.</p>
+                        <p class="text-muted-foreground">{{ $t('pos.noProducts') }}</p>
                     </div>
                     <div v-else>
                         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                             <button
                                 v-for="product in products"
                                 :key="product.id"
-                                @click="addToCart(product)"
+                                @click="handleProductClick(product)"
                                 class="flex flex-col rounded-lg border bg-card p-2 text-left transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
                             >
                                 <div class="aspect-square w-full overflow-hidden rounded-md bg-muted mb-2">
@@ -517,7 +769,7 @@ onMounted(() => {
                         </div>
                         <div v-if="hasMoreProducts" class="mt-4 flex justify-center">
                             <Button variant="outline" size="sm" @click="loadMore" :disabled="loadingProducts">
-                                {{ loadingProducts ? 'Loading...' : 'Load More' }}
+                                {{ loadingProducts ? $t('common.loading') : $t('pos.loadMore') }}
                             </Button>
                         </div>
                     </div>
@@ -582,9 +834,10 @@ onMounted(() => {
                 </div>
 
                 <!-- Order type toggle -->
-                <div v-if="cart.length > 0" class="border-b px-4 py-2">
+                <div v-if="cart.length > 0 && availableOrderTypes.length > 1" class="border-b px-4 py-2">
                     <div class="flex rounded-lg border p-0.5 gap-0.5">
                         <button
+                            v-if="isEnabled('dine_in')"
                             @click="orderType = 'dine_in'"
                             :class="[
                                 'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
@@ -592,9 +845,10 @@ onMounted(() => {
                             ]"
                         >
                             <UtensilsCrossed class="h-3.5 w-3.5" />
-                            Dine In
+                            {{ $t('pos.dineIn') }}
                         </button>
                         <button
+                            v-if="isEnabled('takeout')"
                             @click="orderType = 'take_out'"
                             :class="[
                                 'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
@@ -602,7 +856,27 @@ onMounted(() => {
                             ]"
                         >
                             <ShoppingBag class="h-3.5 w-3.5" />
-                            Take Out
+                            {{ $t('pos.takeOut') }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table selection (dine-in only) -->
+                <div v-if="cart.length > 0 && orderType === 'dine_in' && tables.length > 0" class="border-b px-4 py-2">
+                    <p class="text-xs font-medium text-muted-foreground mb-1.5">{{ $t('pos.selectTable') }}</p>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button
+                            v-for="table in tables"
+                            :key="table.id"
+                            @click="selectedTable = selectedTable === table.id ? null : table.id"
+                            :class="[
+                                'rounded-md border px-2 py-1.5 text-xs font-medium transition-colors',
+                                selectedTable === table.id
+                                    ? 'border-primary bg-primary/10 text-primary'
+                                    : 'hover:border-primary/50',
+                            ]"
+                        >
+                            {{ table.name }}
                         </button>
                     </div>
                 </div>
@@ -611,8 +885,8 @@ onMounted(() => {
                 <div class="flex-1 overflow-y-auto">
                     <div v-if="cart.length === 0" class="flex h-full flex-col items-center justify-center text-muted-foreground">
                         <ShoppingCart class="h-12 w-12 opacity-20 mb-2" />
-                        <p class="text-sm">Cart is empty</p>
-                        <p class="text-xs">Click products to add them</p>
+                        <p class="text-sm">{{ $t('pos.cartEmpty') }}</p>
+                        <p class="text-xs">{{ $t('pos.clickToAdd') }}</p>
                     </div>
                     <div v-else class="divide-y">
                         <div v-for="(item, index) in cart" :key="item.product_id" class="flex items-center gap-3 px-4 py-2">
@@ -638,7 +912,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Discount section -->
-                <div v-if="operatorCan('pos.discount') && cart.length > 0" class="border-t px-4 py-2">
+                <div v-if="operatorCan('pos.discount') && cart.length > 0 && isEnabled('discounts_enabled')" class="border-t px-4 py-2">
                     <div class="flex items-center gap-2">
                         <Select v-model="discountType">
                             <SelectTrigger class="w-[100px] h-8 text-xs">
@@ -646,10 +920,10 @@ onMounted(() => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="percentage">
-                                    <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> Percent</span>
+                                    <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> {{ $t('pos.percent') }}</span>
                                 </SelectItem>
                                 <SelectItem value="fixed">
-                                    <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> Fixed</span>
+                                    <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> {{ $t('pos.fixed') }}</span>
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -664,27 +938,56 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <!-- Promo code -->
+                <div v-if="cart.length > 0" class="border-t px-4 py-2">
+                    <div v-if="appliedPromo" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-3 py-2">
+                        <div>
+                            <p class="text-xs font-medium text-green-700 dark:text-green-300">{{ appliedPromo.code }}</p>
+                            <p class="text-[10px] text-green-600 dark:text-green-400">{{ appliedPromo.name }} &mdash; -{{ formatCurrency(promoDiscount) }}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" class="h-6 w-6" @click="removePromo">
+                            <X class="h-3 w-3" />
+                        </Button>
+                    </div>
+                    <div v-else class="flex items-center gap-2">
+                        <Input
+                            v-model="promoCode"
+                            :placeholder="$t('pos.promoCode')"
+                            class="h-8 text-xs uppercase"
+                            @keydown.enter="applyPromoCode"
+                        />
+                        <Button variant="outline" size="sm" class="h-8 shrink-0 text-xs" :disabled="promoLoading || !promoCode.trim()" @click="applyPromoCode">
+                            {{ promoLoading ? '...' : $t('common.apply') }}
+                        </Button>
+                    </div>
+                    <p v-if="promoError" class="mt-1 text-xs text-destructive">{{ promoError }}</p>
+                </div>
+
                 <!-- Notes -->
                 <div v-if="cart.length > 0" class="border-t px-4 py-2">
-                    <Textarea v-model="orderNotes" placeholder="Order notes (optional)" rows="1" class="resize-none text-xs" />
+                    <Textarea v-model="orderNotes" :placeholder="$t('pos.orderNotes')" rows="1" class="resize-none text-xs" />
                 </div>
 
                 <!-- Totals -->
                 <div v-if="cart.length > 0" class="border-t px-4 py-2 space-y-1 text-sm">
                     <div class="flex justify-between">
-                        <span class="text-muted-foreground">Subtotal</span>
+                        <span class="text-muted-foreground">{{ $t('common.subtotal') }}</span>
                         <span>{{ formatCurrency(subtotal) }}</span>
                     </div>
                     <div v-if="discountValue > 0" class="flex justify-between text-green-600">
-                        <span>Discount</span>
+                        <span>{{ $t('common.discount') }}</span>
                         <span>-{{ formatCurrency(discountValue) }}</span>
+                    </div>
+                    <div v-if="promoDiscount > 0" class="flex justify-between text-green-600">
+                        <span>Promo ({{ appliedPromo?.code }})</span>
+                        <span>-{{ formatCurrency(promoDiscount) }}</span>
                     </div>
                     <div v-if="taxAmount > 0" class="flex justify-between text-muted-foreground">
                         <span>{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
                         <span>{{ formatCurrency(taxAmount) }}</span>
                     </div>
                     <div class="flex justify-between border-t pt-1 text-lg font-bold">
-                        <span>Total</span>
+                        <span>{{ $t('common.total') }}</span>
                         <span>{{ formatCurrency(total) }}</span>
                     </div>
                 </div>
@@ -697,7 +1000,7 @@ onMounted(() => {
                         @click="openReceiptPreview"
                     >
                         <ShoppingCart class="mr-2 h-5 w-5" />
-                        Charge {{ cart.length > 0 ? formatCurrency(total) : '' }}
+                        {{ $t('pos.charge') }} {{ cart.length > 0 ? formatCurrency(total) : '' }}
                     </Button>
                 </div>
             </div>
@@ -709,7 +1012,7 @@ onMounted(() => {
                 <DialogHeader>
                     <DialogTitle class="flex items-center gap-2">
                         <Receipt class="h-5 w-5" />
-                        Order Preview
+                        {{ $t('pos.orderPreview') }}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -718,8 +1021,8 @@ onMounted(() => {
                 </div>
 
                 <DialogFooter class="flex-row gap-2 sm:flex-row">
-                    <Button variant="outline" class="flex-1" @click="showReceiptPreview = false">Back</Button>
-                    <Button class="flex-1" @click="confirmAndPay">Confirm & Pay</Button>
+                    <Button variant="outline" class="flex-1" @click="showReceiptPreview = false">{{ $t('common.back') }}</Button>
+                    <Button class="flex-1" @click="confirmAndPay">{{ $t('pos.confirmPay') }}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -728,17 +1031,17 @@ onMounted(() => {
         <Dialog v-model:open="showPaymentDialog">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Payment</DialogTitle>
+                    <DialogTitle>{{ $t('pos.payment') }}</DialogTitle>
                 </DialogHeader>
 
                 <div class="space-y-4">
                     <!-- Payment method tabs -->
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-4 gap-2">
                         <button
                             v-for="method in [
-                                { value: 'cash', label: 'Cash' },
-                                { value: 'card', label: 'Card' },
-                                { value: 'e_wallet', label: 'E-Wallet' },
+                                { value: 'cash', label: $t('pos.cash') },
+                                { value: 'card', label: $t('pos.card') },
+                                { value: 'e_wallet', label: $t('pos.eWallet') },
                             ]"
                             :key="method.value"
                             @click="paymentMethod = method.value"
@@ -749,18 +1052,25 @@ onMounted(() => {
                         >
                             {{ method.label }}
                         </button>
+                        <button
+                            disabled
+                            class="relative rounded-lg border-2 border-muted px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+                        >
+                            Online
+                            <span class="absolute -top-2 -right-2 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">Soon</span>
+                        </button>
                     </div>
 
                     <!-- Total display -->
                     <div class="rounded-lg bg-muted p-4 text-center">
-                        <p class="text-sm text-muted-foreground">Total Amount</p>
+                        <p class="text-sm text-muted-foreground">{{ $t('common.total') }}</p>
                         <p class="text-3xl font-bold">{{ formatCurrency(total) }}</p>
                     </div>
 
                     <!-- Cash payment -->
                     <div v-if="paymentMethod === 'cash'" class="space-y-3">
                         <div class="space-y-2">
-                            <Label>Amount Tendered</Label>
+                            <Label>{{ $t('pos.amountTendered') }}</Label>
                             <Input v-model.number="amountTendered" type="number" min="0" step="0.01" class="text-lg h-12 text-center font-bold" />
                         </div>
                         <div class="flex flex-wrap gap-2">
@@ -775,22 +1085,22 @@ onMounted(() => {
                             </Button>
                         </div>
                         <div v-if="amountTendered >= total" class="rounded-lg bg-green-50 dark:bg-green-950 p-3 text-center">
-                            <p class="text-sm text-green-600 dark:text-green-400">Change</p>
+                            <p class="text-sm text-green-600 dark:text-green-400">{{ $t('pos.change') }}</p>
                             <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ formatCurrency(changeAmount) }}</p>
                         </div>
                     </div>
 
                     <!-- Card/E-wallet reference -->
                     <div v-else class="space-y-2">
-                        <Label>Reference Number (optional)</Label>
-                        <Input v-model="referenceNumber" placeholder="Enter reference number" />
+                        <Label>{{ $t('pos.referenceNumber') }}</Label>
+                        <Input v-model="referenceNumber" :placeholder="$t('pos.referenceNumber')" />
                     </div>
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" @click="showPaymentDialog = false">Cancel</Button>
+                    <Button variant="outline" @click="showPaymentDialog = false">{{ $t('common.cancel') }}</Button>
                     <Button :disabled="!canCheckout || processing" class="min-w-[140px]" @click="processCheckout">
-                        {{ processing ? 'Processing...' : 'Complete Sale' }}
+                        {{ processing ? $t('pos.processing') : $t('pos.completeOrder') }}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -802,7 +1112,7 @@ onMounted(() => {
                 <DialogHeader>
                     <DialogTitle class="flex items-center gap-2">
                         <Receipt class="h-5 w-5" />
-                        Sale Complete
+                        {{ $t('pos.orderSuccess') }}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -814,14 +1124,68 @@ onMounted(() => {
                     <div class="flex gap-2 w-full">
                         <Button variant="outline" class="flex-1" @click="printReceipt">
                             <Printer class="mr-2 h-4 w-4" />
-                            Print
+                            {{ $t('pos.printReceipt') }}
                         </Button>
                         <Button variant="outline" class="flex-1" @click="downloadPdf">
                             <Download class="mr-2 h-4 w-4" />
-                            PDF
+                            {{ $t('pos.downloadPdf') }}
                         </Button>
                     </div>
-                    <Button class="w-full" @click="closeReceipt">New Sale</Button>
+                    <Button class="w-full" @click="closeReceipt">{{ $t('pos.newOrder') }}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        <!-- Variation/Addon Modal -->
+        <Dialog v-model:open="showVariationModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{{ variationProduct?.name }} - Options</DialogTitle>
+                </DialogHeader>
+
+                <div v-if="variationProduct" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                    <!-- Variation Groups -->
+                    <div v-for="group in variationProduct.variation_groups" :key="group.id" class="space-y-2">
+                        <Label class="text-sm font-semibold">
+                            {{ group.name }}
+                            <span v-if="group.is_required" class="text-destructive">*</span>
+                        </Label>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                v-for="option in group.options"
+                                :key="option.id"
+                                type="button"
+                                @click="selectedVariations[group.id] = { group_name: group.name, option_name: option.name, price_modifier: Number(option.price_modifier) }"
+                                :class="[
+                                    'rounded-lg border px-3 py-1.5 text-sm transition-colors',
+                                    selectedVariations[group.id]?.option_name === option.name
+                                        ? 'border-primary bg-primary/10 text-primary font-medium'
+                                        : 'hover:border-primary/50',
+                                ]"
+                            >
+                                {{ option.name }}
+                                <span v-if="Number(option.price_modifier) > 0" class="text-xs text-muted-foreground">
+                                    +{{ Number(option.price_modifier).toFixed(2) }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Add-ons -->
+                    <div v-if="variationProduct.addons && variationProduct.addons.length > 0" class="space-y-2">
+                        <Label class="text-sm font-semibold">Add-ons</Label>
+                        <div class="space-y-1">
+                            <label v-for="addon in variationProduct.addons" :key="addon.id" class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50">
+                                <input type="checkbox" :checked="selectedAddons[addon.id]" @change="selectedAddons[addon.id] = !selectedAddons[addon.id]" class="rounded" />
+                                <span class="flex-1 text-sm">{{ addon.name }}</span>
+                                <span class="text-sm text-muted-foreground">+{{ Number(addon.price).toFixed(2) }}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="showVariationModal = false">Cancel</Button>
+                    <Button @click="confirmVariationSelection">Add to Cart</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

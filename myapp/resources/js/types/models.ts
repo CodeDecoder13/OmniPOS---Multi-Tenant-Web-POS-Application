@@ -115,6 +115,18 @@ export interface GroupedPermissions {
     [group: string]: Permission[];
 }
 
+export interface BranchSettings {
+    pos_enabled: boolean;
+    inventory_tracking: boolean;
+    customer_loyalty: boolean;
+    discounts_enabled: boolean;
+    dine_in: boolean;
+    takeout: boolean;
+    delivery: boolean;
+    kitchen_display: boolean;
+    receipt_printing: boolean;
+}
+
 export interface Branch {
     id: number;
     tenant_id: string;
@@ -124,10 +136,31 @@ export interface Branch {
     phone: string | null;
     email: string | null;
     is_active: boolean;
+    settings?: BranchSettings;
     created_by: number | null;
     creator?: { id: number; name: string };
     created_at: string;
     updated_at: string;
+}
+
+export interface BranchProduct {
+    id: number;
+    branch_id: number;
+    product_id: number;
+    custom_price: string | null;
+    is_available: boolean;
+}
+
+export interface BranchMenuProduct {
+    id: number;
+    name: string;
+    sku: string | null;
+    price: string;
+    category: { id: number; name: string } | null;
+    image_url: string | null;
+    effective_price: string;
+    custom_price: string | null;
+    is_available: boolean;
 }
 
 export interface Category {
@@ -165,7 +198,7 @@ export interface Product {
 
 // Inventory Module Types
 
-export type AdjustmentType = 'purchase' | 'sale' | 'return' | 'damage' | 'correction' | 'initial';
+export type AdjustmentType = 'purchase' | 'sale' | 'return' | 'damage' | 'correction' | 'initial' | 'transfer_out' | 'transfer_in';
 
 export interface Inventory {
     id: number;
@@ -207,7 +240,8 @@ export interface PosOperator {
 
 export type OrderType = 'dine_in' | 'take_out';
 export type OrderStatus = 'pending' | 'completed' | 'voided' | 'refunded';
-export type PaymentMethod = 'cash' | 'card' | 'e_wallet' | 'bank_transfer' | 'other';
+export type KitchenStatus = 'new' | 'preparing' | 'ready' | 'served';
+export type PaymentMethod = 'cash' | 'card' | 'e_wallet' | 'bank_transfer' | 'other' | 'online';
 export type PaymentStatus = 'pending' | 'completed' | 'failed';
 export type DiscountType = 'percentage' | 'fixed';
 
@@ -232,18 +266,27 @@ export interface Order {
     branch_id: number | null;
     customer_id: number | null;
     shift_id: number | null;
+    table_id: number | null;
+    promotion_id: number | null;
     order_number: string;
     subtotal: string;
     discount_amount: string;
     discount_type: DiscountType | null;
+    promotion_discount: string;
     tax_amount: string;
     total: string;
     notes: string | null;
     order_type: OrderType;
     status: OrderStatus;
+    kitchen_status: KitchenStatus | null;
+    kitchen_sent_at: string | null;
+    kitchen_completed_at: string | null;
+    kitchen_notes: string | null;
     created_by: number | null;
     customer?: Customer | null;
     branch?: { id: number; name: string } | null;
+    table?: { id: number; name: string } | null;
+    promotion?: { id: number; code: string; name: string } | null;
     creator?: { id: number; name: string } | null;
     items?: OrderItem[];
     items_count?: number;
@@ -261,6 +304,8 @@ export interface OrderItem {
     quantity: number;
     subtotal: string;
     product?: { id: number; name: string } | null;
+    variations?: OrderItemVariation[];
+    item_addons?: OrderItemAddon[];
 }
 
 export interface Payment {
@@ -312,6 +357,39 @@ export interface ShiftSummary {
 export interface ActiveShift {
     shift: Shift | null;
     summary: ShiftSummary | null;
+}
+
+// Activity Log Types
+
+export interface ActivityLog {
+    id: number;
+    tenant_id: string;
+    user_id: number;
+    action: string;
+    subject_type: string | null;
+    subject_id: number | null;
+    properties: Record<string, unknown> | null;
+    actor?: { id: number; name: string } | null;
+    created_at: string;
+}
+
+// Shift Schedule Types
+
+export interface ShiftSchedule {
+    id: number;
+    tenant_id: string;
+    user_id: number;
+    branch_id: number | null;
+    scheduled_date: string;
+    start_time: string;
+    end_time: string;
+    notes: string | null;
+    created_by: number;
+    operator?: { id: number; name: string } | null;
+    branch?: { id: number; name: string } | null;
+    creator?: { id: number; name: string } | null;
+    created_at: string;
+    updated_at: string;
 }
 
 // Report Module Types
@@ -369,4 +447,243 @@ export interface BranchComparisonItem {
     order_count: number;
     total_revenue: number;
     avg_order_value: number;
+}
+
+// Table Management Types
+
+export type TableStatus = 'available' | 'occupied' | 'reserved' | 'maintenance';
+
+export interface Table {
+    id: number;
+    tenant_id: string;
+    branch_id: number | null;
+    name: string;
+    capacity: number;
+    status: TableStatus;
+    sort_order: number;
+    is_active: boolean;
+    branch?: Pick<Branch, 'id' | 'name'> | null;
+    created_at: string;
+    updated_at: string;
+}
+
+// Promotion Engine Types
+
+export type PromotionType = 'percentage' | 'fixed' | 'buy_x_get_y';
+
+export interface Promotion {
+    id: number;
+    tenant_id: string;
+    code: string;
+    name: string;
+    type: PromotionType;
+    value: string;
+    min_order_amount: string | null;
+    max_discount: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    is_active: boolean;
+    usage_limit: number | null;
+    used_count: number;
+    description: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+// Supplier Module Types
+
+export interface Supplier {
+    id: number;
+    tenant_id: string;
+    name: string;
+    contact_person: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+    notes: string | null;
+    is_active: boolean;
+    created_by: number | null;
+    products_count?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ProductSupplier {
+    product_id: number;
+    supplier_id: number;
+    cost_price: string | null;
+    supplier_sku: string | null;
+    is_preferred: boolean;
+}
+
+// Product Variation & Add-on Types
+
+export interface VariationGroup {
+    id: number;
+    product_id: number;
+    name: string;
+    sort_order: number;
+    is_required: boolean;
+    options: VariationOption[];
+}
+
+export interface VariationOption {
+    id: number;
+    variation_group_id: number;
+    name: string;
+    price_modifier: string;
+    sort_order: number;
+    is_active: boolean;
+}
+
+export interface Addon {
+    id: number;
+    tenant_id: string;
+    name: string;
+    price: string;
+    category_label: string | null;
+    is_active: boolean;
+    sort_order: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface OrderItemVariation {
+    id: number;
+    order_item_id: number;
+    variation_group_name: string;
+    option_name: string;
+    price_modifier: string;
+}
+
+export interface OrderItemAddon {
+    id: number;
+    order_item_id: number;
+    addon_name: string;
+    addon_price: string;
+}
+
+// Stock Transfer Types
+
+export type TransferStatus = 'pending' | 'in_transit' | 'completed' | 'cancelled';
+
+export interface StockTransfer {
+    id: number;
+    tenant_id: string;
+    transfer_number: string;
+    source_branch_id: number;
+    destination_branch_id: number;
+    status: TransferStatus;
+    notes: string | null;
+    source_branch?: Pick<Branch, 'id' | 'name'>;
+    destination_branch?: Pick<Branch, 'id' | 'name'>;
+    items?: StockTransferItem[];
+    creator?: { id: number; name: string } | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface StockTransferItem {
+    id: number;
+    stock_transfer_id: number;
+    product_id: number;
+    quantity_requested: number;
+    quantity_sent: number | null;
+    quantity_received: number | null;
+    product?: Pick<Product, 'id' | 'name' | 'sku'>;
+}
+
+// Purchase Order Types
+
+export type PurchaseOrderStatus = 'draft' | 'sent' | 'partial' | 'received' | 'cancelled';
+
+export interface PurchaseOrder {
+    id: number;
+    tenant_id: string;
+    supplier_id: number;
+    branch_id: number;
+    po_number: string;
+    status: PurchaseOrderStatus;
+    expected_date: string | null;
+    notes: string | null;
+    total_amount: string;
+    supplier?: Pick<Supplier, 'id' | 'name'>;
+    branch?: Pick<Branch, 'id' | 'name'>;
+    items?: PurchaseOrderItem[];
+    creator?: { id: number; name: string } | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PurchaseOrderItem {
+    id: number;
+    purchase_order_id: number;
+    product_id: number;
+    quantity_ordered: number;
+    unit_cost: string;
+    quantity_received: number;
+    subtotal: string;
+    product?: Pick<Product, 'id' | 'name' | 'sku'>;
+}
+
+// Inventory Report Types
+
+export interface InventoryReportItem {
+    product_id: number;
+    product_name: string;
+    category_name: string;
+    branch_name: string;
+    quantity_on_hand: number;
+    low_stock_threshold: number;
+    cost_price: number;
+    price: number;
+    stock_value: number;
+    is_low_stock: boolean;
+}
+
+export interface StockMovementItem {
+    type: string;
+    label: string;
+    total_quantity: number;
+}
+
+export interface InventoryReport {
+    stock_levels: InventoryReportItem[];
+    low_stock_items: InventoryReportItem[];
+    stock_movement: StockMovementItem[];
+    total_stock_value: number;
+    branch_valuations: { branch_name: string; total_value: number; item_count: number }[];
+}
+
+// Tax Report Types
+
+export interface TaxPeriodItem {
+    period: string;
+    order_count: number;
+    taxable_amount: number;
+    tax_amount: number;
+}
+
+export interface TaxReport {
+    total_tax: number;
+    total_taxable: number;
+    effective_rate: number;
+    tax_inclusive: boolean;
+    tax_rate: number;
+    by_period: TaxPeriodItem[];
+    by_order_type: { type: string; label: string; tax_amount: number; order_count: number }[];
+}
+
+// Forecast Types
+
+export interface ForecastData {
+    historical: { labels: string[]; revenue: number[] };
+    projected: { labels: string[]; revenue: number[] };
+    moving_avg_7: (number | null)[];
+    moving_avg_30: (number | null)[];
+    growth_rate: number;
+    projected_revenue_7d: number;
+    projected_revenue_14d: number;
+    projected_revenue_30d: number;
+    day_of_week_pattern: { day: string; avg_revenue: number }[];
 }

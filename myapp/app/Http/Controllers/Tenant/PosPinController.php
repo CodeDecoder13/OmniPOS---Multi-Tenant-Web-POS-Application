@@ -29,10 +29,18 @@ class PosPinController extends Controller
 
         foreach ($tenantUsers as $tenantUser) {
             if (Hash::check($pin, $tenantUser->pos_pin)) {
+                if (! $tenantUser->is_active) {
+                    return response()->json([
+                        'message' => 'This account has been deactivated.',
+                    ], 422);
+                }
+
                 $user = User::find($tenantUser->user_id);
                 if (! $user) {
                     continue;
                 }
+
+                $tenantUser->update(['last_login_at' => now()]);
 
                 $role = $tenantUser->role;
 

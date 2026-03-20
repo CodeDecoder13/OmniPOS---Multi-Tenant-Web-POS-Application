@@ -33,6 +33,8 @@ class CheckoutRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:1000'],
             'order_type' => ['required', new Enum(OrderType::class)],
             'pos_operator_id' => ['nullable', 'integer'],
+            'table_id' => ['nullable', 'integer', Rule::exists('tables', 'id')->where('tenant_id', $tenant->id)],
+            'promotion_id' => ['nullable', 'integer', Rule::exists('promotions', 'id')->where('tenant_id', $tenant->id)],
         ];
     }
 

@@ -1,20 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Bar } from 'vue-chartjs';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title,
-    Tooltip,
-    Legend,
-} from 'chart.js';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Package } from 'lucide-vue-next';
 import type { TopProducts } from '@/types';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const props = defineProps<{
     data: TopProducts;
@@ -28,77 +15,145 @@ function formatCurrency(amount: number) {
 
 const items = computed(() => mode.value === 'quantity' ? props.data.by_quantity : props.data.by_revenue);
 
-const chartData = computed(() => ({
-    labels: items.value.map((i) => i.product_name),
-    datasets: [
-        {
-            label: mode.value === 'quantity' ? 'Quantity Sold' : 'Revenue',
-            data: items.value.map((i) => mode.value === 'quantity' ? i.total_quantity : i.total_revenue),
-            backgroundColor: 'rgba(13, 148, 136, 0.7)',
-            borderColor: 'rgb(13, 148, 136)',
-            borderWidth: 1,
-        },
-    ],
-}));
+const maxValue = computed(() => {
+    if (!items.value.length) return 1;
+    return Math.max(...items.value.map(i => mode.value === 'quantity' ? i.total_quantity : i.total_revenue));
+});
 
-const chartOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
+const series = computed(() => [{
+    name: mode.value === 'quantity' ? 'Quantity Sold' : 'Revenue',
+    data: items.value.map(i => mode.value === 'quantity' ? i.total_quantity : i.total_revenue),
+}]);
+
+const chartOptions = computed(() => ({
+    chart: {
+        type: 'bar' as const,
+        height: 320,
+        toolbar: { show: false },
+        fontFamily: 'inherit',
+        animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 500,
+            animateGradually: { enabled: true, delay: 50 },
+        },
     },
-};
+    plotOptions: {
+        bar: {
+            horizontal: true,
+            borderRadius: 6,
+            barHeight: '65%',
+            distributed: true,
+            dataLabels: { position: 'top' },
+        },
+    },
+    colors: items.value.map((_, idx) => {
+        const opacity = Math.max(0.2, 1 - idx * 0.08);
+        return `rgba(20, 184, 166, ${opacity})`;
+    }),
+    dataLabels: { enabled: false },
+    xaxis: {
+        categories: items.value.map(i => i.product_name),
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+        labels: {
+            style: { colors: '#94a3b8', fontSize: '11px' },
+            formatter: (val: number) => {
+                if (mode.value === 'revenue' && val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+                return `${val}`;
+            },
+        },
+    },
+    yaxis: {
+        labels: {
+            style: { colors: '#94a3b8', fontSize: '11px' },
+            maxWidth: 140,
+        },
+    },
+    grid: {
+        borderColor: 'rgba(148, 163, 184, 0.08)',
+        strokeDashArray: 4,
+        yaxis: { lines: { show: false } },
+    },
+    legend: { show: false },
+    tooltip: {
+        theme: 'dark',
+        style: { fontSize: '12px' },
+        y: {
+            formatter: (val: number) => mode.value === 'revenue' ? formatCurrency(val) : `${val} sold`,
+        },
+    },
+}));
 </script>
 
 <template>
-    <Card>
-        <CardHeader class="flex flex-row items-center justify-between">
-            <CardTitle>Top Products</CardTitle>
-            <div class="flex gap-1">
-                <Button
-                    size="sm"
-                    :variant="mode === 'quantity' ? 'default' : 'outline'"
+    <div class="overflow-hidden rounded-2xl border bg-card">
+        <div class="flex items-center justify-between border-b p-5">
+            <div>
+                <h3 class="text-lg font-semibold">Top Products</h3>
+                <p class="text-sm text-muted-foreground">Best performing products</p>
+            </div>
+            <div class="flex gap-1 rounded-lg bg-muted/60 p-1">
+                <button
+                    class="rounded-md px-3 py-1.5 text-sm font-medium transition-all"
+                    :class="mode === 'quantity' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                     @click="mode = 'quantity'"
                 >
                     By Quantity
-                </Button>
-                <Button
-                    size="sm"
-                    :variant="mode === 'revenue' ? 'default' : 'outline'"
+                </button>
+                <button
+                    class="rounded-md px-3 py-1.5 text-sm font-medium transition-all"
+                    :class="mode === 'revenue' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
                     @click="mode = 'revenue'"
                 >
                     By Revenue
-                </Button>
+                </button>
             </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-            <div class="h-[300px]">
-                <Bar v-if="items.length" :data="chartData" :options="chartOptions" />
-                <div v-else class="flex h-full items-center justify-center text-muted-foreground">
-                    No product data available.
+        </div>
+
+        <div class="p-5">
+            <div v-if="items.length">
+                <apexchart type="bar" height="320" :options="chartOptions" :series="series" />
+            </div>
+            <div v-else class="flex h-[320px] flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Package class="h-10 w-10 opacity-30" />
+                <p>No product data available.</p>
+            </div>
+        </div>
+
+        <!-- Ranked list -->
+        <div v-if="items.length" class="border-t">
+            <div
+                v-for="(item, idx) in items"
+                :key="item.product_name"
+                class="flex items-center gap-4 border-b px-5 py-3 last:border-0 transition-colors hover:bg-muted/30"
+            >
+                <div
+                    class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                    :class="idx < 3
+                        ? 'bg-gradient-to-br from-teal-500 to-emerald-600 text-white'
+                        : 'bg-muted text-muted-foreground'"
+                >
+                    {{ idx + 1 }}
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="truncate text-sm font-medium">{{ item.product_name }}</p>
+                    <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                            class="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500"
+                            :style="{ width: `${((mode === 'quantity' ? item.total_quantity : item.total_revenue) / maxValue) * 100}%` }"
+                        />
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-semibold">
+                        {{ mode === 'quantity' ? item.total_quantity.toLocaleString() : formatCurrency(item.total_revenue) }}
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                        {{ mode === 'quantity' ? formatCurrency(item.total_revenue) : `${item.total_quantity} sold` }}
+                    </p>
                 </div>
             </div>
-            <div v-if="items.length" class="rounded-md border">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b bg-muted/50">
-                            <th class="px-4 py-2 text-left font-medium">#</th>
-                            <th class="px-4 py-2 text-left font-medium">Product</th>
-                            <th class="px-4 py-2 text-right font-medium">Qty Sold</th>
-                            <th class="px-4 py-2 text-right font-medium">Revenue</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(item, idx) in items" :key="item.product_name" class="border-b last:border-0">
-                            <td class="px-4 py-2 text-muted-foreground">{{ idx + 1 }}</td>
-                            <td class="px-4 py-2 font-medium">{{ item.product_name }}</td>
-                            <td class="px-4 py-2 text-right">{{ item.total_quantity.toLocaleString() }}</td>
-                            <td class="px-4 py-2 text-right">{{ formatCurrency(item.total_revenue) }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </CardContent>
-    </Card>
+        </div>
+    </div>
 </template>

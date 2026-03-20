@@ -9,6 +9,7 @@ enum PaymentMethod: string
     case EWallet = 'e_wallet';
     case BankTransfer = 'bank_transfer';
     case Other = 'other';
+    case Online = 'online';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum PaymentMethod: string
             self::EWallet => 'E-Wallet',
             self::BankTransfer => 'Bank Transfer',
             self::Other => 'Other',
+            self::Online => 'Online',
         };
     }
 }

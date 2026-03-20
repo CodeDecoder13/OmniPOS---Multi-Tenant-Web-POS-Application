@@ -2,11 +2,16 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\KitchenStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\TableStatus;
 use App\Models\Tenant;
+use App\Models\Tenant\Branch;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\Product;
+use App\Models\Tenant\Promotion;
+use App\Models\Tenant\Table;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,29 +21,73 @@ class PosService
     public function __construct(
         private InventoryService $inventoryService,
     ) {}
-    public function getProducts(Tenant $tenant, Request $request, int $perPage = 20): LengthAwarePaginator
+    public function getProducts(Tenant $tenant, Request $request, ?int $branchId = null, int $perPage = 20): LengthAwarePaginator
     {
         $query = Product::forTenant($tenant)
-            ->where('is_active', true)
-            ->with('category:id,name')
-            ->select(['id', 'name', 'price', 'image_path', 'category_id', 'sku']);
+            ->where('products.is_active', true)
+            ->with('category:id,name');
+
+        $query->with(['variationGroups.options' => function ($q) {
+            $q->where('is_active', true);
+        }, 'addons' => function ($q) {
+            $q->where('is_active', true);
+        }]);
+
+        if ($branchId) {
+            $query->leftJoin('branch_product', function ($join) use ($branchId) {
+                $join->on('products.id', '=', 'branch_product.product_id')
+                    ->where('branch_product.branch_id', '=', $branchId);
+            })
+            ->where(function ($q) {
+                $q->whereNull('branch_product.id')
+                  ->orWhere('branch_product.is_available', true);
+            })
+            ->select([
+                'products.id',
+                'products.name',
+                'products.image_path',
+                'products.category_id',
+                'products.sku',
+                DB::raw('COALESCE(branch_product.custom_price, products.price) as price'),
+            ]);
+        } else {
+            $query->select(['products.id', 'products.name', 'products.price', 'products.image_path', 'products.category_id', 'products.sku']);
+        }
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
+                $q->where('products.name', 'like', "%{$search}%")
+                  ->orWhere('products.sku', 'like', "%{$search}%");
             });
         }
 
         if ($categoryId = $request->input('category_id')) {
-            $query->where('category_id', $categoryId);
+            $query->where('products.category_id', $categoryId);
         }
 
-        return $query->orderBy('name')->paginate($perPage)->withQueryString();
+        return $query->orderBy('products.name')->paginate($perPage)->withQueryString();
     }
 
     public function checkout(Tenant $tenant, array $data, int $userId, ?int $branchId = null): Order
     {
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                if (! $branch->getSetting('pos_enabled')) {
+                    throw new \Illuminate\Validation\ValidationException(
+                        validator: \Illuminate\Support\Facades\Validator::make([], []),
+                        response: response()->json(['message' => 'POS is not enabled for this branch.'], 422)
+                    );
+                }
+                if (! empty($data['discount_amount']) && ! $branch->getSetting('discounts_enabled')) {
+                    throw new \Illuminate\Validation\ValidationException(
+                        validator: \Illuminate\Support\Facades\Validator::make([], []),
+                        response: response()->json(['message' => 'Discounts are not enabled for this branch.'], 422)
+                    );
+                }
+            }
+        }
+
         return DB::transaction(function () use ($tenant, $data, $userId, $branchId) {
             $orderNumber = $this->generateOrderNumber($tenant);
 
@@ -50,18 +99,53 @@ class PosService
                 ->get()
                 ->keyBy('id');
 
+            // Load branch price overrides
+            $branchPrices = [];
+            if ($branchId) {
+                $branchPrices = DB::table('branch_product')
+                    ->where('branch_id', $branchId)
+                    ->whereIn('product_id', $productIds)
+                    ->whereNotNull('custom_price')
+                    ->pluck('custom_price', 'product_id')
+                    ->toArray();
+            }
+
             $subtotal = 0;
             $orderItems = [];
 
-            foreach ($items as $item) {
+            $itemVariations = [];
+            $itemAddons = [];
+
+            foreach ($items as $index => $item) {
                 $product = $products[$item['product_id']];
-                $itemSubtotal = $product->price * $item['quantity'];
+                $effectivePrice = $branchPrices[$product->id] ?? $product->price;
+
+                // Calculate variation price modifiers
+                $variationTotal = 0;
+                if (!empty($item['variations'])) {
+                    foreach ($item['variations'] as $variation) {
+                        $variationTotal += $variation['price_modifier'] ?? 0;
+                    }
+                    $itemVariations[$index] = $item['variations'];
+                }
+
+                // Calculate addon prices
+                $addonTotal = 0;
+                if (!empty($item['addons'])) {
+                    foreach ($item['addons'] as $addon) {
+                        $addonTotal += $addon['addon_price'] ?? 0;
+                    }
+                    $itemAddons[$index] = $item['addons'];
+                }
+
+                $unitPrice = $effectivePrice + $variationTotal + $addonTotal;
+                $itemSubtotal = $unitPrice * $item['quantity'];
                 $subtotal += $itemSubtotal;
 
                 $orderItems[] = [
                     'product_id' => $product->id,
                     'product_name' => $product->name,
-                    'product_price' => $product->price,
+                    'product_price' => $unitPrice,
                     'quantity' => $item['quantity'],
                     'subtotal' => $itemSubtotal,
                 ];
@@ -81,6 +165,30 @@ class PosService
 
             $afterDiscount = $subtotal - $discountAmount;
 
+            // Apply promotion discount
+            $promotionId = $data['promotion_id'] ?? null;
+            $promotionDiscount = 0;
+
+            if ($promotionId) {
+                $promotion = Promotion::forTenant($tenant)->find($promotionId);
+                if ($promotion && $promotion->isValid($afterDiscount)) {
+                    if ($promotion->type->value === 'percentage') {
+                        $promotionDiscount = round($afterDiscount * (floatval($promotion->value) / 100), 2);
+                    } else {
+                        $promotionDiscount = floatval($promotion->value);
+                    }
+
+                    if ($promotion->max_discount && $promotionDiscount > floatval($promotion->max_discount)) {
+                        $promotionDiscount = floatval($promotion->max_discount);
+                    }
+
+                    $afterDiscount = max(0, $afterDiscount - $promotionDiscount);
+                    $promotion->increment('used_count');
+                } else {
+                    $promotionId = null;
+                }
+            }
+
             // Calculate tax
             $taxRate = $tenant->data['tax_rate'] ?? 0;
             $taxInclusive = $tenant->data['tax_inclusive'] ?? false;
@@ -99,6 +207,8 @@ class PosService
             }
 
             // Create order
+            $tableId = $data['table_id'] ?? null;
+
             $order = Order::create([
                 'tenant_id' => $tenant->id,
                 'branch_id' => $branchId,
@@ -107,6 +217,8 @@ class PosService
                 'subtotal' => $subtotal,
                 'discount_amount' => $discountAmount,
                 'discount_type' => $discountType,
+                'promotion_id' => $promotionId,
+                'promotion_discount' => $promotionDiscount,
                 'tax_amount' => $taxAmount,
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
@@ -114,10 +226,54 @@ class PosService
                 'status' => OrderStatus::Completed,
                 'created_by' => $userId,
                 'shift_id' => $data['shift_id'] ?? null,
+                'table_id' => $tableId,
             ]);
 
+            // Mark table as occupied
+            if ($tableId) {
+                $table = Table::find($tableId);
+                if ($table) {
+                    $table->update(['status' => TableStatus::Occupied]);
+                }
+            }
+
             // Create order items
-            $order->items()->createMany($orderItems);
+            $createdItems = [];
+            foreach ($orderItems as $oi) {
+                $createdItems[] = $order->items()->create($oi);
+            }
+
+            // Store variation/addon snapshots
+            foreach ($createdItems as $index => $createdItem) {
+                if (!empty($itemVariations[$index])) {
+                    foreach ($itemVariations[$index] as $v) {
+                        $createdItem->variations()->create([
+                            'variation_group_name' => $v['variation_group_name'],
+                            'option_name' => $v['option_name'],
+                            'price_modifier' => $v['price_modifier'] ?? 0,
+                        ]);
+                    }
+                }
+                if (!empty($itemAddons[$index])) {
+                    foreach ($itemAddons[$index] as $a) {
+                        $createdItem->itemAddons()->create([
+                            'addon_name' => $a['addon_name'],
+                            'addon_price' => $a['addon_price'] ?? 0,
+                        ]);
+                    }
+                }
+            }
+
+            // Send to kitchen if enabled
+            if ($branchId) {
+                $branch = Branch::find($branchId);
+                if ($branch && $branch->getSetting('kitchen_display')) {
+                    $order->update([
+                        'kitchen_status' => KitchenStatus::New,
+                        'kitchen_sent_at' => now(),
+                    ]);
+                }
+            }
 
             // Decrement inventory
             $this->inventoryService->decrementForSale($tenant, $branchId, $items, $order->id, $userId);
@@ -136,7 +292,7 @@ class PosService
                 'change_amount' => $changeAmount,
             ]);
 
-            return $order->load(['items', 'payments', 'customer:id,name']);
+            return $order->load(['items.variations', 'items.itemAddons', 'payments', 'customer:id,name', 'table:id,name', 'promotion:id,code,name']);
         });
     }
 

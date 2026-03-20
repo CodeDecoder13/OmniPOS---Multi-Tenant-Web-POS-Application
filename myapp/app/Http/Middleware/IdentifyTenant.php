@@ -38,6 +38,15 @@ class IdentifyTenant
             abort(403, 'You do not have access to this organization.');
         }
 
+        if (! $tenantUser->is_active) {
+            abort(403, 'Your account has been deactivated in this organization.');
+        }
+
+        // Throttled last_login_at update (every 15 minutes)
+        if (! $tenantUser->last_login_at || $tenantUser->last_login_at->diffInMinutes(now()) >= 15) {
+            $tenantUser->update(['last_login_at' => now()]);
+        }
+
         $role = $tenantUser->role;
 
         // Owner role always gets all permissions regardless of pivot table state

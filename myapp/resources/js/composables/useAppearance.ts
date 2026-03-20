@@ -2,6 +2,23 @@ import type { ComputedRef, Ref } from 'vue';
 import { computed, onMounted, ref } from 'vue';
 import type { Appearance, ResolvedAppearance } from '@/types';
 
+function getTenantDefaultTheme(): Appearance | null {
+    if (typeof document === 'undefined') return null;
+    try {
+        const el = document.getElementById('app');
+        const dataPage = el?.dataset.page;
+        if (!dataPage) return null;
+        const page = JSON.parse(dataPage);
+        const theme = page?.props?.tenant?.settings?.default_theme;
+        if (theme === 'light' || theme === 'dark' || theme === 'system') {
+            return theme;
+        }
+    } catch {
+        // ignore
+    }
+    return null;
+}
+
 export type { Appearance, ResolvedAppearance };
 
 export type UseAppearanceReturn = {
@@ -75,9 +92,9 @@ export function initializeTheme(): void {
         return;
     }
 
-    // Initialize theme from saved preference or default to system...
+    // Initialize theme from saved preference -> tenant default -> system
     const savedAppearance = getStoredAppearance();
-    updateTheme(savedAppearance || 'system');
+    updateTheme(savedAppearance || getTenantDefaultTheme() || 'system');
 
     // Set up system theme change listener...
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
@@ -93,6 +110,11 @@ export function useAppearance(): UseAppearanceReturn {
 
         if (savedAppearance) {
             appearance.value = savedAppearance;
+        } else {
+            const tenantDefault = getTenantDefaultTheme();
+            if (tenantDefault) {
+                appearance.value = tenantDefault;
+            }
         }
     });
 

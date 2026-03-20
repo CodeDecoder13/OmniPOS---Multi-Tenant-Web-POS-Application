@@ -21,12 +21,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { BreadcrumbItem, Category } from '@/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import type { BreadcrumbItem, Category, Addon } from '@/types';
 import type { AcceptableValue } from 'reka-ui';
 import { useTenant } from '@/composables/useTenant';
 
 const props = defineProps<{
     categories: Pick<Category, 'id' | 'name'>[];
+    addons?: Pick<Addon, 'id' | 'name' | 'price'>[];
 }>();
 
 const { tenantUrl } = useTenant();
@@ -46,7 +48,31 @@ const form = useForm({
     image: null as File | null,
     price: 0,
     cost_price: undefined as number | undefined,
+    variation_groups: [] as { name: string; is_required: boolean; options: { name: string; price_modifier: number }[] }[],
+    addon_ids: [] as number[],
 });
+
+function addVariationGroup() {
+    form.variation_groups.push({ name: '', is_required: false, options: [{ name: '', price_modifier: 0 }] });
+}
+
+function removeVariationGroup(index: number) {
+    form.variation_groups.splice(index, 1);
+}
+
+function addVariationOption(groupIndex: number) {
+    form.variation_groups[groupIndex].options.push({ name: '', price_modifier: 0 });
+}
+
+function removeVariationOption(groupIndex: number, optIndex: number) {
+    form.variation_groups[groupIndex].options.splice(optIndex, 1);
+}
+
+function toggleAddon(addonId: number) {
+    const idx = form.addon_ids.indexOf(addonId);
+    if (idx >= 0) form.addon_ids.splice(idx, 1);
+    else form.addon_ids.push(addonId);
+}
 
 const categoryModel = ref('none');
 const localCategories = ref([...props.categories]);
@@ -351,6 +377,47 @@ function submit() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Variation Groups -->
+                <div class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-medium">Variation Groups</h2>
+                        <Button type="button" variant="outline" size="sm" @click="addVariationGroup">+ Add Group</Button>
+                    </div>
+                    <div v-if="form.variation_groups.length === 0" class="text-sm text-muted-foreground">No variation groups.</div>
+                    <div v-for="(group, gi) in form.variation_groups" :key="gi" class="mb-4 rounded-md border p-4 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <Input v-model="group.name" placeholder="Group name (e.g. Size)" class="flex-1" />
+                            <label class="flex items-center gap-1 text-sm">
+                                <Checkbox :model-value="group.is_required" @update:model-value="group.is_required = !!$event" />
+                                Required
+                            </label>
+                            <Button type="button" variant="ghost" size="sm" @click="removeVariationGroup(gi)" class="text-destructive">Remove</Button>
+                        </div>
+                        <div class="space-y-2 pl-4">
+                            <div v-for="(opt, oi) in group.options" :key="oi" class="flex items-center gap-2">
+                                <Input v-model="opt.name" placeholder="Option name" class="flex-1" />
+                                <Input v-model.number="opt.price_modifier" type="number" step="0.01" min="0" placeholder="+ Price" class="w-28" />
+                                <Button type="button" variant="ghost" size="icon" @click="removeVariationOption(gi, oi)" :disabled="group.options.length <= 1">
+                                    <span class="text-destructive text-sm">×</span>
+                                </Button>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" @click="addVariationOption(gi)">+ Add Option</Button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add-ons Selection -->
+                <div v-if="addons && addons.length > 0" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <h2 class="mb-4 text-sm font-medium">Add-ons</h2>
+                    <div class="space-y-2">
+                        <label v-for="addon in addons" :key="addon.id" class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50">
+                            <Checkbox :model-value="form.addon_ids.includes(addon.id)" @update:model-value="toggleAddon(addon.id)" />
+                            <span class="flex-1 text-sm">{{ addon.name }}</span>
+                            <span class="text-sm text-muted-foreground">{{ Number(addon.price).toFixed(2) }}</span>
+                        </label>
                     </div>
                 </div>
 

@@ -23,6 +23,8 @@ class SettingsRequest extends FormRequest
             'receipt_header' => ['nullable', 'string', 'max:500'],
             'receipt_footer' => ['nullable', 'string', 'max:500'],
             'currency' => ['nullable', 'string', 'max:10'],
+            'default_theme' => ['nullable', 'string', 'in:light,dark,system'],
+            'default_language' => ['nullable', 'string', 'in:en,ja,fil'],
         ];
     }
 }

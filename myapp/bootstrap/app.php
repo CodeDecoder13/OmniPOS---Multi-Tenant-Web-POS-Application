@@ -32,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'tenant' => IdentifyTenant::class,
             'can-do' => \App\Http\Middleware\CheckPermission::class,
+            'branch-feature' => \App\Http\Middleware\CheckBranchFeature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

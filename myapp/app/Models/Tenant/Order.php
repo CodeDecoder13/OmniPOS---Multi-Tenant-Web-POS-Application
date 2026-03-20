@@ -3,6 +3,7 @@
 namespace App\Models\Tenant;
 
 use App\Enums\DiscountType;
+use App\Enums\KitchenStatus;
 use App\Enums\OrderStatus;
 use App\Enums\OrderType;
 use App\Models\Tenant;
@@ -18,6 +19,8 @@ class Order extends Model
         'tenant_id', 'branch_id', 'customer_id', 'order_number',
         'subtotal', 'discount_amount', 'discount_type', 'tax_amount',
         'total', 'notes', 'order_type', 'status', 'created_by', 'shift_id',
+        'table_id', 'promotion_id', 'promotion_discount',
+        'kitchen_status', 'kitchen_sent_at', 'kitchen_completed_at', 'kitchen_notes',
     ];
 
     protected function casts(): array
@@ -26,16 +29,31 @@ class Order extends Model
             'status' => OrderStatus::class,
             'order_type' => OrderType::class,
             'discount_type' => DiscountType::class,
+            'kitchen_status' => KitchenStatus::class,
             'subtotal' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'promotion_discount' => 'decimal:2',
+            'kitchen_sent_at' => 'datetime',
+            'kitchen_completed_at' => 'datetime',
         ];
     }
 
     public function scopeForTenant(Builder $query, Tenant $tenant): Builder
     {
         return $query->where('tenant_id', $tenant->id);
+    }
+
+    public function scopeForKitchen(Builder $query, int $branchId): Builder
+    {
+        return $query->where('branch_id', $branchId)
+            ->whereNotNull('kitchen_status')
+            ->whereIn('kitchen_status', [
+                KitchenStatus::New->value,
+                KitchenStatus::Preparing->value,
+                KitchenStatus::Ready->value,
+            ]);
     }
 
     public function isPaid(): bool
@@ -81,5 +99,15 @@ class Order extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function table(): BelongsTo
+    {
+        return $this->belongsTo(Table::class);
+    }
+
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class);
     }
 }

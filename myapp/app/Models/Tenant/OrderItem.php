@@ -4,6 +4,7 @@ namespace App\Models\Tenant;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
@@ -29,5 +30,15 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function variations(): HasMany
+    {
+        return $this->hasMany(OrderItemVariation::class);
+    }
+
+    public function itemAddons(): HasMany
+    {
+        return $this->hasMany(OrderItemAddon::class);
     }
 }

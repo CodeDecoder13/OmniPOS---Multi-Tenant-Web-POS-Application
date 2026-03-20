@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Filter } from 'lucide-vue-next';
 import type { Branch, ReportFilters } from '@/types';
 
 const props = defineProps<{
@@ -37,19 +38,19 @@ function apply() {
 </script>
 
 <template>
-    <div class="flex flex-wrap items-end gap-4">
-        <div class="space-y-1">
-            <label class="text-xs font-medium text-muted-foreground">From</label>
-            <Input type="date" v-model="dateFrom" class="w-[160px]" />
+    <div class="flex flex-wrap items-end gap-3 rounded-2xl border bg-card/50 p-4 backdrop-blur">
+        <div class="space-y-1.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">From</label>
+            <Input type="date" v-model="dateFrom" class="w-[160px] rounded-lg" />
         </div>
-        <div class="space-y-1">
-            <label class="text-xs font-medium text-muted-foreground">To</label>
-            <Input type="date" v-model="dateTo" class="w-[160px]" />
+        <div class="space-y-1.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">To</label>
+            <Input type="date" v-model="dateTo" class="w-[160px] rounded-lg" />
         </div>
-        <div class="space-y-1">
-            <label class="text-xs font-medium text-muted-foreground">Period</label>
+        <div class="space-y-1.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Period</label>
             <Select v-model="period">
-                <SelectTrigger class="w-[140px]">
+                <SelectTrigger class="w-[140px] rounded-lg">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -59,10 +60,10 @@ function apply() {
                 </SelectContent>
             </Select>
         </div>
-        <div v-if="branches.length > 1" class="space-y-1">
-            <label class="text-xs font-medium text-muted-foreground">Branch</label>
+        <div v-if="branches.length > 1" class="space-y-1.5">
+            <label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Branch</label>
             <Select v-model="branchId">
-                <SelectTrigger class="w-[180px]">
+                <SelectTrigger class="w-[180px] rounded-lg">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -73,6 +74,9 @@ function apply() {
                 </SelectContent>
             </Select>
         </div>
-        <Button @click="apply">Apply</Button>
+        <Button @click="apply" class="gap-2 rounded-lg">
+            <Filter class="h-4 w-4" />
+            Apply
+        </Button>
     </div>
 </template>

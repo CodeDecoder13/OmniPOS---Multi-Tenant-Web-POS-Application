@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { ArrowLeft, Printer } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
+import { usePrinter } from '@/composables/usePrinter';
+import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import type { Order } from '@/types';
 
 const props = defineProps<{
@@ -16,6 +18,8 @@ const props = defineProps<{
 
 const { tenantUrl } = useTenant();
 const { can } = usePermissions();
+const { printReceipt: doPrintReceipt } = usePrinter();
+const page = usePage();
 
 const voidDialog = ref(false);
 const voiding = ref(false);
@@ -31,7 +35,37 @@ function voidOrder() {
 }
 
 function printReceipt() {
-    window.print();
+    const o = props.order;
+    const tenant = page.props.tenant as any;
+    const payment = o.payments?.[0];
+    const receiptData: ReceiptData = {
+        storeName: tenant?.settings?.store_name || tenant?.name || 'Store',
+        storeAddress: tenant?.settings?.store_address,
+        storePhone: tenant?.settings?.store_phone,
+        receiptHeader: tenant?.settings?.receipt_header,
+        receiptFooter: tenant?.settings?.receipt_footer,
+        orderNumber: o.order_number,
+        dateTime: formatDate(o.created_at),
+        cashier: o.creator?.name ?? 'Cashier',
+        customer: o.customer?.name ?? null,
+        items: (o.items ?? []).map(item => ({
+            name: item.product_name,
+            quantity: item.quantity,
+            price: Number(item.product_price),
+            subtotal: Number(item.subtotal),
+        })),
+        subtotal: Number(o.subtotal),
+        discount: Number(o.discount_amount) > 0 ? Number(o.discount_amount) : undefined,
+        tax: Number(o.tax_amount) > 0 ? Number(o.tax_amount) : undefined,
+        total: Number(o.total),
+        tableName: o.table?.name ?? null,
+        paymentMethod: payment?.method,
+        amountTendered: payment?.amount_tendered ? Number(payment.amount_tendered) : undefined,
+        change: payment?.change_amount ? Number(payment.change_amount) : undefined,
+        referenceNumber: payment?.reference_number ?? null,
+        orderType: o.order_type === 'take_out' ? 'TAKE OUT' : 'DINE IN',
+    };
+    doPrintReceipt(receiptData, true);
 }
 
 function formatCurrency(amount: string | number) {

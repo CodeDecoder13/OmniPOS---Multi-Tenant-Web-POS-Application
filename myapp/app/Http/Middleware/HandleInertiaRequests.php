@@ -82,6 +82,17 @@ class HandleInertiaRequests extends Middleware
                 ] : null;
             },
             'tenantPermissions' => fn () => $request->attributes->get('current_permissions', []),
+            'branchSettings' => function () use ($request) {
+                $tenantUser = $request->attributes->get('current_tenant_user');
+
+                if (! $tenantUser || ! $tenantUser->branch_id) {
+                    return null;
+                }
+
+                $branch = \App\Models\Tenant\Branch::find($tenantUser->branch_id);
+
+                return $branch?->getSettings();
+            },
         ];
     }
 }

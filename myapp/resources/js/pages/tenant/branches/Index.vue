@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Edit, Plus, Trash2 } from 'lucide-vue-next';
+import { Edit, List, Plus, Settings, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
@@ -109,6 +109,16 @@ function deleteBranch() {
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
+                                    <Button variant="ghost" size="icon" as-child title="Menu & Pricing">
+                                        <Link :href="tenantUrl(`branches/${branch.id}/menu`)">
+                                            <List class="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <Button variant="ghost" size="icon" as-child title="Feature Settings">
+                                        <Link :href="tenantUrl(`branches/${branch.id}/settings`)">
+                                            <Settings class="h-4 w-4" />
+                                        </Link>
+                                    </Button>
                                     <Button variant="ghost" size="icon" as-child>
                                         <Link :href="tenantUrl(`branches/${branch.id}/edit`)">
                                             <Edit class="h-4 w-4" />

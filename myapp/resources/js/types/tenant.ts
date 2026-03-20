@@ -15,6 +15,8 @@ export interface TenantSettings {
     receipt_header?: string;
     receipt_footer?: string;
     currency?: string;
+    default_theme?: 'light' | 'dark' | 'system';
+    default_language?: string;
 }
 
 export interface SharedTenant {

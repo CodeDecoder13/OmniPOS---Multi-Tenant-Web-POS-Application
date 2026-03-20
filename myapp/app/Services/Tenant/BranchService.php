@@ -41,4 +41,11 @@ class BranchService
     {
         return Branch::forTenant($tenant)->findOrFail($branchId);
     }
+
+    public function updateSettings(Branch $branch, array $settings): Branch
+    {
+        $branch->update(['settings' => $settings]);
+
+        return $branch->fresh();
+    }
 }

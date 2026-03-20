@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ProductRequest;
+use App\Models\Tenant\Addon;
 use App\Models\Tenant\Category;
 use App\Services\Tenant\ProductService;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +41,10 @@ class ProductController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'addons' => Addon::forTenant($tenant)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'price']),
         ]);
     }
 
@@ -47,9 +52,17 @@ class ProductController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
 
-        $data = $request->safe()->except(['image', 'remove_image']);
+        $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids']);
 
-        $this->productService->create($tenant, $data, $request->user()->id, $request->file('image'));
+        $product = $this->productService->create($tenant, $data, $request->user()->id, $request->file('image'));
+
+        if ($request->has('variation_groups') && is_array($request->input('variation_groups'))) {
+            $this->productService->syncVariations($product, $request->input('variation_groups'));
+        }
+
+        if ($request->has('addon_ids')) {
+            $this->productService->syncAddons($product, $request->input('addon_ids', []));
+        }
 
         return redirect()
             ->route('tenant.products.index', ['tenant' => $tenant->slug])
@@ -60,6 +73,7 @@ class ProductController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
         $product = $this->productService->findForTenant($tenant, $product);
+        $product->load(['variationGroups.options', 'addons:id']);
 
         return Inertia::render('tenant/products/Edit', [
             'product' => $product,
@@ -67,6 +81,10 @@ class ProductController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'addons' => Addon::forTenant($tenant)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'price']),
         ]);
     }
 
@@ -75,7 +93,7 @@ class ProductController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $product = $this->productService->findForTenant($tenant, $product);
 
-        $data = $request->safe()->except(['image', 'remove_image']);
+        $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids']);
 
         $this->productService->update(
             $product,
@@ -83,6 +101,14 @@ class ProductController extends Controller
             $request->file('image'),
             $request->boolean('remove_image'),
         );
+
+        if ($request->has('variation_groups')) {
+            $this->productService->syncVariations($product, $request->input('variation_groups', []));
+        }
+
+        if ($request->has('addon_ids')) {
+            $this->productService->syncAddons($product, $request->input('addon_ids', []));
+        }
 
         return redirect()
             ->route('tenant.products.index', ['tenant' => $tenant->slug])

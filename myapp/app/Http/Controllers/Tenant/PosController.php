@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\CheckoutRequest;
 use App\Models\Tenant\Category;
+use App\Models\Tenant\Branch;
 use App\Models\TenantUser;
 use App\Services\Tenant\CustomerService;
 use App\Services\Tenant\PosService;
 use App\Services\Tenant\ShiftService;
+use App\Services\Tenant\TableService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,6 +26,10 @@ class PosController extends Controller
     public function index(Request $request, string $tenantSlug): Response
     {
         $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $branchId = $tenantUser->branch_id ?? null;
+
+        $branch = $branchId ? Branch::find($branchId) : null;
 
         return Inertia::render('tenant/pos/Index', [
             'categories' => Category::forTenant($tenant)
@@ -31,15 +37,19 @@ class PosController extends Controller
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'tables' => app(TableService::class)->getAvailableForBranch($tenant, $branchId),
+            'branchSettings' => $branch?->getSettings(),
         ]);
     }
 
     public function products(Request $request, string $tenantSlug): JsonResponse
     {
         $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $branchId = $tenantUser->branch_id ?? null;
 
         return response()->json(
-            $this->posService->getProducts($tenant, $request)
+            $this->posService->getProducts($tenant, $request, $branchId)
         );
     }
 
