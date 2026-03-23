@@ -11,7 +11,10 @@ import {
     CreditCard, Printer, LayoutDashboard,
     Tag, Clock, Truck, CalendarDays, Zap, Globe, Boxes, ChefHat, Star, Users,
     FileSpreadsheet, Lock, QrCode, Bell, Timer, Shuffle, TableProperties, Megaphone,
+    Cookie, Construction,
 } from 'lucide-vue-next';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import type { Plan } from '@/types';
 
 const props = withDefaults(
@@ -228,6 +231,36 @@ const businessTypes = [
     { icon: Wrench, name: 'Hardware', count: 'Tools & supplies' },
     { icon: LayoutGrid, name: 'General Store', count: 'Multi-category' },
 ];
+
+// --- Modal state ---
+const welcomeDismissed = localStorage.getItem('omnipos_welcome_dismissed');
+const cookiesDecided = localStorage.getItem('omnipos_cookies_accepted');
+
+const showWelcomeModal = ref(!welcomeDismissed);
+const showCookieModal = ref(false);
+
+// If welcome was already dismissed but cookies not decided, show cookie modal immediately
+if (welcomeDismissed && !cookiesDecided) {
+    showCookieModal.value = true;
+}
+
+function dismissWelcome() {
+    localStorage.setItem('omnipos_welcome_dismissed', 'true');
+    showWelcomeModal.value = false;
+    if (!cookiesDecided) {
+        showCookieModal.value = true;
+    }
+}
+
+function acceptCookies() {
+    localStorage.setItem('omnipos_cookies_accepted', 'accepted');
+    showCookieModal.value = false;
+}
+
+function declineCookies() {
+    localStorage.setItem('omnipos_cookies_accepted', 'declined');
+    showCookieModal.value = false;
+}
 </script>
 
 <template>
@@ -1308,6 +1341,70 @@ const businessTypes = [
             </div>
         </footer>
     </div>
+
+    <!-- ==================== WELCOME / TESTING PHASE MODAL ==================== -->
+    <Dialog :open="showWelcomeModal" @update:open="(v: boolean) => { if (!v) dismissWelcome() }">
+        <DialogContent :show-close-button="false" class="sm:max-w-md">
+            <div class="h-1.5 absolute top-0 left-0 right-0 rounded-t-lg bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600"></div>
+            <DialogHeader class="pt-2">
+                <DialogTitle class="flex items-center gap-2 text-xl">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-900/50">
+                        <Construction class="h-4.5 w-4.5 text-teal-600 dark:text-teal-400" />
+                    </div>
+                    Welcome to OmniPOS!
+                </DialogTitle>
+            </DialogHeader>
+            <DialogDescription class="space-y-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                <p>
+                    Our app is currently in its <span class="font-semibold text-teal-600 dark:text-teal-400">testing phase</span>.
+                    We're actively building and improving things, so you might encounter a few bugs or rough edges along the way.
+                </p>
+                <p>
+                    Don't worry — that's totally normal and part of the process! The developer will send you a
+                    <span class="font-medium text-gray-800 dark:text-gray-200">bug report form</span>
+                    so you can easily share any issues you find. No need to go looking for it.
+                </p>
+                <p class="text-gray-700 dark:text-gray-300">
+                    Thank you for being an early tester — your feedback helps make OmniPOS better for everyone!
+                </p>
+            </DialogDescription>
+            <DialogFooter>
+                <Button @click="dismissWelcome" class="w-full bg-teal-600 hover:bg-teal-700">
+                    Got it!
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <!-- ==================== COOKIE CONSENT MODAL ==================== -->
+    <Dialog :open="showCookieModal" @update:open="(v: boolean) => { if (!v) declineCookies() }">
+        <DialogContent :show-close-button="false" class="sm:max-w-md">
+            <div class="h-1.5 absolute top-0 left-0 right-0 rounded-t-lg bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600"></div>
+            <DialogHeader class="pt-2">
+                <DialogTitle class="flex items-center gap-2 text-xl">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/50">
+                        <Cookie class="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    Cookie Notice
+                </DialogTitle>
+            </DialogHeader>
+            <DialogDescription class="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                <p>
+                    We use <span class="font-medium text-gray-800 dark:text-gray-200">essential cookies</span>
+                    to keep the app running smoothly — things like your session, preferences, and security tokens.
+                    These are necessary for the site to function properly.
+                </p>
+            </DialogDescription>
+            <DialogFooter class="flex gap-3 sm:gap-3">
+                <Button variant="outline" @click="declineCookies" class="flex-1">
+                    Decline
+                </Button>
+                <Button @click="acceptCookies" class="flex-1 bg-teal-600 hover:bg-teal-700">
+                    Accept
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>
 
 <style scoped>
