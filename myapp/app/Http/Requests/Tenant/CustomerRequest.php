@@ -27,6 +27,7 @@ class CustomerRequest extends FormRequest
             ],
             'phone' => [
                 'nullable', 'string', 'max:50',
+                'regex:/^[+]?[\d\s\-().]+$/',
                 Rule::unique('customers')
                     ->where('tenant_id', $tenant->id)
                     ->ignore($customerId),

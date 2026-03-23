@@ -68,7 +68,13 @@ class BranchController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $branch = $this->branchService->findForTenant($tenant, $branch);
 
-        $this->branchService->delete($branch);
+        try {
+            $this->branchService->delete($branch);
+        } catch (\DomainException $e) {
+            return redirect()
+                ->route('tenant.branches.index', ['tenant' => $tenant->slug])
+                ->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('tenant.branches.index', ['tenant' => $tenant->slug])

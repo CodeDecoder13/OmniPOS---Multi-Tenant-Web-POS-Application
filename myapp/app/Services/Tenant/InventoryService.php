@@ -7,9 +7,11 @@ use App\Models\Tenant;
 use App\Models\Tenant\Inventory;
 use App\Models\Tenant\InventoryAdjustment;
 use App\Models\Tenant\Order;
+use App\Models\Tenant\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
@@ -51,8 +53,16 @@ class InventoryService
     public function adjust(Inventory $inventory, AdjustmentType $type, int $quantityChange, ?string $reason, ?int $userId): InventoryAdjustment
     {
         return DB::transaction(function () use ($inventory, $type, $quantityChange, $reason, $userId) {
+            $inventory = Inventory::where('id', $inventory->id)->lockForUpdate()->first();
+
             $quantityBefore = $inventory->quantity_on_hand;
             $quantityAfter = $quantityBefore + $quantityChange;
+
+            if ($quantityAfter < 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Adjustment would result in negative stock ({$quantityAfter}).",
+                ]);
+            }
 
             $inventory->update(['quantity_on_hand' => $quantityAfter]);
 
@@ -79,10 +89,28 @@ class InventoryService
             $productId = $item['product_id'];
             $quantity = $item['quantity'];
 
-            $inventory = Inventory::firstOrCreate(
-                ['product_id' => $productId, 'branch_id' => $branchId],
-                ['tenant_id' => $tenant->id, 'quantity_on_hand' => 0, 'low_stock_threshold' => 0]
-            );
+            $inventory = Inventory::where('product_id', $productId)
+                ->where('branch_id', $branchId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $inventory) {
+                $inventory = Inventory::create([
+                    'product_id' => $productId,
+                    'branch_id' => $branchId,
+                    'tenant_id' => $tenant->id,
+                    'quantity_on_hand' => 0,
+                    'low_stock_threshold' => 0,
+                ]);
+                $inventory = Inventory::where('id', $inventory->id)->lockForUpdate()->first();
+            }
+
+            if ($inventory->quantity_on_hand < $quantity) {
+                $product = Product::find($productId);
+                throw ValidationException::withMessages([
+                    'items' => "Insufficient stock for {$product->name}. Available: {$inventory->quantity_on_hand}, requested: {$quantity}.",
+                ]);
+            }
 
             $quantityBefore = $inventory->quantity_on_hand;
             $quantityAfter = $quantityBefore - $quantity;
@@ -119,6 +147,7 @@ class InventoryService
 
             $inventory = Inventory::where('product_id', $item->product_id)
                 ->where('branch_id', $order->branch_id)
+                ->lockForUpdate()
                 ->first();
 
             if (! $inventory) {

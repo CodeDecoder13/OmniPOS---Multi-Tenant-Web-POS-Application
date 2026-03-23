@@ -14,13 +14,13 @@ class CheckBranchFeature
         $tenantUser = $request->attributes->get('current_tenant_user');
 
         if (! $tenantUser || ! $tenantUser->branch_id) {
-            return $next($request);
+            abort(403, 'You must be assigned to a branch to access this feature.');
         }
 
         $branch = Branch::find($tenantUser->branch_id);
 
         if (! $branch) {
-            return $next($request);
+            abort(403, 'Your assigned branch was not found.');
         }
 
         foreach ($features as $feature) {

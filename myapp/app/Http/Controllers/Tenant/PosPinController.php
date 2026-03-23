@@ -42,6 +42,10 @@ class PosPinController extends Controller
 
                 $tenantUser->update(['last_login_at' => now()]);
 
+                // Store verified operator in session for checkout validation
+                $request->session()->put('pos_verified_operator_id', $user->id);
+                $request->session()->put('pos_verified_operator_at', now()->timestamp);
+
                 $role = $tenantUser->role;
 
                 if ($role && $role->is_system && $role->slug === 'owner') {

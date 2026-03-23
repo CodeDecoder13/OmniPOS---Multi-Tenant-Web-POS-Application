@@ -6,6 +6,7 @@ import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTenant } from '@/composables/useTenant';
+import { useCurrency } from '@/composables/useCurrency';
 import type { Shift, ShiftSummary, Order } from '@/types';
 
 interface ShiftOrder {
@@ -25,10 +26,7 @@ const props = defineProps<{
 }>();
 
 const { tenantUrl } = useTenant();
-
-function formatCurrency(amount: string | number) {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
-}
+const { formatCurrency } = useCurrency();
 
 function formatDate(date: string | null) {
     if (!date) return '-';

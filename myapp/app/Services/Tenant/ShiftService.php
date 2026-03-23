@@ -5,11 +5,13 @@ namespace App\Services\Tenant;
 use App\Enums\OrderStatus;
 use App\Enums\ShiftStatus;
 use App\Models\Tenant;
+use App\Models\Tenant\Branch;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\Shift;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ShiftService
 {
@@ -19,6 +21,16 @@ class ShiftService
 
         if ($existing) {
             abort(422, 'You already have an open shift.');
+        }
+
+        // Validate branch belongs to tenant
+        if (! empty($data['branch_id'])) {
+            $branch = Branch::forTenant($tenant)->where('id', $data['branch_id'])->first();
+            if (! $branch) {
+                throw ValidationException::withMessages([
+                    'branch_id' => 'The selected branch does not belong to this tenant.',
+                ]);
+            }
         }
 
         return Shift::create([
@@ -54,9 +66,9 @@ class ShiftService
                 ->where('payments.status', 'completed')
                 ->sum('payments.amount');
 
-            $expectedCash = (float) $shift->starting_cash + (float) $cashPayments;
-            $endingCash = (float) $data['ending_cash'];
-            $cashDifference = $endingCash - $expectedCash;
+            $expectedCash = bcadd((string) $shift->starting_cash, (string) $cashPayments, 2);
+            $endingCash = (string) $data['ending_cash'];
+            $cashDifference = bcsub($endingCash, $expectedCash, 2);
 
             $shift->update([
                 'ending_cash' => $endingCash,
@@ -118,13 +130,19 @@ class ShiftService
 
     public function getShiftSummary(Shift $shift): array
     {
-        $orders = Order::where('shift_id', $shift->id)->get();
+        // Use aggregate query instead of loading all orders
+        $stats = Order::where('shift_id', $shift->id)
+            ->selectRaw("
+                SUM(CASE WHEN status = ? THEN total ELSE 0 END) as total_sales,
+                COUNT(CASE WHEN status = ? THEN 1 END) as total_orders,
+                COUNT(CASE WHEN status = ? THEN 1 END) as voided_count
+            ", [OrderStatus::Completed->value, OrderStatus::Completed->value, OrderStatus::Voided->value])
+            ->first();
 
-        $completedOrders = $orders->where('status', OrderStatus::Completed);
-        $totalSales = $completedOrders->sum('total');
-        $totalOrders = $completedOrders->count();
+        $totalSales = (float) ($stats->total_sales ?? 0);
+        $totalOrders = (int) ($stats->total_orders ?? 0);
         $avgOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
-        $voidedCount = $orders->where('status', OrderStatus::Voided)->count();
+        $voidedCount = (int) ($stats->voided_count ?? 0);
 
         // Payment breakdown
         $paymentBreakdown = DB::table('payments')
@@ -144,9 +162,9 @@ class ShiftService
             ->toArray();
 
         return [
-            'total_sales' => round((float) $totalSales, 2),
+            'total_sales' => round($totalSales, 2),
             'total_orders' => $totalOrders,
-            'avg_order_value' => round((float) $avgOrderValue, 2),
+            'avg_order_value' => round($avgOrderValue, 2),
             'voided_count' => $voidedCount,
             'payment_breakdown' => $paymentBreakdown,
         ];

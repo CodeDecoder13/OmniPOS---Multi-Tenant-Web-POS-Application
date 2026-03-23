@@ -10,6 +10,7 @@ import { useI18n } from 'vue-i18n';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 import { useTenant } from '@/composables/useTenant';
+import { useCurrency } from '@/composables/useCurrency';
 
 const props = defineProps<{
     stats: {
@@ -38,6 +39,7 @@ const props = defineProps<{
 const { t } = useI18n();
 const page = usePage();
 const { tenantUrl } = useTenant();
+const { formatCurrency, formatCurrencyShort } = useCurrency();
 
 const user = page.props.auth.user as { name: string };
 const firstName = user.name.split(' ')[0];
@@ -50,10 +52,6 @@ const revenueChange = computed(() => {
     if (props.yesterdayRevenue === 0) return props.todayRevenue > 0 ? 100 : 0;
     return Math.round(((props.todayRevenue - props.yesterdayRevenue) / props.yesterdayRevenue) * 100);
 });
-
-function formatCurrency(val: number) {
-    return '₱' + val.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 // Line chart - Sales Trend
 const lineChartOptions = computed(() => ({
@@ -92,7 +90,7 @@ const lineChartOptions = computed(() => ({
     yaxis: {
         labels: {
             style: { colors: '#9ca3af', fontSize: '11px' },
-            formatter: (val: number) => '₱' + (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val),
+            formatter: (val: number) => formatCurrencyShort(val),
         },
     },
     grid: {
@@ -113,7 +111,7 @@ const lineChartOptions = computed(() => ({
         theme: 'dark',
         style: { fontSize: '12px' },
         y: {
-            formatter: (val: number) => '₱' + val.toLocaleString('en-PH', { minimumFractionDigits: 2 }),
+            formatter: (val: number) => formatCurrency(val),
         },
     },
 }));

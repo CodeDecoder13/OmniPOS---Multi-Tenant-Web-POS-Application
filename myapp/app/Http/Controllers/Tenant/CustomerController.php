@@ -62,7 +62,13 @@ class CustomerController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
         $customer = $this->customerService->findForTenant($tenant, $customer);
-        $this->customerService->delete($customer);
+
+        try {
+            $this->customerService->delete($customer);
+        } catch (\DomainException $e) {
+            return redirect()->route('tenant.customers.index', ['tenant' => $tenant->slug])
+                ->with('error', $e->getMessage());
+        }
 
         return redirect()->route('tenant.customers.index', ['tenant' => $tenant->slug])
             ->with('success', 'Customer deleted successfully.');

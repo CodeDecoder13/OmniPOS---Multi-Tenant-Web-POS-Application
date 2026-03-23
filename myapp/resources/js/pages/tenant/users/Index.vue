@@ -112,6 +112,7 @@ function submitAdd() {
 // Credentials dialog (shown after successful user creation)
 const credentialsDialog = ref(false);
 const createdCredentials = ref({ email: '', password: '' });
+const loginUrl = `${window.location.origin}/login`;
 const copiedField = ref<'email' | 'password' | 'both' | null>(null);
 
 async function copyToClipboard(text: string, field: 'email' | 'password' | 'both') {
@@ -121,7 +122,7 @@ async function copyToClipboard(text: string, field: 'email' | 'password' | 'both
 }
 
 function copyAllCredentials() {
-    const text = `Email: ${createdCredentials.value.email}\nPassword: ${createdCredentials.value.password}`;
+    const text = `Login URL: ${loginUrl}\nEmail: ${createdCredentials.value.email}\nPassword: ${createdCredentials.value.password}`;
     copyToClipboard(text, 'both');
 }
 
@@ -153,8 +154,8 @@ function submitEdit() {
     if (!editingOwnerRow.value) {
         payload.email = editForm.value.email;
         payload.role_id = Number(editForm.value.role_id);
-        payload.branch_id = editForm.value.branch_id !== 'all' ? Number(editForm.value.branch_id) : null;
     }
+    payload.branch_id = editForm.value.branch_id !== 'all' ? Number(editForm.value.branch_id) : null;
     if (editForm.value.password) {
         payload.password = editForm.value.password;
     }
@@ -281,9 +282,9 @@ async function executeImport() {
 }
 
 function downloadCredentials() {
-    const lines = ['Name,Email,Password,Role'];
+    const lines = ['Name,Email,Password,Role,Login URL'];
     for (const c of importCredentials.value) {
-        lines.push(`"${c.name}","${c.email}","${c.password}","${c.role}"`);
+        lines.push(`"${c.name}","${c.email}","${c.password}","${c.role}","${loginUrl}"`);
     }
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -612,7 +613,7 @@ function roleBadgeClass(slug: string): string {
                 <DialogHeader>
                     <DialogTitle>Edit User</DialogTitle>
                     <DialogDescription>
-                        {{ editingOwnerRow ? 'Update your name and password.' : 'Update this user\'s information.' }}
+                        {{ editingOwnerRow ? 'Update your name, password, and branch assignment.' : 'Update this user\'s information.' }}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -680,7 +681,7 @@ function roleBadgeClass(slug: string): string {
                         <p v-if="page.props.errors.role_id" class="mt-1 text-sm text-red-500">{{ page.props.errors.role_id }}</p>
                     </div>
 
-                    <div v-if="!editingOwnerRow">
+                    <div>
                         <Label for="edit-branch">Branch</Label>
                         <Select v-model="editForm.branch_id">
                             <SelectTrigger class="mt-1">
@@ -761,6 +762,23 @@ function roleBadgeClass(slug: string): string {
                 </DialogHeader>
 
                 <div class="space-y-3">
+                    <div>
+                        <Label class="text-xs text-muted-foreground">Login URL</Label>
+                        <div class="mt-1 flex items-center gap-2">
+                            <div class="flex-1 rounded-md border bg-muted/50 px-3 py-2 font-mono text-sm">
+                                {{ loginUrl }}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                @click="copyToClipboard(loginUrl, 'loginUrl')"
+                            >
+                                <Check v-if="copiedField === 'loginUrl'" class="h-4 w-4 text-green-500" />
+                                <Copy v-else class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+
                     <div>
                         <Label class="text-xs text-muted-foreground">Email</Label>
                         <div class="mt-1 flex items-center gap-2">

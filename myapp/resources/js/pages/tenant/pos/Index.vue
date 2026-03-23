@@ -14,6 +14,7 @@ import StartShiftDialog from '@/components/StartShiftDialog.vue';
 import ReceiptTemplate from '@/components/ReceiptTemplate.vue';
 import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import { useTenant } from '@/composables/useTenant';
+import { useCurrency } from '@/composables/useCurrency';
 import { usePermissions } from '@/composables/usePermissions';
 import { usePosAuth } from '@/composables/usePosAuth';
 import { usePosShift } from '@/composables/usePosShift';
@@ -65,6 +66,7 @@ const props = defineProps<{
 }>();
 
 const { tenantUrl, tenant } = useTenant();
+const { formatCurrency } = useCurrency();
 const { can } = usePermissions();
 const { isAuthenticated, operatorCan, operatorUserId, operatorName } = usePosAuth();
 const { hasActiveShift, checkShiftStatus, refreshSummary, clearShift } = usePosShift();
@@ -656,10 +658,6 @@ function downloadPdf() {
 function closeReceipt() {
     showReceiptDialog.value = false;
     completedOrder.value = null;
-}
-
-function formatCurrency(amount: number | string) {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
 }
 
 function selectCustomer(customer: PosCustomer) {

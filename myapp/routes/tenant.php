@@ -55,17 +55,13 @@ Route::prefix('{tenant}')
         Route::middleware('can-do:users.view')->group(function () {
             Route::get('users', [UserController::class, 'index'])->name('tenant.users.index');
         });
-        Route::post('users', [UserController::class, 'store'])
-            ->name('tenant.users.store');
-        Route::post('users/import/validate', [UserController::class, 'validateImport'])
-            ->name('tenant.users.import.validate');
-        Route::post('users/import', [UserController::class, 'import'])
-            ->name('tenant.users.import');
-        Route::put('users/{user}', [UserController::class, 'update'])
-            ->middleware('can-do:users.edit-role')
-            ->name('tenant.users.update');
-        Route::patch('users/{user}/toggle-active', [UserController::class, 'toggleActive'])
-            ->name('tenant.users.toggle-active');
+        Route::middleware(['can-do:users.edit-role', 'throttle:30,1'])->group(function () {
+            Route::post('users', [UserController::class, 'store'])->name('tenant.users.store');
+            Route::post('users/import/validate', [UserController::class, 'validateImport'])->name('tenant.users.import.validate');
+            Route::post('users/import', [UserController::class, 'import'])->name('tenant.users.import');
+            Route::put('users/{user}', [UserController::class, 'update'])->name('tenant.users.update');
+            Route::patch('users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('tenant.users.toggle-active');
+        });
         Route::delete('users/{user}', [UserController::class, 'remove'])
             ->middleware('can-do:users.remove')
             ->name('tenant.users.remove');
@@ -74,11 +70,11 @@ Route::prefix('{tenant}')
         Route::middleware('can-do:roles.view')->group(function () {
             Route::get('roles', [RoleController::class, 'index'])->name('tenant.roles.index');
         });
-        Route::middleware('can-do:roles.create')->group(function () {
+        Route::middleware(['can-do:roles.create', 'throttle:30,1'])->group(function () {
             Route::get('roles/create', [RoleController::class, 'create'])->name('tenant.roles.create');
             Route::post('roles', [RoleController::class, 'store'])->name('tenant.roles.store');
         });
-        Route::middleware('can-do:roles.edit')->group(function () {
+        Route::middleware(['can-do:roles.edit', 'throttle:30,1'])->group(function () {
             Route::get('roles/{role}/edit', [RoleController::class, 'edit'])->name('tenant.roles.edit');
             Route::put('roles/{role}', [RoleController::class, 'update'])->name('tenant.roles.update');
         });
@@ -133,8 +129,10 @@ Route::prefix('{tenant}')
             ->middleware('throttle:5,1')
             ->name('tenant.pos.pin.verify');
         Route::post('pos/pin/set', [PosPinController::class, 'set'])
+            ->middleware('throttle:5,1')
             ->name('tenant.pos.pin.set');
         Route::put('users/{user}/pin', [PosPinController::class, 'setForUser'])
+            ->middleware('throttle:5,1')
             ->name('tenant.users.pin.set');
 
         // POS
@@ -142,7 +140,9 @@ Route::prefix('{tenant}')
             Route::get('pos', [PosController::class, 'index'])->name('tenant.pos.index');
             Route::get('pos/products', [PosController::class, 'products'])->name('tenant.pos.products');
             Route::get('pos/customers/search', [PosController::class, 'searchCustomers'])->name('tenant.pos.customers.search');
-            Route::post('pos/checkout', [PosController::class, 'checkout'])->name('tenant.pos.checkout');
+            Route::post('pos/checkout', [PosController::class, 'checkout'])
+                ->middleware('throttle:60,1')
+                ->name('tenant.pos.checkout');
             Route::post('pos/promotions/apply', [PromotionController::class, 'applyCode'])->name('tenant.pos.promotions.apply');
             Route::post('pos/shifts/open', [ShiftController::class, 'open'])->name('tenant.pos.shifts.open');
             Route::post('pos/shifts/close', [ShiftController::class, 'close'])->name('tenant.pos.shifts.close');

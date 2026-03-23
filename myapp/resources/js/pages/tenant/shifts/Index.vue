@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/composables/useTenant';
+import { useCurrency } from '@/composables/useCurrency';
 import type { Shift, Branch, PaginatedData } from '@/types';
 
 const props = defineProps<{
@@ -17,6 +18,7 @@ const props = defineProps<{
 }>();
 
 const { tenantUrl } = useTenant();
+const { formatCurrency } = useCurrency();
 
 const statusFilter = ref(props.filters.status ?? 'all');
 const branchFilter = ref(props.filters.branch_id ?? 'all');
@@ -33,10 +35,6 @@ function applyFilters() {
 }
 
 watch([statusFilter, branchFilter, dateFrom, dateTo], applyFilters);
-
-function formatCurrency(amount: string | number) {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
-}
 
 function formatDate(date: string | null) {
     if (!date) return '-';

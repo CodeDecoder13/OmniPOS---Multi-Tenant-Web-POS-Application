@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Tenant;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 class RoleService
 {
@@ -28,35 +29,45 @@ class RoleService
 
     public function create(Tenant $tenant, array $data, array $permissionIds): Role
     {
-        $role = Role::create([
-            'tenant_id' => $tenant->id,
-            'name' => $data['name'],
-            'slug' => str($data['name'])->slug()->toString(),
-            'description' => $data['description'] ?? null,
-            'is_system' => false,
-        ]);
+        return DB::transaction(function () use ($tenant, $data, $permissionIds) {
+            $role = Role::create([
+                'tenant_id' => $tenant->id,
+                'name' => $data['name'],
+                'slug' => str($data['name'])->slug()->toString(),
+                'description' => $data['description'] ?? null,
+                'is_system' => false,
+            ]);
 
-        $role->permissions()->sync($permissionIds);
+            $role->permissions()->sync($permissionIds);
 
-        return $role->load('permissions');
+            return $role->load('permissions');
+        });
     }
 
     public function update(Role $role, array $data, array $permissionIds): Role
     {
-        $updateData = [
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-        ];
+        return DB::transaction(function () use ($role, $data, $permissionIds) {
+            $updateData = [
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+            ];
 
-        // Don't change slug on system roles
-        if (! $role->is_system) {
-            $updateData['slug'] = str($data['name'])->slug()->toString();
-        }
+            // Don't change slug on system roles
+            if (! $role->is_system) {
+                $updateData['slug'] = str($data['name'])->slug()->toString();
+            }
 
-        $role->update($updateData);
-        $role->permissions()->sync($permissionIds);
+            $role->update($updateData);
 
-        return $role->load('permissions');
+            // Protect owner role — always keep all permissions
+            if ($role->is_system && $role->slug === 'owner') {
+                $permissionIds = Permission::pluck('id')->toArray();
+            }
+
+            $role->permissions()->sync($permissionIds);
+
+            return $role->load('permissions');
+        });
     }
 
     public function delete(Role $role): void

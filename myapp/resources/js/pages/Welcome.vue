@@ -9,6 +9,8 @@ import {
     UserPlus, Settings, Play, Rocket,
     ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, LayoutGrid,
     CreditCard, Printer, LayoutDashboard,
+    Tag, Clock, Truck, CalendarDays, Zap, Globe, Boxes, ChefHat, Star, Users,
+    FileSpreadsheet, Lock, QrCode, Bell, Timer, Shuffle, TableProperties, Megaphone,
 } from 'lucide-vue-next';
 import type { Plan } from '@/types';
 
@@ -117,7 +119,7 @@ const featureTabs = [
         title: 'Enterprise-Grade Security',
         description: 'Protect your business with granular access controls and multiple layers of security.',
         items: [
-            '27 granular permission controls',
+            '50+ granular permission controls',
             'Custom role creation & assignment',
             'PIN-based POS operator security',
             'Two-factor authentication (2FA)',
@@ -134,6 +136,54 @@ const featureTabs = [
             'Full order history per customer',
             'Quick search in POS checkout',
             'Customer notes & contact info',
+        ],
+    },
+    {
+        label: 'Kitchen Display',
+        icon: ChefHat,
+        title: 'Real-Time Kitchen Display System',
+        description: 'Streamline your kitchen operations with live order queues, status tracking, and instant communication between front-of-house and kitchen staff.',
+        items: [
+            'Real-time order queue display',
+            'Status workflow (new → preparing → ready → served)',
+            'KOT printing to kitchen printers',
+            'Sound alerts for new orders',
+        ],
+    },
+    {
+        label: 'Promotions',
+        icon: Tag,
+        title: 'Promotions & Discount Engine',
+        description: 'Drive sales with flexible promotions. Create percentage or fixed discounts, buy-X-get-Y deals, and promo codes with full control over limits and scheduling.',
+        items: [
+            'Percentage, fixed amount & buy-X-get-Y promos',
+            'Promo code generation & validation',
+            'Minimum order & usage limit controls',
+            'Date-range scheduling for campaigns',
+        ],
+    },
+    {
+        label: 'Supply Chain',
+        icon: Truck,
+        title: 'End-to-End Supply Chain Management',
+        description: 'Manage your entire supply chain from purchase orders to receiving. Track suppliers, create orders, and auto-update inventory on delivery.',
+        items: [
+            'Purchase orders (draft → sent → received)',
+            'Inter-branch stock transfers',
+            'Supplier management & directory',
+            'Receiving with auto inventory update',
+        ],
+    },
+    {
+        label: 'Shifts & Scheduling',
+        icon: Clock,
+        title: 'Shift Management & Scheduling',
+        description: 'Keep your operations running smoothly with comprehensive shift management, cash reconciliation, and employee scheduling tools.',
+        items: [
+            'Shift open/close with cash count',
+            'Cash reconciliation & variance tracking',
+            'Operator performance metrics',
+            'Employee shift scheduling',
         ],
     },
 ];
@@ -315,16 +365,16 @@ const businessTypes = [
                         <!-- Floating stat badges -->
                         <div class="mt-10 flex flex-wrap justify-center gap-4 lg:justify-start">
                             <div class="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium shadow-md backdrop-blur dark:bg-gray-800/80">
-                                <LayoutGrid class="h-4 w-4 text-teal-600" />
-                                10+ Business Types
+                                <Boxes class="h-4 w-4 text-teal-600" />
+                                17+ Modules
                             </div>
                             <div class="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium shadow-md backdrop-blur dark:bg-gray-800/80">
                                 <Wallet class="h-4 w-4 text-teal-600" />
-                                5 Payment Methods
+                                6 Payment Methods
                             </div>
                             <div class="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium shadow-md backdrop-blur dark:bg-gray-800/80">
                                 <ShieldCheck class="h-4 w-4 text-teal-600" />
-                                27 Permissions
+                                50+ Permissions
                             </div>
                         </div>
                     </div>
@@ -397,19 +447,19 @@ const businessTypes = [
         <section class="border-y border-gray-200 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/50">
             <div class="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-10 sm:px-6 md:grid-cols-4 lg:px-8" data-animate>
                 <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">10+</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Business Types</div>
+                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">17+</div>
+                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Modules</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">27</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Permission Controls</div>
+                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">50+</div>
+                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Permissions</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">8</div>
+                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Report Types</div>
                 </div>
                 <div class="text-center">
                     <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">6</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Report Categories</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">5</div>
                     <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Payment Methods</div>
                 </div>
             </div>
@@ -550,7 +600,7 @@ const businessTypes = [
                                 </div>
 
                                 <!-- Customer mockup for tab 5 -->
-                                <div v-else class="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900/50">
+                                <div v-else-if="activeFeatureTab === 5" class="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900/50">
                                     <div class="space-y-3">
                                         <div v-for="(cust, i) in [{ name: 'Maria Santos', orders: 24, total: '₱8,450' }, { name: 'Juan dela Cruz', orders: 18, total: '₱6,200' }, { name: 'Ana Reyes', orders: 12, total: '₱4,100' }]" :key="i" class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3.5 dark:border-gray-700 dark:bg-gray-800">
                                             <div class="flex items-center gap-3">
@@ -561,6 +611,129 @@ const businessTypes = [
                                                 </div>
                                             </div>
                                             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ cust.total }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Kitchen Display mockup for tab 6 -->
+                                <div v-else-if="activeFeatureTab === 6" class="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900/50">
+                                    <div class="mb-4 flex items-center justify-between">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Kitchen Orders</span>
+                                        <div class="flex gap-2">
+                                            <span class="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">3 Pending</span>
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">2 Preparing</span>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div v-for="(order, i) in [
+                                            { id: '#1042', items: 'Latte, Croissant', time: '2m ago', status: 'New', color: 'yellow' },
+                                            { id: '#1041', items: 'Americano x2, Muffin', time: '5m ago', status: 'Preparing', color: 'blue' },
+                                            { id: '#1040', items: 'Cappuccino, Sandwich', time: '8m ago', status: 'Ready', color: 'green' },
+                                        ]" :key="i" class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ order.id }}</span>
+                                                    <span class="text-xs text-gray-400">{{ order.time }}</span>
+                                                </div>
+                                                <div class="mt-0.5 text-xs text-gray-500">{{ order.items }}</div>
+                                            </div>
+                                            <span
+                                                class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                                :class="{
+                                                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400': order.color === 'yellow',
+                                                    'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': order.color === 'blue',
+                                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': order.color === 'green',
+                                                }"
+                                            >{{ order.status }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Promotions mockup for tab 7 -->
+                                <div v-else-if="activeFeatureTab === 7" class="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900/50">
+                                    <div class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Active Promotions</div>
+                                    <div class="space-y-3">
+                                        <div v-for="(promo, i) in [
+                                            { name: 'Weekend Special', type: '20% OFF', code: 'WKND20', usage: '45/100', active: true },
+                                            { name: 'Buy 2 Get 1 Free', type: 'BOGO', code: 'B2G1', usage: '28/50', active: true },
+                                            { name: 'New Customer', type: '₱50 OFF', code: 'NEW50', usage: '92/200', active: true },
+                                        ]" :key="i" class="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                                                        <Tag class="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ promo.name }}</div>
+                                                        <div class="text-xs text-gray-500">Code: {{ promo.code }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <div class="text-sm font-bold text-purple-600 dark:text-purple-400">{{ promo.type }}</div>
+                                                    <div class="text-xs text-gray-400">{{ promo.usage }} used</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Supply Chain mockup for tab 8 -->
+                                <div v-else-if="activeFeatureTab === 8" class="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900/50">
+                                    <div class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Purchase Orders</div>
+                                    <div class="space-y-3">
+                                        <div v-for="(po, i) in [
+                                            { id: 'PO-2024-001', supplier: 'Metro Supplies Co.', items: 12, total: '₱24,500', status: 'Received', color: 'green' },
+                                            { id: 'PO-2024-002', supplier: 'Fresh Farms Inc.', items: 8, total: '₱18,200', status: 'Sent', color: 'blue' },
+                                            { id: 'PO-2024-003', supplier: 'PackRight Trading', items: 5, total: '₱6,800', status: 'Draft', color: 'gray' },
+                                        ]" :key="i" class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm font-bold text-gray-800 dark:text-gray-200">{{ po.id }}</span>
+                                                    <span class="text-xs text-gray-400">{{ po.items }} items</span>
+                                                </div>
+                                                <div class="mt-0.5 text-xs text-gray-500">{{ po.supplier }}</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ po.total }}</div>
+                                                <span
+                                                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                                                    :class="{
+                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': po.color === 'green',
+                                                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': po.color === 'blue',
+                                                        'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400': po.color === 'gray',
+                                                    }"
+                                                >{{ po.status }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Shifts mockup for tab 9 -->
+                                <div v-else class="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-800 dark:bg-gray-900/50">
+                                    <div class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Today's Shifts</div>
+                                    <div class="space-y-3">
+                                        <div v-for="(shift, i) in [
+                                            { operator: 'Maria S.', time: '6:00 AM - 2:00 PM', sales: '₱12,450', status: 'Active', color: 'green' },
+                                            { operator: 'Juan D.', time: '2:00 PM - 10:00 PM', sales: '₱8,200', status: 'Active', color: 'green' },
+                                            { operator: 'Ana R.', time: '6:00 AM - 2:00 PM', sales: '₱9,800', status: 'Closed', color: 'gray' },
+                                        ]" :key="i" class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">{{ shift.operator.charAt(0) }}</div>
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ shift.operator }}</div>
+                                                    <div class="text-xs text-gray-500">{{ shift.time }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ shift.sales }}</div>
+                                                <span
+                                                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                                                    :class="{
+                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': shift.color === 'green',
+                                                        'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400': shift.color === 'gray',
+                                                    }"
+                                                >{{ shift.status }}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -751,7 +924,188 @@ const businessTypes = [
             </div>
         </section>
 
-        <!-- ==================== 8. HOW IT WORKS ==================== -->
+        <!-- ==================== 8. COMPLETE FEATURE GRID ==================== -->
+        <section class="relative py-20 sm:py-28 overflow-hidden">
+            <!-- Subtle gradient mesh background -->
+            <div class="feature-grid-bg absolute inset-0"></div>
+            <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="text-center" data-animate>
+                    <span class="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-medium text-teal-700 dark:border-teal-800 dark:bg-teal-900/30 dark:text-teal-300">
+                        <Zap class="h-4 w-4" />
+                        Complete Platform
+                    </span>
+                    <h2 class="mt-4 text-3xl font-bold sm:text-4xl">Every Feature Your Business Needs</h2>
+                    <p class="mx-auto mt-4 max-w-2xl text-gray-600 dark:text-gray-400">
+                        A comprehensive suite of 20+ features designed to handle every aspect of your business operations.
+                    </p>
+                </div>
+
+                <div class="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4" data-animate>
+                    <div
+                        v-for="feature in [
+                            { icon: Monitor, title: 'Point of Sale', desc: 'Fast checkout with smart cart management' },
+                            { icon: ChefHat, title: 'Kitchen Display', desc: 'Real-time order queue for kitchens' },
+                            { icon: ClipboardList, title: 'Inventory Management', desc: 'Track stock across all branches' },
+                            { icon: Shuffle, title: 'Stock Transfers', desc: 'Move inventory between branches' },
+                            { icon: Truck, title: 'Purchase Orders', desc: 'Draft, send & receive PO workflows' },
+                            { icon: BarChart3, title: 'Reports & Analytics', desc: '8 report types with date filtering' },
+                            { icon: Building2, title: 'Multi-Branch', desc: 'Centralized control of all locations' },
+                            { icon: ShieldCheck, title: 'Role-Based Access', desc: '50+ granular permission controls' },
+                            { icon: Clock, title: 'Shift Management', desc: 'Cash reconciliation & shift tracking' },
+                            { icon: Heart, title: 'Customer Management', desc: 'Customer database & order history' },
+                            { icon: Tag, title: 'Promotions & Promos', desc: 'Discounts, BOGO & promo codes' },
+                            { icon: TableProperties, title: 'Table Management', desc: 'Dine-in table tracking & assignment' },
+                            { icon: Boxes, title: 'Product Variations', desc: 'Sizes, add-ons & modifiers' },
+                            { icon: ScanBarcode, title: 'Barcode Scanning', desc: 'Hardware & camera-based scanning' },
+                            { icon: Printer, title: 'Receipt & KOT Print', desc: 'PDF receipts & kitchen order tickets' },
+                            { icon: Globe, title: 'Supplier Management', desc: 'Supplier directory & contact info' },
+                            { icon: CalendarDays, title: 'Employee Scheduling', desc: 'Shift scheduling & assignments' },
+                            { icon: History, title: 'Audit Logs', desc: 'Complete activity trail for changes' },
+                            { icon: Fingerprint, title: 'Two-Factor Auth', desc: 'Extra security layer for accounts' },
+                            { icon: FileSpreadsheet, title: 'CSV Import/Export', desc: 'Bulk data management made easy' },
+                        ]"
+                        :key="feature.title"
+                        class="feature-grid-card group rounded-xl border border-gray-200/60 p-5 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02] hover:border-teal-300 hover:shadow-lg bg-white/70 dark:border-gray-800/60 dark:bg-gray-900/70 dark:hover:border-teal-700"
+                    >
+                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-50 text-teal-600 transition group-hover:bg-teal-100 dark:bg-teal-900/20 dark:text-teal-400 dark:group-hover:bg-teal-900/40">
+                            <component :is="feature.icon" class="h-5 w-5" />
+                        </div>
+                        <h3 class="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100">{{ feature.title }}</h3>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ feature.desc }}</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 9. ADVANCED CAPABILITIES ==================== -->
+        <section class="border-t border-gray-200 bg-gray-50/50 py-20 dark:border-gray-800 dark:bg-gray-900/30">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="text-center" data-animate>
+                    <h2 class="text-3xl font-bold sm:text-4xl">Advanced Capabilities</h2>
+                    <p class="mx-auto mt-4 max-w-2xl text-gray-600 dark:text-gray-400">
+                        Enterprise-grade features that give your business a competitive edge.
+                    </p>
+                </div>
+
+                <div class="mt-14 grid gap-8 md:grid-cols-3" data-animate>
+                    <!-- Column 1: Smart Operations -->
+                    <div class="rounded-2xl border border-gray-200 bg-white p-8 dark:border-gray-800 dark:bg-gray-900">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
+                            <Zap class="h-6 w-6" />
+                        </div>
+                        <h3 class="mt-5 text-xl font-bold">Smart Operations</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li class="flex items-start gap-3 text-sm">
+                                <ScanBarcode class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Barcode Scanner Integration</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Hardware & camera-based scanning</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <Fingerprint class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">PIN-Based Operator Switching</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Fast user switching at POS</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <Printer class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Auto KOT Printing</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Send orders directly to kitchen</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <Receipt class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Tax-Inclusive/Exclusive Modes</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Flexible tax configuration</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 2: Business Intelligence -->
+                    <div class="rounded-2xl border border-gray-200 bg-white p-8 dark:border-gray-800 dark:bg-gray-900">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                            <TrendingUp class="h-6 w-6" />
+                        </div>
+                        <h3 class="mt-5 text-xl font-bold">Business Intelligence</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li class="flex items-start gap-3 text-sm">
+                                <LineChart class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Sales Forecasting</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">AI-powered trend predictions</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <Star class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Operator Performance Rankings</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Track & compare staff metrics</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <PieChart class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Branch Comparison Analytics</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Side-by-side performance insights</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <FileSpreadsheet class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">CSV/PDF Export</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Export all reports instantly</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Column 3: Enterprise Security -->
+                    <div class="rounded-2xl border border-gray-200 bg-white p-8 dark:border-gray-800 dark:bg-gray-900">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                            <Lock class="h-6 w-6" />
+                        </div>
+                        <h3 class="mt-5 text-xl font-bold">Enterprise Security</h3>
+                        <ul class="mt-6 space-y-4">
+                            <li class="flex items-start gap-3 text-sm">
+                                <Fingerprint class="mt-0.5 h-4 w-4 shrink-0 text-purple-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Two-Factor Authentication</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">TOTP-based 2FA for all users</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <ShieldCheck class="mt-0.5 h-4 w-4 shrink-0 text-purple-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">50+ Granular Permissions</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Fine-grained access control</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <Users class="mt-0.5 h-4 w-4 shrink-0 text-purple-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Custom Role Creation</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Build roles to fit your org</p>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-3 text-sm">
+                                <History class="mt-0.5 h-4 w-4 shrink-0 text-purple-600" />
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Complete Audit Trail</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Track every action & change</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 10. HOW IT WORKS ==================== -->
         <section id="how-it-works" class="py-20 sm:py-28">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="text-center" data-animate>
@@ -1004,6 +1358,22 @@ const businessTypes = [
     transform: translateY(0);
 }
 
+/* Feature grid gradient mesh background */
+.feature-grid-bg {
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(20, 184, 166, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 80%, rgba(99, 102, 241, 0.04) 0%, transparent 50%);
+}
+
+:root.dark .feature-grid-bg,
+.dark .feature-grid-bg {
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(20, 184, 166, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 50%);
+}
+
 /* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
     .pos-mockup,
@@ -1014,6 +1384,9 @@ const businessTypes = [
     [data-animate] {
         opacity: 1;
         transform: none;
+        transition: none;
+    }
+    .feature-grid-card {
         transition: none;
     }
 }

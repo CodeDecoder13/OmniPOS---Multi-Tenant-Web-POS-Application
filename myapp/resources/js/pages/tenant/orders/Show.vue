@@ -6,9 +6,12 @@ import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
 import { usePrinter } from '@/composables/usePrinter';
+import { useCurrency } from '@/composables/useCurrency';
 import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import type { Order } from '@/types';
 
@@ -19,17 +22,20 @@ const props = defineProps<{
 const { tenantUrl } = useTenant();
 const { can } = usePermissions();
 const { printReceipt: doPrintReceipt } = usePrinter();
+const { formatCurrency } = useCurrency();
 const page = usePage();
 
 const voidDialog = ref(false);
 const voiding = ref(false);
+const voidReason = ref('');
 
 function voidOrder() {
     voiding.value = true;
-    router.post(tenantUrl(`orders/${props.order.id}/void`), {}, {
+    router.post(tenantUrl(`orders/${props.order.id}/void`), { void_reason: voidReason.value }, {
         onFinish: () => {
             voiding.value = false;
             voidDialog.value = false;
+            voidReason.value = '';
         },
     });
 }
@@ -66,10 +72,6 @@ function printReceipt() {
         orderType: o.order_type === 'take_out' ? 'TAKE OUT' : 'DINE IN',
     };
     doPrintReceipt(receiptData, true);
-}
-
-function formatCurrency(amount: string | number) {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
 }
 
 function formatDate(date: string) {
@@ -229,6 +231,25 @@ const breadcrumbs = [
                 </div>
             </div>
 
+            <!-- Void Details -->
+            <div v-if="order.status === 'voided'" class="rounded-lg border border-destructive/50 bg-destructive/5 p-4 space-y-2">
+                <h3 class="font-semibold text-sm text-destructive">Void Details</h3>
+                <div class="space-y-1 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Voided by</span>
+                        <span>{{ order.voided_by_user?.name ?? '—' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Voided at</span>
+                        <span>{{ order.voided_at ? formatDate(order.voided_at) : '—' }}</span>
+                    </div>
+                    <div v-if="order.void_reason">
+                        <span class="text-muted-foreground">Reason</span>
+                        <p class="mt-1">{{ order.void_reason }}</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Notes -->
             <div v-if="order.notes" class="rounded-lg border p-4">
                 <h3 class="font-semibold text-sm mb-1">Notes</h3>
@@ -245,9 +266,13 @@ const breadcrumbs = [
                         Are you sure you want to void order {{ order.order_number }}? This action cannot be undone.
                     </DialogDescription>
                 </DialogHeader>
+                <div class="space-y-2 py-2">
+                    <Label for="void-reason">Reason for voiding</Label>
+                    <Textarea id="void-reason" v-model="voidReason" placeholder="Enter reason for voiding this order..." rows="3" />
+                </div>
                 <DialogFooter>
                     <Button variant="outline" @click="voidDialog = false">Cancel</Button>
-                    <Button variant="destructive" :disabled="voiding" @click="voidOrder">
+                    <Button variant="destructive" :disabled="voiding || !voidReason.trim()" @click="voidOrder">
                         {{ voiding ? 'Voiding...' : 'Void Order' }}
                     </Button>
                 </DialogFooter>

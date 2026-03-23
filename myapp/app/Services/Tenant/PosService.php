@@ -15,6 +15,7 @@ use App\Models\Tenant\Table;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PosService
 {
@@ -99,6 +100,15 @@ class PosService
                 ->get()
                 ->keyBy('id');
 
+            // Validate all products are active
+            foreach ($products as $product) {
+                if (! $product->is_active) {
+                    throw ValidationException::withMessages([
+                        'items' => "Product \"{$product->name}\" is no longer available.",
+                    ]);
+                }
+            }
+
             // Load branch price overrides
             $branchPrices = [];
             if ($branchId) {
@@ -170,7 +180,7 @@ class PosService
             $promotionDiscount = 0;
 
             if ($promotionId) {
-                $promotion = Promotion::forTenant($tenant)->find($promotionId);
+                $promotion = Promotion::forTenant($tenant)->where('id', $promotionId)->lockForUpdate()->first();
                 if ($promotion && $promotion->isValid($afterDiscount)) {
                     if ($promotion->type->value === 'percentage') {
                         $promotionDiscount = round($afterDiscount * (floatval($promotion->value) / 100), 2);
@@ -204,6 +214,16 @@ class PosService
                 }
             } else {
                 $total = $afterDiscount;
+            }
+
+            // Validate cash amount tendered
+            if (($data['payment_method'] ?? '') === 'cash') {
+                $amountTendered = $data['amount_tendered'] ?? 0;
+                if ($amountTendered < $total) {
+                    throw ValidationException::withMessages([
+                        'amount_tendered' => "Amount tendered ({$amountTendered}) is less than the total ({$total}).",
+                    ]);
+                }
             }
 
             // Create order
@@ -303,6 +323,7 @@ class PosService
 
         $lastOrder = Order::forTenant($tenant)
             ->where('order_number', 'like', "{$prefix}%")
+            ->lockForUpdate()
             ->orderByDesc('order_number')
             ->first();
 

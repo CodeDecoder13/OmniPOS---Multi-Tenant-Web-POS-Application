@@ -21,6 +21,7 @@ class Order extends Model
         'total', 'notes', 'order_type', 'status', 'created_by', 'shift_id',
         'table_id', 'promotion_id', 'promotion_discount',
         'kitchen_status', 'kitchen_sent_at', 'kitchen_completed_at', 'kitchen_notes',
+        'voided_by', 'void_reason', 'voided_at',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class Order extends Model
             'promotion_discount' => 'decimal:2',
             'kitchen_sent_at' => 'datetime',
             'kitchen_completed_at' => 'datetime',
+            'voided_at' => 'datetime',
         ];
     }
 
@@ -109,5 +111,10 @@ class Order extends Model
     public function promotion(): BelongsTo
     {
         return $this->belongsTo(Promotion::class);
+    }
+
+    public function voidedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
     }
 }

@@ -52,7 +52,7 @@ class ShiftController extends Controller
 
         $validated = $request->validate([
             'user_id' => 'required|integer',
-            'starting_cash' => 'required|numeric|min:0',
+            'starting_cash' => 'required|numeric|min:0|max:9999999.99',
         ]);
 
         $shift = $this->shiftService->openShift($tenant, $validated['user_id'], [
@@ -72,7 +72,7 @@ class ShiftController extends Controller
 
         $validated = $request->validate([
             'shift_id' => 'required|integer',
-            'ending_cash' => 'required|numeric|min:0',
+            'ending_cash' => 'required|numeric|min:0|max:9999999.99',
             'notes' => 'nullable|string|max:500',
         ]);
 

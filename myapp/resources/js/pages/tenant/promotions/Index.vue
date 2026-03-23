@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import Pagination from '@/components/Pagination.vue';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
+import { useCurrency } from '@/composables/useCurrency';
 import type { Promotion, PaginatedData } from '@/types';
 
 const props = defineProps<{
@@ -20,6 +21,7 @@ const props = defineProps<{
 
 const { tenantUrl } = useTenant();
 const { can } = usePermissions();
+const { formatCurrency } = useCurrency();
 
 const search = ref(props.filters.search ?? '');
 const statusFilter = ref(props.filters.is_active ?? '');
@@ -72,7 +74,7 @@ function formatType(type: string) {
 
 function formatValue(promo: Promotion) {
     if (promo.type === 'percentage') return `${promo.value}%`;
-    return `₱${Number(promo.value).toFixed(2)}`;
+    return formatCurrency(promo.value);
 }
 
 function formatDate(date: string | null) {

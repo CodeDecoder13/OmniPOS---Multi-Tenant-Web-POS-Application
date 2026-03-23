@@ -68,11 +68,21 @@ class PosController extends Controller
         $tenantUser = $request->attributes->get('current_tenant_user');
 
         $operatorId = $request->validated('pos_operator_id');
-        if ($operatorId) {
+        if ($operatorId && (int) $operatorId !== (int) $request->user()->id) {
+            // Operator must exist in this tenant
             $exists = TenantUser::where('tenant_id', $tenant->id)
                 ->where('user_id', $operatorId)->exists();
             if (! $exists) {
                 return response()->json(['message' => 'Invalid POS operator.'], 422);
+            }
+
+            // Operator must have been verified via PIN (session proof)
+            $verifiedId = $request->session()->get('pos_verified_operator_id');
+            $verifiedAt = $request->session()->get('pos_verified_operator_at');
+            $maxAge = 8 * 60 * 60; // 8 hours
+
+            if ((int) $verifiedId !== (int) $operatorId || ! $verifiedAt || (now()->timestamp - $verifiedAt) > $maxAge) {
+                return response()->json(['message' => 'POS operator must verify their PIN first.'], 403);
             }
         } else {
             $operatorId = $request->user()->id;
@@ -80,8 +90,12 @@ class PosController extends Controller
 
         $activeShift = app(ShiftService::class)->getOpenShift($tenant, $operatorId);
 
+        if (! $activeShift) {
+            return response()->json(['message' => 'No active shift. Please open a shift before processing orders.'], 422);
+        }
+
         $checkoutData = $request->validated();
-        $checkoutData['shift_id'] = $activeShift?->id;
+        $checkoutData['shift_id'] = $activeShift->id;
 
         $order = $this->posService->checkout(
             $tenant,

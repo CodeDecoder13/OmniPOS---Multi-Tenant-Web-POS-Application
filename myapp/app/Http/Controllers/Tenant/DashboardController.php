@@ -45,24 +45,31 @@ class DashboardController extends Controller
             ->whereDate('created_at', $yesterday)
             ->sum('total');
 
-        // Last 7 days sales trend
+        // Last 7 days sales trend (single query)
+        $sevenDaysAgo = Carbon::today()->subDays(6);
+        $trendData = Order::forTenant($tenant)
+            ->where('status', OrderStatus::Completed)
+            ->whereDate('created_at', '>=', $sevenDaysAgo)
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(total) as revenue'),
+                DB::raw('COUNT(*) as orders')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->get()
+            ->keyBy('date');
+
         $salesTrend = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
-            $dayTotal = Order::forTenant($tenant)
-                ->where('status', OrderStatus::Completed)
-                ->whereDate('created_at', $date)
-                ->sum('total');
-            $dayOrders = Order::forTenant($tenant)
-                ->where('status', OrderStatus::Completed)
-                ->whereDate('created_at', $date)
-                ->count();
+            $dateKey = $date->format('Y-m-d');
+            $row = $trendData->get($dateKey);
 
             $salesTrend[] = [
                 'date' => $date->format('M d'),
                 'day' => $date->format('D'),
-                'revenue' => round((float) $dayTotal, 2),
-                'orders' => $dayOrders,
+                'revenue' => round((float) ($row->revenue ?? 0), 2),
+                'orders' => (int) ($row->orders ?? 0),
             ];
         }
 

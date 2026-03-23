@@ -4,6 +4,12 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
+use App\Models\Tenant\Order;
+use App\Models\Tenant\Shift;
+use App\Models\Tenant\StockTransfer;
+use App\Models\Tenant\PurchaseOrder;
+use App\Models\TenantUser;
+use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class BranchService
@@ -34,6 +40,26 @@ class BranchService
 
     public function delete(Branch $branch): void
     {
+        if (Order::where('branch_id', $branch->id)->exists()) {
+            throw new DomainException('Cannot delete a branch with existing orders.');
+        }
+
+        if (Shift::where('branch_id', $branch->id)->exists()) {
+            throw new DomainException('Cannot delete a branch with existing shifts.');
+        }
+
+        if (StockTransfer::where('source_branch_id', $branch->id)->orWhere('destination_branch_id', $branch->id)->exists()) {
+            throw new DomainException('Cannot delete a branch with existing stock transfers.');
+        }
+
+        if (PurchaseOrder::where('branch_id', $branch->id)->exists()) {
+            throw new DomainException('Cannot delete a branch with existing purchase orders.');
+        }
+
+        if (TenantUser::where('branch_id', $branch->id)->exists()) {
+            throw new DomainException('Cannot delete a branch with assigned users. Reassign users first.');
+        }
+
         $branch->delete();
     }
 

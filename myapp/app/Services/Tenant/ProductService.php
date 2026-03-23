@@ -8,6 +8,7 @@ use App\Models\Tenant\VariationGroup;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ProductService
@@ -89,30 +90,36 @@ class ProductService
     private function deleteImage(Product $product): void
     {
         if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-            Storage::disk('public')->deleteDirectory("products/{$product->id}");
+            Storage::disk('public')->delete($product->image_path);
         }
     }
 
     public function syncVariations(Product $product, array $groups): void
     {
-        $product->variationGroups()->delete();
-
-        foreach ($groups as $index => $group) {
-            $vg = $product->variationGroups()->create([
-                'tenant_id' => $product->tenant_id,
-                'name' => $group['name'],
-                'sort_order' => $index,
-                'is_required' => $group['is_required'] ?? false,
-            ]);
-
-            foreach ($group['options'] as $optIndex => $option) {
-                $vg->options()->create([
-                    'name' => $option['name'],
-                    'price_modifier' => $option['price_modifier'] ?? 0,
-                    'sort_order' => $optIndex,
-                ]);
+        DB::transaction(function () use ($product, $groups) {
+            // Delete options before groups to avoid FK issues
+            foreach ($product->variationGroups as $group) {
+                $group->options()->delete();
             }
-        }
+            $product->variationGroups()->delete();
+
+            foreach ($groups as $index => $group) {
+                $vg = $product->variationGroups()->create([
+                    'tenant_id' => $product->tenant_id,
+                    'name' => $group['name'],
+                    'sort_order' => $index,
+                    'is_required' => $group['is_required'] ?? false,
+                ]);
+
+                foreach ($group['options'] as $optIndex => $option) {
+                    $vg->options()->create([
+                        'name' => $option['name'],
+                        'price_modifier' => $option['price_modifier'] ?? 0,
+                        'sort_order' => $optIndex,
+                    ]);
+                }
+            }
+        });
     }
 
     public function syncAddons(Product $product, array $addonIds): void

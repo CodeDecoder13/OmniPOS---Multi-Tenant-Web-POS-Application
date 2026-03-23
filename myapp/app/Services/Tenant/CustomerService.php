@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\Customer;
+use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -45,6 +46,10 @@ class CustomerService
 
     public function delete(Customer $customer): void
     {
+        if ($customer->orders()->exists()) {
+            throw new DomainException('Cannot delete a customer with existing orders. Consider deactivating instead.');
+        }
+
         $customer->delete();
     }
 

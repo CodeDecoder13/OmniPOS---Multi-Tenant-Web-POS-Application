@@ -13,7 +13,7 @@ class CheckPermission
         $userPermissions = $request->attributes->get('current_permissions', []);
 
         foreach ($permissions as $permission) {
-            if (! in_array($permission, $userPermissions)) {
+            if (! in_array($permission, $userPermissions, true)) {
                 abort(403, 'You do not have permission to perform this action.');
             }
         }

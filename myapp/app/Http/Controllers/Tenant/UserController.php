@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -82,7 +83,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'max:255'],
+            'password' => ['required', 'string', Password::default(), 'max:255'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
         ]);
@@ -126,11 +127,16 @@ class UserController extends Controller
         }
 
         if ($isOwnerRow) {
-            // Owner editing self: only name and password
+            // Owner editing self: name, password, and branch
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'password' => ['nullable', 'string', 'min:8', 'max:255'],
+                'password' => ['nullable', 'string', Password::default(), 'max:255'],
+                'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             ]);
+
+            if (!empty($validated['branch_id'])) {
+                Branch::forTenant($tenant)->findOrFail($validated['branch_id']);
+            }
 
             $user = User::findOrFail($userId);
             $data = ['name' => $validated['name']];
@@ -138,12 +144,16 @@ class UserController extends Controller
                 $data['password'] = $validated['password'];
             }
             $user->update($data);
+
+            TenantUser::where('tenant_id', $tenant->id)
+                ->where('user_id', $userId)
+                ->update(['branch_id' => $validated['branch_id'] ?? null]);
         } else {
             // Editing other users: name, email, password, role, branch
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
-                'password' => ['nullable', 'string', 'min:8', 'max:255'],
+                'password' => ['nullable', 'string', Password::default(), 'max:255'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
                 'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             ]);

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTenant } from '@/composables/useTenant';
+import { useCurrency } from '@/composables/useCurrency';
 import type { Order, PaginatedData } from '@/types';
 
 const props = defineProps<{
@@ -16,6 +17,7 @@ const props = defineProps<{
 }>();
 
 const { tenantUrl } = useTenant();
+const { formatCurrency } = useCurrency();
 
 const search = ref(props.filters.search ?? '');
 const statusFilter = ref(props.filters.status ?? 'all');
@@ -47,10 +49,6 @@ function statusBadgeVariant(status: string) {
         case 'refunded': return 'outline';
         default: return 'secondary';
     }
-}
-
-function formatCurrency(amount: string | number) {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
 }
 
 function formatDate(date: string) {

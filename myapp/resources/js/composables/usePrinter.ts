@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/vue3';
 import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 
 export interface KotData {
@@ -22,8 +23,42 @@ export interface BarcodeData {
     svgHtml: string;
 }
 
-function formatCurrency(amount: number | string): string {
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
+const CURRENCY_MAP: Record<string, string> = {
+    PHP: 'en-PH',
+    USD: 'en-US',
+    EUR: 'de-DE',
+    GBP: 'en-GB',
+    JPY: 'ja-JP',
+    KRW: 'ko-KR',
+    CNY: 'zh-CN',
+    SGD: 'en-SG',
+    AUD: 'en-AU',
+    CAD: 'en-CA',
+    INR: 'en-IN',
+    THB: 'th-TH',
+    MYR: 'ms-MY',
+    IDR: 'id-ID',
+    VND: 'vi-VN',
+};
+
+function getCurrencyInfo(): { code: string; locale: string } {
+    try {
+        const page = usePage();
+        const tenant = page.props.tenant as any;
+        const code = tenant?.settings?.currency || 'PHP';
+        const locale = CURRENCY_MAP[code] || 'en-US';
+        return { code, locale };
+    } catch {
+        return { code: 'PHP', locale: 'en-PH' };
+    }
+}
+
+function formatCurrency(amount: number | string, currencyCode?: string): string {
+    const { code, locale } = currencyCode
+        ? { code: currencyCode, locale: CURRENCY_MAP[currencyCode] || 'en-US' }
+        : getCurrencyInfo();
+
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: code }).format(Number(amount));
 }
 
 function openPrintWindow(html: string): void {

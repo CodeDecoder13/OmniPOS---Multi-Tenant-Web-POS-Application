@@ -283,11 +283,15 @@ export interface Order {
     kitchen_completed_at: string | null;
     kitchen_notes: string | null;
     created_by: number | null;
+    voided_by: number | null;
+    void_reason: string | null;
+    voided_at: string | null;
     customer?: Customer | null;
     branch?: { id: number; name: string } | null;
     table?: { id: number; name: string } | null;
     promotion?: { id: number; code: string; name: string } | null;
     creator?: { id: number; name: string } | null;
+    voided_by_user?: { id: number; name: string } | null;
     items?: OrderItem[];
     items_count?: number;
     payments?: Payment[];
