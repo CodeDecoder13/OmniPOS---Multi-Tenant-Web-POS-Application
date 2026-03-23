@@ -69,6 +69,28 @@ export interface Admin {
     id: number;
     name: string;
     email: string;
+    is_active: boolean;
+    last_login_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AdminActivityLog {
+    id: number;
+    admin_id: number;
+    action: string;
+    subject_type: string | null;
+    subject_id: string | null;
+    properties: Record<string, unknown> | null;
+    ip_address: string | null;
+    admin?: { id: number; name: string };
+    created_at: string;
+}
+
+export interface SystemSetting {
+    id: number;
+    key: string;
+    value: string | null;
     created_at: string;
     updated_at: string;
 }

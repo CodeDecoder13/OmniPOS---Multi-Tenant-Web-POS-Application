@@ -17,6 +17,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 function toggleTenant() {
     router.patch(`/admin/tenants/${props.tenant.id}/toggle`);
 }
+
+function deleteTenant() {
+    if (!confirm('Are you sure you want to delete this tenant?')) return;
+    router.delete(`/admin/tenants/${props.tenant.id}`);
+}
 </script>
 
 <template>
@@ -30,12 +35,16 @@ function toggleTenant() {
                     <p class="text-muted-foreground">{{ tenant.slug }}</p>
                 </div>
                 <div class="flex gap-2">
+                    <Button variant="outline" as-child>
+                        <Link :href="`/admin/tenants/${tenant.id}/edit`">Edit</Link>
+                    </Button>
                     <Button
                         :variant="tenant.is_active ? 'destructive' : 'default'"
                         @click="toggleTenant"
                     >
                         {{ tenant.is_active ? 'Deactivate' : 'Activate' }}
                     </Button>
+                    <Button variant="destructive" @click="deleteTenant">Delete</Button>
                 </div>
             </div>
 
@@ -58,6 +67,10 @@ function toggleTenant() {
                             </dd>
                         </div>
                         <div>
+                            <dt class="text-sm text-muted-foreground">Business Type</dt>
+                            <dd class="font-medium capitalize">{{ tenant.business_type }}</dd>
+                        </div>
+                        <div>
                             <dt class="text-sm text-muted-foreground">Owner</dt>
                             <dd class="font-medium">{{ tenant.owner?.name ?? 'N/A' }}</dd>
                             <dd class="text-sm text-muted-foreground">{{ tenant.owner?.email }}</dd>
@@ -71,7 +84,12 @@ function toggleTenant() {
 
                 <!-- Subscription -->
                 <div class="rounded-xl border bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-                    <h2 class="mb-4 text-lg font-semibold">Subscription</h2>
+                    <div class="mb-4 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Subscription</h2>
+                        <Button v-if="tenant.subscription" size="sm" variant="outline" as-child>
+                            <Link :href="`/admin/subscriptions/${tenant.subscription.id}`">Manage</Link>
+                        </Button>
+                    </div>
                     <dl v-if="tenant.subscription" class="space-y-3">
                         <div>
                             <dt class="text-sm text-muted-foreground">Plan</dt>
@@ -79,7 +97,7 @@ function toggleTenant() {
                         </div>
                         <div>
                             <dt class="text-sm text-muted-foreground">Price</dt>
-                            <dd>₱{{ Number(tenant.subscription.plan?.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}/mo</dd>
+                            <dd>&#8369;{{ Number(tenant.subscription.plan?.price ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}/mo</dd>
                         </div>
                         <div>
                             <dt class="text-sm text-muted-foreground">Status</dt>

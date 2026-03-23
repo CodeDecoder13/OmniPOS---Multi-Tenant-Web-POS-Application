@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { Building2, CreditCard, LayoutDashboard, LogOut, Ticket, Users } from 'lucide-vue-next';
+import {
+    Activity,
+    BarChart3,
+    Building2,
+    CreditCard,
+    FileText,
+    LayoutDashboard,
+    LogOut,
+    Settings,
+    ShieldCheck,
+    Ticket,
+    Users,
+    Users2,
+} from 'lucide-vue-next';
 import {
     Sidebar,
     SidebarContent,
@@ -16,12 +29,29 @@ import {
 
 const page = usePage();
 
-const navItems = [
+const overviewItems = [
     { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+];
+
+const managementItems = [
     { title: 'Tenants', href: '/admin/tenants', icon: Building2 },
     { title: 'Users', href: '/admin/users', icon: Users },
     { title: 'Plans', href: '/admin/plans', icon: CreditCard },
+    { title: 'Subscriptions', href: '/admin/subscriptions', icon: FileText },
     { title: 'Promo Codes', href: '/admin/promo-codes', icon: Ticket },
+    { title: 'Admins', href: '/admin/admins', icon: ShieldCheck },
+];
+
+const reportItems = [
+    { title: 'Revenue', href: '/admin/reports/revenue', icon: BarChart3 },
+    { title: 'Tenants', href: '/admin/reports/tenants', icon: Building2 },
+    { title: 'Users', href: '/admin/reports/users', icon: Users2 },
+    { title: 'Subscriptions', href: '/admin/reports/subscriptions', icon: FileText },
+];
+
+const systemItems = [
+    { title: 'Activity Log', href: '/admin/activity-log', icon: Activity },
+    { title: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 function isActive(href: string): boolean {
@@ -57,10 +87,58 @@ function isActive(href: string): boolean {
 
         <SidebarContent>
             <SidebarGroup>
-                <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                <SidebarGroupLabel>Overview</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
-                        <SidebarMenuItem v-for="item in navItems" :key="item.title">
+                        <SidebarMenuItem v-for="item in overviewItems" :key="item.title">
+                            <SidebarMenuButton as-child :is-active="isActive(item.href)">
+                                <Link :href="item.href">
+                                    <component :is="item.icon" />
+                                    <span>{{ item.title }}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+                <SidebarGroupLabel>Management</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem v-for="item in managementItems" :key="item.title">
+                            <SidebarMenuButton as-child :is-active="isActive(item.href)">
+                                <Link :href="item.href">
+                                    <component :is="item.icon" />
+                                    <span>{{ item.title }}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+                <SidebarGroupLabel>Reports</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem v-for="item in reportItems" :key="item.title">
+                            <SidebarMenuButton as-child :is-active="isActive(item.href)">
+                                <Link :href="item.href">
+                                    <component :is="item.icon" />
+                                    <span>{{ item.title }}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+                <SidebarGroupLabel>System</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem v-for="item in systemItems" :key="item.title">
                             <SidebarMenuButton as-child :is-active="isActive(item.href)">
                                 <Link :href="item.href">
                                     <component :is="item.icon" />

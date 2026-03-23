@@ -3,38 +3,110 @@
 namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SuperAdmin\PlanRequest;
 use App\Models\Plan;
+use App\Services\Central\AdminActivityLogService;
+use App\Services\Central\PlanService;
+use DomainException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PlanController extends Controller
 {
+    public function __construct(
+        private PlanService $planService,
+        private AdminActivityLogService $activityLog,
+    ) {}
+
     public function index(): Response
     {
-        $plans = Plan::withCount(['subscriptions'])
-            ->get();
-
         return Inertia::render('admin/plans/Index', [
-            'plans' => $plans,
+            'plans' => $this->planService->list(),
         ]);
     }
 
-    public function update(Request $request, int $id)
+    public function create(): Response
+    {
+        return Inertia::render('admin/plans/Create');
+    }
+
+    public function store(PlanRequest $request): RedirectResponse
+    {
+        $plan = $this->planService->create($request->validated());
+
+        $this->activityLog->log(
+            $request->user('admin'),
+            'created_plan',
+            $plan,
+            ['name' => $plan->name],
+            $request->ip(),
+        );
+
+        return redirect()->route('admin.plans.index')->with('success', "Plan {$plan->name} created successfully.");
+    }
+
+    public function edit(int $id): Response
     {
         $plan = Plan::findOrFail($id);
 
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'max_branches' => ['nullable', 'integer', 'min:1'],
-            'max_users' => ['nullable', 'integer', 'min:1'],
-            'max_products' => ['nullable', 'integer', 'min:1'],
-            'is_active' => ['sometimes', 'boolean'],
+        return Inertia::render('admin/plans/Edit', [
+            'plan' => $plan,
         ]);
+    }
 
-        $plan->update($validated);
+    public function update(PlanRequest $request, int $id): RedirectResponse
+    {
+        $plan = Plan::findOrFail($id);
+        $plan = $this->planService->update($plan, $request->validated());
 
-        return back()->with('success', "Plan {$plan->name} updated successfully.");
+        $this->activityLog->log(
+            $request->user('admin'),
+            'updated_plan',
+            $plan,
+            ['name' => $plan->name],
+            $request->ip(),
+        );
+
+        return redirect()->route('admin.plans.index')->with('success', "Plan {$plan->name} updated successfully.");
+    }
+
+    public function destroy(Request $request, int $id): RedirectResponse
+    {
+        $plan = Plan::findOrFail($id);
+        $name = $plan->name;
+
+        try {
+            $this->planService->delete($plan);
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $this->activityLog->log(
+            $request->user('admin'),
+            'deleted_plan',
+            null,
+            ['name' => $name],
+            $request->ip(),
+        );
+
+        return redirect()->route('admin.plans.index')->with('success', "Plan {$name} deleted successfully.");
+    }
+
+    public function toggle(Request $request, int $id): RedirectResponse
+    {
+        $plan = Plan::findOrFail($id);
+        $this->planService->toggle($plan);
+
+        $this->activityLog->log(
+            $request->user('admin'),
+            $plan->is_active ? 'activated_plan' : 'deactivated_plan',
+            $plan,
+            ['name' => $plan->name],
+            $request->ip(),
+        );
+
+        return back()->with('success', "Plan {$plan->name} " . ($plan->is_active ? 'activated' : 'deactivated') . '.');
     }
 }
