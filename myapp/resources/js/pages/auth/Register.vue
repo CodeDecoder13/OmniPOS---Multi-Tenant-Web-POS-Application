@@ -89,6 +89,9 @@ function validateStep(step: number): boolean {
         if (!form.business_type) stepErrors.business_type = 'Please select a business type.';
     } else if (step === 3) {
         if (!form.plan) stepErrors.plan = 'Please select a plan.';
+        else if (selectedPlanIsPaid.value && !promoState.valid) {
+            stepErrors.promo_code = 'A valid promo code is required for this plan.';
+        }
     } else if (step === 4) {
         if (!form.password) {
             stepErrors.password = 'Password is required.';
@@ -129,7 +132,6 @@ const containerMaxWidth = computed(() =>
 );
 
 // Promo code logic
-const showPromoInput = ref(false);
 const promoState = reactive({
     validating: false,
     valid: false,
@@ -176,7 +178,6 @@ async function validatePromoCode() {
 
 watch(() => form.plan, () => {
     form.promo_code = '';
-    showPromoInput.value = false;
     resetPromoState();
 });
 
@@ -396,46 +397,35 @@ function submit() {
                             </div>
                             <InputError :message="stepErrors.plan || form.errors.plan" class="mt-2" />
 
-                            <!-- Promo Code -->
-                            <div v-if="selectedPlanIsPaid" class="mt-4">
-                                <button
-                                    v-if="!showPromoInput"
-                                    type="button"
-                                    class="text-sm text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 underline underline-offset-4"
-                                    @click="showPromoInput = true"
-                                >
-                                    Have a promo code?
-                                </button>
-
-                                <div v-else class="space-y-2">
-                                    <Label for="promo_code">Promo Code</Label>
-                                    <div class="flex gap-2">
-                                        <Input
-                                            id="promo_code"
-                                            v-model="form.promo_code"
-                                            placeholder="Enter code"
-                                            class="uppercase"
-                                            :disabled="promoState.validating"
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            :disabled="!form.promo_code.trim() || promoState.validating"
-                                            @click="validatePromoCode"
-                                        >
-                                            <Loader2 v-if="promoState.validating" class="mr-1 size-4 animate-spin" />
-                                            Apply
-                                        </Button>
-                                    </div>
-                                    <p
-                                        v-if="promoState.message"
-                                        class="text-sm"
-                                        :class="promoState.valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                            <!-- Promo Code (required for paid plans) -->
+                            <div v-if="selectedPlanIsPaid" class="mt-4 space-y-2">
+                                <Label for="promo_code">Promo Code <span class="text-red-500">*</span></Label>
+                                <div class="flex gap-2">
+                                    <Input
+                                        id="promo_code"
+                                        v-model="form.promo_code"
+                                        placeholder="Enter code"
+                                        class="uppercase"
+                                        :disabled="promoState.validating"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        :disabled="!form.promo_code.trim() || promoState.validating"
+                                        @click="validatePromoCode"
                                     >
-                                        {{ promoState.message }}
-                                    </p>
-                                    <InputError :message="form.errors.promo_code" />
+                                        <Loader2 v-if="promoState.validating" class="mr-1 size-4 animate-spin" />
+                                        Apply
+                                    </Button>
                                 </div>
+                                <p
+                                    v-if="promoState.message"
+                                    class="text-sm"
+                                    :class="promoState.valid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                                >
+                                    {{ promoState.message }}
+                                </p>
+                                <InputError :message="stepErrors.promo_code || form.errors.promo_code" />
                             </div>
                         </div>
 

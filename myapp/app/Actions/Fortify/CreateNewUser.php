@@ -5,6 +5,7 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Enums\BusinessType;
+use App\Models\Plan;
 use App\Models\PromoCode;
 use App\Models\User;
 use App\Services\Central\RegisterService;
@@ -36,6 +37,15 @@ class CreateNewUser implements CreatesNewUsers
             'plan' => ['required', 'string', 'exists:plans,slug'],
             'promo_code' => ['nullable', 'string'],
         ])->validate();
+
+        $plan = Plan::where('slug', $input['plan'])->firstOrFail();
+        $isPaid = ! $plan->isFree();
+
+        if ($isPaid && empty($input['promo_code'])) {
+            throw ValidationException::withMessages([
+                'promo_code' => 'A valid promo code is required for this plan.',
+            ]);
+        }
 
         if (! empty($input['promo_code'])) {
             $promo = PromoCode::where('code', strtoupper($input['promo_code']))->first();
