@@ -22,8 +22,8 @@ class ReportService
         while ($current->lte($to)) {
             $monthEnd = $current->copy()->endOfMonth();
 
-            $revenue = TenantSubscription::where('status', 'active')
-                ->where('created_at', '<=', $monthEnd)
+            $revenue = TenantSubscription::where('tenant_subscriptions.status', 'active')
+                ->where('tenant_subscriptions.created_at', '<=', $monthEnd)
                 ->join('plans', 'tenant_subscriptions.plan_id', '=', 'plans.id')
                 ->sum('plans.price');
 
@@ -43,7 +43,7 @@ class ReportService
             'revenue' => round($plan->subscriptions_count * (float) $plan->price, 2),
         ])->toArray();
 
-        $totalMrr = TenantSubscription::where('status', 'active')
+        $totalMrr = TenantSubscription::where('tenant_subscriptions.status', 'active')
             ->join('plans', 'tenant_subscriptions.plan_id', '=', 'plans.id')
             ->sum('plans.price');
 

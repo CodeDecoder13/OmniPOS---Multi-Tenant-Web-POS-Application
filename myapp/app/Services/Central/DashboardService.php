@@ -18,7 +18,7 @@ class DashboardService
         $activeTenants = Tenant::where('is_active', true)->count();
         $totalUsers = User::count();
 
-        $mrr = TenantSubscription::where('status', 'active')
+        $mrr = TenantSubscription::where('tenant_subscriptions.status', 'active')
             ->join('plans', 'tenant_subscriptions.plan_id', '=', 'plans.id')
             ->sum('plans.price');
 
@@ -56,8 +56,8 @@ class DashboardService
             $date = Carbon::now()->subMonths($i);
             $labels[] = $date->format('M Y');
 
-            $revenue = TenantSubscription::where('status', 'active')
-                ->where('created_at', '<=', $date->endOfMonth())
+            $revenue = TenantSubscription::where('tenant_subscriptions.status', 'active')
+                ->where('tenant_subscriptions.created_at', '<=', $date->endOfMonth())
                 ->join('plans', 'tenant_subscriptions.plan_id', '=', 'plans.id')
                 ->sum('plans.price');
 
