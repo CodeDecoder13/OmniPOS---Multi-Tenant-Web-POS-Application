@@ -6,7 +6,6 @@ import {
     UserPlus, Users, TrendingUp, TrendingDown, DollarSign,
     ArrowUpRight, CreditCard, BarChart3,
 } from 'lucide-vue-next';
-import { useI18n } from 'vue-i18n';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import WelcomeBackModal from '@/components/WelcomeBackModal.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -38,7 +37,6 @@ const props = defineProps<{
     recentOrders: { id: number; order_number: string; total: number; status: string; branch: string; created_at: string }[];
 }>();
 
-const { t } = useI18n();
 const page = usePage();
 const { tenantUrl } = useTenant();
 const { formatCurrency, formatCurrencyShort } = useCurrency();
@@ -51,7 +49,7 @@ const tenantName = (page.props.tenant as { name: string } | null)?.name ?? '';
 const showWelcomeModal = ref(!!flash.value.showWelcome);
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
-    { title: t('nav.dashboard'), href: tenantUrl('dashboard') },
+    { title: 'Dashboard', href: tenantUrl('dashboard') },
 ]);
 
 const revenueChange = computed(() => {
@@ -239,7 +237,7 @@ const topProductMax = computed(() => {
 </script>
 
 <template>
-    <Head :title="$t('nav.dashboard')" />
+    <Head title="Dashboard" />
 
     <WelcomeBackModal
         :show="showWelcomeModal"
@@ -259,8 +257,8 @@ const topProductMax = computed(() => {
             <!-- Header -->
             <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold">{{ $t('dashboard.welcomeBack', { name: firstName }) }}</h1>
-                    <p class="text-sm text-muted-foreground">{{ $t('dashboard.todayOverview') }}</p>
+                    <h1 class="text-2xl font-bold">Welcome back, {{ firstName }}!</h1>
+                    <p class="text-sm text-muted-foreground">Here's what's happening with your business today.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <span
@@ -269,7 +267,7 @@ const topProductMax = computed(() => {
                             ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                             : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'"
                     >
-                        {{ stats.plan_name }} {{ $t('dashboard.plan') }}
+                        {{ stats.plan_name }} Plan
                     </span>
                 </div>
             </div>
@@ -279,7 +277,7 @@ const topProductMax = computed(() => {
                 <!-- Today Revenue -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.todayRevenue') }}</p>
+                        <p class="text-sm font-medium text-muted-foreground">Today's Revenue</p>
                         <div class="rounded-lg bg-teal-100 p-2 dark:bg-teal-900/30">
                             <DollarSign class="h-4 w-4 text-teal-600" />
                         </div>
@@ -292,44 +290,44 @@ const topProductMax = computed(() => {
                         <span v-else class="flex items-center text-red-500">
                             <TrendingDown class="mr-0.5 h-3 w-3" /> {{ revenueChange }}%
                         </span>
-                        <span class="text-muted-foreground">{{ $t('common.vsYesterday') }}</span>
+                        <span class="text-muted-foreground">vs yesterday</span>
                     </div>
                 </div>
 
                 <!-- Today Orders -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.todayOrders') }}</p>
+                        <p class="text-sm font-medium text-muted-foreground">Today's Orders</p>
                         <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
                             <ShoppingCart class="h-4 w-4 text-blue-600" />
                         </div>
                     </div>
                     <p class="mt-2 text-2xl font-bold">{{ todayOrderCount }}</p>
-                    <p class="mt-1 text-xs text-muted-foreground">{{ $t('dashboard.completedOrders') }}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">Completed orders</p>
                 </div>
 
                 <!-- Products -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.products') }}</p>
+                        <p class="text-sm font-medium text-muted-foreground">Products</p>
                         <div class="rounded-lg bg-orange-100 p-2 dark:bg-orange-900/30">
                             <Package class="h-4 w-4 text-orange-600" />
                         </div>
                     </div>
                     <p class="mt-2 text-2xl font-bold">{{ stats.products_count }}</p>
-                    <p class="mt-1 text-xs text-muted-foreground">{{ stats.max_products ? `${$t('common.of')} ${stats.max_products} ${$t('common.max')}` : $t('common.unlimited') }}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">{{ stats.max_products ? `of ${stats.max_products} max` : 'Unlimited' }}</p>
                 </div>
 
                 <!-- Team -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.teamMembers') }}</p>
+                        <p class="text-sm font-medium text-muted-foreground">Team Members</p>
                         <div class="rounded-lg bg-violet-100 p-2 dark:bg-violet-900/30">
                             <Users class="h-4 w-4 text-violet-600" />
                         </div>
                     </div>
                     <p class="mt-2 text-2xl font-bold">{{ stats.users_count }}</p>
-                    <p class="mt-1 text-xs text-muted-foreground">{{ stats.max_users ? `${$t('common.of')} ${stats.max_users} ${$t('common.max')}` : $t('common.unlimited') }}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">{{ stats.max_users ? `of ${stats.max_users} max` : 'Unlimited' }}</p>
                 </div>
             </div>
 
@@ -339,8 +337,8 @@ const topProductMax = computed(() => {
                 <div class="rounded-xl border bg-white p-5 shadow-sm lg:col-span-2 dark:border-gray-800 dark:bg-gray-900">
                     <div class="mb-4 flex items-center justify-between">
                         <div>
-                            <h3 class="font-semibold">{{ $t('dashboard.salesTrend') }}</h3>
-                            <p class="text-xs text-muted-foreground">{{ $t('dashboard.revenueLast7') }}</p>
+                            <h3 class="font-semibold">Sales Trend</h3>
+                            <p class="text-xs text-muted-foreground">Revenue over the last 7 days</p>
                         </div>
                         <div class="rounded-lg bg-gray-100 p-2 dark:bg-gray-800">
                             <TrendingUp class="h-4 w-4 text-gray-500" />
@@ -349,19 +347,19 @@ const topProductMax = computed(() => {
                     <div v-if="salesTrend.length">
                         <apexchart type="area" height="256" :options="lineChartOptions" :series="lineSeries" />
                     </div>
-                    <div v-else class="flex h-64 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noSalesData') }}</div>
+                    <div v-else class="flex h-64 items-center justify-center text-sm text-muted-foreground">No sales data yet</div>
                 </div>
 
                 <!-- Order Status Doughnut -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="mb-4">
-                        <h3 class="font-semibold">{{ $t('dashboard.orderStatus') }}</h3>
-                        <p class="text-xs text-muted-foreground">{{ $t('dashboard.last30Days') }}</p>
+                        <h3 class="font-semibold">Order Status</h3>
+                        <p class="text-xs text-muted-foreground">Last 30 days</p>
                     </div>
                     <div v-if="Object.keys(ordersByStatus).length">
                         <apexchart type="donut" height="224" :options="orderStatusOptions" :series="orderStatusSeries" />
                     </div>
-                    <div v-else class="flex h-56 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noOrdersYet') }}</div>
+                    <div v-else class="flex h-56 items-center justify-center text-sm text-muted-foreground">No orders yet</div>
                 </div>
             </div>
 
@@ -370,21 +368,21 @@ const topProductMax = computed(() => {
                 <!-- Payment Method Doughnut -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="mb-4">
-                        <h3 class="font-semibold">{{ $t('dashboard.paymentMethods') }}</h3>
-                        <p class="text-xs text-muted-foreground">{{ $t('dashboard.last30ByAmount') }}</p>
+                        <h3 class="font-semibold">Payment Methods</h3>
+                        <p class="text-xs text-muted-foreground">Last 30 days by amount</p>
                     </div>
                     <div v-if="Object.keys(paymentsByMethod).length">
                         <apexchart type="donut" height="224" :options="paymentOptions" :series="paymentSeries" />
                     </div>
-                    <div v-else class="flex h-56 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noPaymentsYet') }}</div>
+                    <div v-else class="flex h-56 items-center justify-center text-sm text-muted-foreground">No payments yet</div>
                 </div>
 
                 <!-- Top Products -->
                 <div class="rounded-xl border bg-white p-5 shadow-sm lg:col-span-2 dark:border-gray-800 dark:bg-gray-900">
                     <div class="mb-4 flex items-center justify-between">
                         <div>
-                            <h3 class="font-semibold">{{ $t('dashboard.topProducts') }}</h3>
-                            <p class="text-xs text-muted-foreground">{{ $t('dashboard.bestSellers30') }}</p>
+                            <h3 class="font-semibold">Top Products</h3>
+                            <p class="text-xs text-muted-foreground">Best sellers in the last 30 days</p>
                         </div>
                         <div class="rounded-lg bg-gray-100 p-2 dark:bg-gray-800">
                             <BarChart3 class="h-4 w-4 text-gray-500" />
@@ -407,12 +405,12 @@ const topProductMax = computed(() => {
                                             :style="{ width: (product.revenue / topProductMax * 100) + '%' }"
                                         ></div>
                                     </div>
-                                    <span class="shrink-0 text-xs text-muted-foreground">{{ product.qty }} {{ $t('dashboard.sold') }}</span>
+                                    <span class="shrink-0 text-xs text-muted-foreground">{{ product.qty }} sold</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noProductData') }}</div>
+                    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">No product data yet</div>
                 </div>
             </div>
 
@@ -422,22 +420,22 @@ const topProductMax = computed(() => {
                 <div class="rounded-xl border bg-white p-5 shadow-sm lg:col-span-2 dark:border-gray-800 dark:bg-gray-900">
                     <div class="mb-4 flex items-center justify-between">
                         <div>
-                            <h3 class="font-semibold">{{ $t('dashboard.recentOrders') }}</h3>
-                            <p class="text-xs text-muted-foreground">{{ $t('dashboard.latest10') }}</p>
+                            <h3 class="font-semibold">Recent Orders</h3>
+                            <p class="text-xs text-muted-foreground">Latest 10 orders across all branches</p>
                         </div>
                         <Link :href="tenantUrl('orders')" class="flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700">
-                            {{ $t('common.viewAll') }} <ArrowUpRight class="h-3 w-3" />
+                            View all <ArrowUpRight class="h-3 w-3" />
                         </Link>
                     </div>
                     <div v-if="recentOrders.length" class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="border-b text-left text-xs text-muted-foreground dark:border-gray-800">
-                                    <th class="pb-3 font-medium">{{ $t('dashboard.order') }}</th>
-                                    <th class="pb-3 font-medium">{{ $t('dashboard.branch') }}</th>
-                                    <th class="pb-3 font-medium">{{ $t('common.total') }}</th>
-                                    <th class="pb-3 font-medium">{{ $t('common.status') }}</th>
-                                    <th class="pb-3 text-right font-medium">{{ $t('common.time') }}</th>
+                                    <th class="pb-3 font-medium">Order</th>
+                                    <th class="pb-3 font-medium">Branch</th>
+                                    <th class="pb-3 font-medium">Total</th>
+                                    <th class="pb-3 font-medium">Status</th>
+                                    <th class="pb-3 text-right font-medium">Time</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -455,29 +453,29 @@ const topProductMax = computed(() => {
                             </tbody>
                         </table>
                     </div>
-                    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noOrdersYet') }}</div>
+                    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">No orders yet</div>
                 </div>
 
                 <!-- Quick Info + Actions -->
                 <div class="flex flex-col gap-4">
                     <!-- Store Overview Mini Cards -->
                     <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <h3 class="mb-3 font-semibold">{{ $t('dashboard.storeOverview') }}</h3>
+                        <h3 class="mb-3 font-semibold">Store Overview</h3>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                                 <Building2 class="mb-1 h-4 w-4 text-teal-600" />
                                 <p class="text-lg font-bold">{{ stats.branches_count }}</p>
-                                <p class="text-xs text-muted-foreground">{{ $t('nav.branches') }}</p>
+                                <p class="text-xs text-muted-foreground">Branches</p>
                             </div>
                             <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                                 <Shield class="mb-1 h-4 w-4 text-indigo-600" />
                                 <p class="text-lg font-bold">{{ stats.roles_count }}</p>
-                                <p class="text-xs text-muted-foreground">{{ $t('nav.roles') }}</p>
+                                <p class="text-xs text-muted-foreground">Roles</p>
                             </div>
                             <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                                 <FolderOpen class="mb-1 h-4 w-4 text-amber-600" />
                                 <p class="text-lg font-bold">{{ stats.categories_count }}</p>
-                                <p class="text-xs text-muted-foreground">{{ $t('nav.categories') }}</p>
+                                <p class="text-xs text-muted-foreground">Categories</p>
                             </div>
                             <div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
                                 <CreditCard class="mb-1 h-4 w-4 text-blue-600" />
@@ -489,28 +487,28 @@ const topProductMax = computed(() => {
 
                     <!-- Quick Actions -->
                     <div class="rounded-xl border bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                        <h3 class="mb-3 font-semibold">{{ $t('dashboard.quickActions') }}</h3>
+                        <h3 class="mb-3 font-semibold">Quick Actions</h3>
                         <div class="flex flex-col gap-2">
                             <Link
                                 :href="tenantUrl('branches/create')"
                                 class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 transition hover:bg-teal-50 dark:bg-gray-800/50 dark:hover:bg-teal-900/20"
                             >
                                 <Plus class="h-4 w-4 text-teal-600" />
-                                <span class="text-sm font-medium">{{ $t('dashboard.addBranch') }}</span>
+                                <span class="text-sm font-medium">Add Branch</span>
                             </Link>
                             <Link
                                 :href="tenantUrl('users')"
                                 class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 transition hover:bg-blue-50 dark:bg-gray-800/50 dark:hover:bg-blue-900/20"
                             >
                                 <UserPlus class="h-4 w-4 text-blue-600" />
-                                <span class="text-sm font-medium">{{ $t('dashboard.inviteUser') }}</span>
+                                <span class="text-sm font-medium">Invite User</span>
                             </Link>
                             <Link
                                 :href="tenantUrl('products/create')"
                                 class="flex items-center gap-3 rounded-lg bg-gray-50 p-3 transition hover:bg-orange-50 dark:bg-gray-800/50 dark:hover:bg-orange-900/20"
                             >
                                 <Package class="h-4 w-4 text-orange-600" />
-                                <span class="text-sm font-medium">{{ $t('dashboard.addProduct') }}</span>
+                                <span class="text-sm font-medium">Add Product</span>
                             </Link>
                             <a
                                 :href="tenantUrl('pos')"
@@ -518,7 +516,7 @@ const topProductMax = computed(() => {
                                 class="flex items-center gap-3 rounded-lg bg-teal-50 p-3 transition hover:bg-teal-100 dark:bg-teal-900/20 dark:hover:bg-teal-900/30"
                             >
                                 <ShoppingCart class="h-4 w-4 text-teal-600" />
-                                <span class="text-sm font-medium text-teal-700 dark:text-teal-400">{{ $t('dashboard.openPos') }}</span>
+                                <span class="text-sm font-medium text-teal-700 dark:text-teal-400">Open POS</span>
                             </a>
                         </div>
                     </div>

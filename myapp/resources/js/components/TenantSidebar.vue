@@ -26,7 +26,6 @@ import {
     SidebarMenuSubItem,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { useI18n } from 'vue-i18n';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
 import { useBranchSettings } from '@/composables/useBranchSettings';
@@ -47,64 +46,63 @@ interface NavGroup {
     children: NavChild[];
 }
 
-const { t } = useI18n();
 const page = usePage();
 const { tenant, tenantUrl } = useTenant();
 const { can } = usePermissions();
 const { isEnabled } = useBranchSettings();
 
 const topLevelItems: NavChild[] = [
-    { title: 'nav.dashboard', path: 'dashboard', icon: LayoutDashboard, permission: null },
-    { title: 'nav.pos', path: 'pos', icon: ShoppingCart, permission: 'pos.access', external: true, feature: 'pos_enabled' },
-    { title: 'nav.kitchen', path: 'kitchen', icon: ChefHat, permission: 'kitchen.access', external: true, feature: 'kitchen_display' },
+    { title: 'Dashboard', path: 'dashboard', icon: LayoutDashboard, permission: null },
+    { title: 'POS', path: 'pos', icon: ShoppingCart, permission: 'pos.access', external: true, feature: 'pos_enabled' },
+    { title: 'Kitchen', path: 'kitchen', icon: ChefHat, permission: 'kitchen.access', external: true, feature: 'kitchen_display' },
 ];
 
 const navGroups: NavGroup[] = [
     {
-        title: 'nav.salesOrders',
+        title: 'Sales & Orders',
         icon: ClipboardList,
         children: [
-            { title: 'nav.orders', path: 'orders', icon: ClipboardList, permission: 'orders.view' },
-            { title: 'nav.customers', path: 'customers', icon: UserRound, permission: 'orders.view' },
-            { title: 'nav.shifts', path: 'shifts', icon: Clock, permission: 'shifts.view' },
-            { title: 'nav.reports', path: 'reports', icon: BarChart3, permission: 'reports.view' },
+            { title: 'Orders', path: 'orders', icon: ClipboardList, permission: 'orders.view' },
+            { title: 'Customers', path: 'customers', icon: UserRound, permission: 'orders.view' },
+            { title: 'Shifts', path: 'shifts', icon: Clock, permission: 'shifts.view' },
+            { title: 'Reports', path: 'reports', icon: BarChart3, permission: 'reports.view' },
         ],
     },
     {
-        title: 'nav.productsMenu',
+        title: 'Products & Menu',
         icon: Package,
         children: [
-            { title: 'nav.categories', path: 'categories', icon: FolderOpen, permission: 'products.view' },
-            { title: 'nav.products', path: 'products', icon: Package, permission: 'products.view' },
-            { title: 'nav.addons', path: 'addons', icon: Puzzle, permission: 'products.view' },
-            { title: 'nav.tables', path: 'tables', icon: LayoutGrid, permission: 'tables.view', feature: 'dine_in' },
-            { title: 'nav.promotions', path: 'promotions', icon: Tag, permission: 'promotions.view' },
+            { title: 'Categories', path: 'categories', icon: FolderOpen, permission: 'products.view' },
+            { title: 'Products', path: 'products', icon: Package, permission: 'products.view' },
+            { title: 'Add-ons', path: 'addons', icon: Puzzle, permission: 'products.view' },
+            { title: 'Tables', path: 'tables', icon: LayoutGrid, permission: 'tables.view', feature: 'dine_in' },
+            { title: 'Promotions', path: 'promotions', icon: Tag, permission: 'promotions.view' },
         ],
     },
     {
-        title: 'nav.inventorySupply',
+        title: 'Inventory & Supply',
         icon: Warehouse,
         children: [
-            { title: 'nav.inventory', path: 'inventory', icon: Warehouse, permission: 'inventory.view', feature: 'inventory_tracking' },
-            { title: 'nav.suppliers', path: 'suppliers', icon: Truck, permission: 'suppliers.view', feature: 'inventory_tracking' },
-            { title: 'nav.stockTransfers', path: 'stock-transfers', icon: ArrowLeftRight, permission: 'inventory.view', feature: 'inventory_tracking' },
-            { title: 'nav.purchaseOrders', path: 'purchase-orders', icon: FileText, permission: 'inventory.view', feature: 'inventory_tracking' },
+            { title: 'Inventory', path: 'inventory', icon: Warehouse, permission: 'inventory.view', feature: 'inventory_tracking' },
+            { title: 'Suppliers', path: 'suppliers', icon: Truck, permission: 'suppliers.view', feature: 'inventory_tracking' },
+            { title: 'Stock Transfers', path: 'stock-transfers', icon: ArrowLeftRight, permission: 'inventory.view', feature: 'inventory_tracking' },
+            { title: 'Purchase Orders', path: 'purchase-orders', icon: FileText, permission: 'inventory.view', feature: 'inventory_tracking' },
         ],
     },
     {
-        title: 'nav.team',
+        title: 'Team',
         icon: Users,
         children: [
-            { title: 'nav.users', path: 'users', icon: Users, permission: 'users.view' },
-            { title: 'nav.roles', path: 'roles', icon: Shield, permission: 'roles.view' },
-            { title: 'nav.schedules', path: 'shift-schedules', icon: CalendarDays, permission: 'users.edit-role' },
-            { title: 'nav.branches', path: 'branches', icon: Building2, permission: 'branches.view' },
+            { title: 'Users', path: 'users', icon: Users, permission: 'users.view' },
+            { title: 'Roles', path: 'roles', icon: Shield, permission: 'roles.view' },
+            { title: 'Schedules', path: 'shift-schedules', icon: CalendarDays, permission: 'users.edit-role' },
+            { title: 'Branches', path: 'branches', icon: Building2, permission: 'branches.view' },
         ],
     },
 ];
 
 const systemNav: NavChild[] = [
-    { title: 'nav.settings', path: 'settings', icon: Settings, permission: 'settings.manage' },
+    { title: 'Settings', path: 'settings', icon: Settings, permission: 'settings.manage' },
 ];
 
 function isActive(path: string): boolean {
@@ -175,11 +173,11 @@ const filteredGroups = computed(() =>
                             <SidebarMenuButton as-child :is-active="isActive(item.path)">
                                 <a v-if="item.external" :href="tenantUrl(item.path)" target="_blank">
                                     <component :is="item.icon" />
-                                    <span>{{ $t(item.title) }}</span>
+                                    <span>{{ item.title }}</span>
                                 </a>
                                 <Link v-else :href="tenantUrl(item.path)">
                                     <component :is="item.icon" />
-                                    <span>{{ $t(item.title) }}</span>
+                                    <span>{{ item.title }}</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -191,7 +189,7 @@ const filteredGroups = computed(() =>
 
             <!-- Collapsible groups — all in one group, no redundant labels -->
             <SidebarGroup>
-                <SidebarGroupLabel>{{ $t('nav.manage') }}</SidebarGroupLabel>
+                <SidebarGroupLabel>Manage</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <Collapsible
@@ -204,7 +202,7 @@ const filteredGroups = computed(() =>
                                 <CollapsibleTrigger as-child>
                                     <SidebarMenuButton>
                                         <component :is="group.icon" />
-                                        <span>{{ $t(group.title) }}</span>
+                                        <span>{{ group.title }}</span>
                                         <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                                     </SidebarMenuButton>
                                 </CollapsibleTrigger>
@@ -213,7 +211,7 @@ const filteredGroups = computed(() =>
                                         <SidebarMenuSubItem v-for="child in group.children" :key="child.title">
                                             <SidebarMenuSubButton as-child size="sm" :is-active="isActive(child.path)">
                                                 <Link :href="tenantUrl(child.path)">
-                                                    <span>{{ $t(child.title) }}</span>
+                                                    <span>{{ child.title }}</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
@@ -233,7 +231,7 @@ const filteredGroups = computed(() =>
                             <SidebarMenuButton as-child :is-active="isActive(item.path)">
                                 <Link :href="tenantUrl(item.path)">
                                     <component :is="item.icon" />
-                                    <span>{{ $t(item.title) }}</span>
+                                    <span>{{ item.title }}</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
