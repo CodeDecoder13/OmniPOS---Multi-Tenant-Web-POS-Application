@@ -26,6 +26,7 @@ class RoleController extends Controller
 
         return Inertia::render('tenant/roles/Index', [
             'roles' => $roles,
+            'groupedPermissions' => $this->roleService->getGroupedPermissions(),
         ]);
     }
 

@@ -4,6 +4,7 @@ import { Edit, Plus, Shield, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,12 +14,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import type { BreadcrumbItem, Role } from '@/types';
+import type { BreadcrumbItem, GroupedPermissions, Role } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
 
 const props = defineProps<{
     roles: Role[];
+    groupedPermissions: GroupedPermissions;
 }>();
 
 const { tenantUrl } = useTenant();
@@ -32,6 +34,27 @@ const breadcrumbs: BreadcrumbItem[] = [
 const deleteDialog = ref(false);
 const roleToDelete = ref<Role | null>(null);
 const deleting = ref(false);
+
+const permissionsDialog = ref(false);
+const permissionsRole = ref<Role | null>(null);
+
+function viewPermissions(role: Role) {
+    permissionsRole.value = role;
+    permissionsDialog.value = true;
+}
+
+function roleHasPermission(permissionId: number): boolean {
+    // Owner role always has all permissions
+    if (permissionsRole.value?.is_system && permissionsRole.value?.slug === 'owner') {
+        return true;
+    }
+    return permissionsRole.value?.permissions?.some(p => p.id === permissionId) ?? false;
+}
+
+function isGroupAllSelected(group: string): boolean {
+    const groupIds = props.groupedPermissions[group].map((p) => p.id);
+    return groupIds.every((id) => roleHasPermission(id));
+}
 
 function confirmDelete(role: Role) {
     roleToDelete.value = role;
@@ -96,7 +119,14 @@ function deleteRole() {
                                 <Badge v-else variant="outline">Custom</Badge>
                             </td>
                             <td class="px-4 py-3 text-center">{{ role.tenant_users_count ?? 0 }}</td>
-                            <td class="px-4 py-3 text-center">{{ role.permissions?.length ?? 0 }}</td>
+                            <td class="px-4 py-3 text-center">
+                                <button
+                                    class="cursor-pointer text-primary underline-offset-4 hover:underline"
+                                    @click="viewPermissions(role)"
+                                >
+                                    {{ role.permissions?.length ?? 0 }}
+                                </button>
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
                                     <Button v-if="can('roles.edit')" variant="ghost" size="icon" as-child>
@@ -119,6 +149,46 @@ function deleteRole() {
                 </table>
             </div>
         </div>
+
+        <!-- Permissions View Dialog -->
+        <Dialog v-model:open="permissionsDialog">
+            <DialogContent class="max-h-[80vh] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{{ permissionsRole?.name }} — Permissions</DialogTitle>
+                    <DialogDescription>
+                        {{ permissionsRole?.permissions?.length ?? 0 }} permissions assigned to this role.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="space-y-4">
+                    <div
+                        v-for="(permissions, group) in groupedPermissions"
+                        :key="group"
+                        class="rounded-lg border p-4 dark:border-gray-800"
+                    >
+                        <div class="mb-3 flex items-center gap-2">
+                            <Checkbox
+                                :checked="isGroupAllSelected(group as string)"
+                                :disabled="true"
+                            />
+                            <span class="font-medium capitalize">{{ group }}</span>
+                        </div>
+                        <div class="ml-6 grid gap-2 sm:grid-cols-2">
+                            <label
+                                v-for="permission in permissions"
+                                :key="permission.id"
+                                class="flex items-center gap-2 text-sm"
+                            >
+                                <Checkbox
+                                    :checked="roleHasPermission(permission.id)"
+                                    :disabled="true"
+                                />
+                                {{ permission.name }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
 
         <!-- Delete Confirmation Dialog -->
         <Dialog v-model:open="deleteDialog">

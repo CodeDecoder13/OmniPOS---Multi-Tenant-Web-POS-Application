@@ -20,7 +20,7 @@ class Branch extends Model
         'dine_in'            => true,
         'takeout'            => true,
         'delivery'           => false,
-        'kitchen_display'    => false,
+        'kitchen_display'    => true,
         'receipt_printing'   => true,
     ];
 

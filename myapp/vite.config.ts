@@ -5,6 +5,11 @@ import laravel from 'laravel-vite-plugin';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+    resolve: {
+        alias: {
+            'vue-i18n': 'vue-i18n/dist/vue-i18n.esm-bundler.js',
+        },
+    },
     plugins: [
         laravel({
             input: ['resources/js/app.ts'],

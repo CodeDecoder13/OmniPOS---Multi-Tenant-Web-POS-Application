@@ -1,20 +1,31 @@
 <script setup lang="ts">
-import type { SwitchRootEmits, SwitchRootProps } from 'reka-ui'
+import type { SwitchRootProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
+import { computed } from 'vue'
 import { reactiveOmit } from '@vueuse/core'
-import { SwitchRoot, SwitchThumb, useForwardPropsEmits } from 'reka-ui'
+import { SwitchRoot, SwitchThumb } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<SwitchRootProps & { class?: HTMLAttributes['class'] }>()
-const emits = defineEmits<SwitchRootEmits>()
+const props = defineProps<SwitchRootProps & { class?: HTMLAttributes['class']; checked?: boolean }>()
+const emit = defineEmits<{
+    'update:modelValue': [value: boolean]
+    'update:checked': [value: boolean]
+}>()
 
-const delegatedProps = reactiveOmit(props, 'class')
-const forwarded = useForwardPropsEmits(delegatedProps, emits)
+const delegatedProps = reactiveOmit(props, 'class', 'checked', 'modelValue')
+const effectiveValue = computed(() => props.modelValue ?? props.checked)
+
+function onUpdate(value: boolean) {
+    emit('update:modelValue', value)
+    emit('update:checked', value)
+}
 </script>
 
 <template>
     <SwitchRoot
-        v-bind="forwarded"
+        v-bind="delegatedProps"
+        :model-value="effectiveValue"
+        @update:model-value="onUpdate"
         data-slot="switch"
         :class="
             cn(

@@ -21,10 +21,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Edit', href: tenantUrl(`roles/${props.role.id}/edit`) },
 ];
 
+// Owner role always gets all permissions
+const allPermissionIds = Object.values(props.groupedPermissions).flat().map((p) => p.id);
+
 const form = useForm({
     name: props.role.name,
     description: props.role.description ?? '',
-    permissions: props.role.permissions?.map((p) => p.id) ?? [],
+    permissions: (props.role.is_system && props.role.slug === 'owner')
+        ? allPermissionIds
+        : (props.role.permissions?.map((p) => p.id) ?? []),
 });
 
 function togglePermission(id: number) {
