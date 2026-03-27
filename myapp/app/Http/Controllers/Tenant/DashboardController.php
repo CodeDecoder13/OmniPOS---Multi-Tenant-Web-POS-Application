@@ -9,6 +9,7 @@ use App\Models\Tenant\Order;
 use App\Models\Tenant\OrderItem;
 use App\Models\Tenant\Payment;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -16,9 +17,13 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, string $tenantSlug): Response
+    public function index(Request $request, string $tenantSlug): Response|RedirectResponse
     {
         $tenant = $request->attributes->get('current_tenant');
+
+        if ($tenant->branches()->count() === 0) {
+            return redirect()->route('tenant.setup', ['tenant' => $tenant->slug]);
+        }
 
         $branchesCount = $tenant->branches()->count();
         $activeBranchesCount = $tenant->branches()->where('is_active', true)->count();

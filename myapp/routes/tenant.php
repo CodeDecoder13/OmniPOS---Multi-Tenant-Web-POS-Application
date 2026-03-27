@@ -7,6 +7,7 @@ use App\Http\Controllers\Tenant\BranchSettingsController;
 use App\Http\Controllers\Tenant\CategoryController;
 use App\Http\Controllers\Tenant\CustomerController;
 use App\Http\Controllers\Tenant\DashboardController;
+use App\Http\Controllers\Tenant\SetupController;
 use App\Http\Controllers\Tenant\InventoryController;
 use App\Http\Controllers\Tenant\KitchenDisplayController;
 use App\Http\Controllers\Tenant\OrderController;
@@ -29,6 +30,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('{tenant}')
     ->middleware(['web', 'auth', 'verified', 'tenant'])
     ->group(function () {
+        Route::get('setup', [SetupController::class, 'index'])->name('tenant.setup');
+        Route::post('setup', [SetupController::class, 'store'])->name('tenant.setup.store');
+
         Route::get('dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
 
         // Branches

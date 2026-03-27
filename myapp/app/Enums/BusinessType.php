@@ -13,6 +13,7 @@ enum BusinessType: string
     case Bakery = 'bakery';
     case Pharmacy = 'pharmacy';
     case Hardware = 'hardware';
+    case FoodManufacturing = 'food_manufacturing';
     case Other = 'other';
 
     public function label(): string
@@ -27,6 +28,7 @@ enum BusinessType: string
             self::Bakery => 'Bakery',
             self::Pharmacy => 'Pharmacy / Drugstore',
             self::Hardware => 'Hardware Store',
+            self::FoodManufacturing => 'Food Manufacturing',
             self::Other => 'Other',
         };
     }
@@ -43,6 +45,7 @@ enum BusinessType: string
             self::Bakery => 'Cake',
             self::Pharmacy => 'Pill',
             self::Hardware => 'Wrench',
+            self::FoodManufacturing => 'Factory',
             self::Other => 'LayoutGrid',
         };
     }
@@ -148,6 +151,16 @@ enum BusinessType: string
                 ['name' => 'Building Materials', 'slug' => 'building-materials', 'description' => 'Cement, lumber, roofing, and construction materials'],
                 ['name' => 'Safety Equipment', 'slug' => 'safety-equipment', 'description' => 'Gloves, goggles, helmets, and safety gear'],
                 ['name' => 'Garden & Outdoor', 'slug' => 'garden-outdoor', 'description' => 'Garden tools, hoses, and outdoor equipment'],
+            ],
+            self::FoodManufacturing => [
+                ['name' => 'Raw Materials', 'slug' => 'raw-materials', 'description' => 'Raw ingredients and base materials'],
+                ['name' => 'Finished Products', 'slug' => 'finished-products', 'description' => 'Ready-to-sell finished food products'],
+                ['name' => 'Packaging', 'slug' => 'packaging', 'description' => 'Packaging materials and containers'],
+                ['name' => 'Frozen Goods', 'slug' => 'frozen-goods', 'description' => 'Frozen food products'],
+                ['name' => 'Beverages', 'slug' => 'beverages', 'description' => 'Manufactured drinks and beverage products'],
+                ['name' => 'Condiments & Sauces', 'slug' => 'condiments-sauces', 'description' => 'Sauces, seasonings, and condiment products'],
+                ['name' => 'Snacks', 'slug' => 'snacks', 'description' => 'Manufactured snack products'],
+                ['name' => 'Supplies', 'slug' => 'supplies', 'description' => 'Production supplies and equipment'],
             ],
             self::Other => [
                 ['name' => 'General', 'slug' => 'general', 'description' => 'General products and items'],

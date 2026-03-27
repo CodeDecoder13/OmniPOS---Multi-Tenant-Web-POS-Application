@@ -19,6 +19,7 @@ import {
     Cake,
     Pill,
     Wrench,
+    Factory,
     LayoutGrid,
     User,
     CreditCard,
@@ -30,7 +31,7 @@ import {
 } from 'lucide-vue-next';
 
 const iconMap: Record<string, Component> = {
-    ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, LayoutGrid,
+    ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, Factory, LayoutGrid,
 };
 
 const props = defineProps<{
