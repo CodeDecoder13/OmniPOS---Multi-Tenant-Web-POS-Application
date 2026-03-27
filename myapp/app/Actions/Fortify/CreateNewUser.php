@@ -41,10 +41,10 @@ class CreateNewUser implements CreatesNewUsers
         $plan = Plan::where('slug', $input['plan'])->firstOrFail();
         $isPaid = ! $plan->isFree();
 
-        // Beta: only allow free plan registration
-        if ($isPaid) {
+        // Free plan is currently unavailable
+        if (! $isPaid) {
             throw ValidationException::withMessages([
-                'plan' => 'Only the Free plan is available during beta.',
+                'plan' => 'The Free plan is currently unavailable. Please select a paid plan.',
             ]);
         }
 
