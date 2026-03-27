@@ -25,7 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $tenant = $user->tenants()->first();
 
         if ($tenant) {
-            return redirect("/{$tenant->slug}/dashboard");
+            return redirect("/{$tenant->slug}/dashboard")->with('showWelcome', true);
         }
 
         return inertia('Dashboard');

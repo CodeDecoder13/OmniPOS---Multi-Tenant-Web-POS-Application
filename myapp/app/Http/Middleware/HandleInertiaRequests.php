@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'showWelcome' => fn () => $request->session()->get('showWelcome', false),
             ],
             'tenant' => function () use ($request) {
                 $tenant = $request->attributes->get('current_tenant');

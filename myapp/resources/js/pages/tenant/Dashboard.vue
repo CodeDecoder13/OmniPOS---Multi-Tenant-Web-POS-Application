@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
     Building2, FolderOpen, Package, Plus, Shield, ShoppingCart,
     UserPlus, Users, TrendingUp, TrendingDown, DollarSign,
@@ -8,9 +8,11 @@ import {
 } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 import TenantLayout from '@/layouts/TenantLayout.vue';
+import WelcomeBackModal from '@/components/WelcomeBackModal.vue';
 import type { BreadcrumbItem } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
+import { useFlash } from '@/composables/useFlash';
 
 const props = defineProps<{
     stats: {
@@ -40,9 +42,13 @@ const { t } = useI18n();
 const page = usePage();
 const { tenantUrl } = useTenant();
 const { formatCurrency, formatCurrencyShort } = useCurrency();
+const { flash } = useFlash();
 
 const user = page.props.auth.user as { name: string };
 const firstName = user.name.split(' ')[0];
+const tenantName = (page.props.tenant as { name: string } | null)?.name ?? '';
+
+const showWelcomeModal = ref(!!flash.value.showWelcome);
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: t('nav.dashboard'), href: tenantUrl('dashboard') },
@@ -234,6 +240,19 @@ const topProductMax = computed(() => {
 
 <template>
     <Head :title="$t('nav.dashboard')" />
+
+    <WelcomeBackModal
+        :show="showWelcomeModal"
+        :user-name="firstName"
+        :tenant-name="tenantName"
+        :stats="{
+            todayRevenue: props.todayRevenue,
+            todayOrderCount: props.todayOrderCount,
+            productsCount: props.stats.products_count,
+            usersCount: props.stats.users_count,
+        }"
+        @close="showWelcomeModal = false"
+    />
 
     <TenantLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
