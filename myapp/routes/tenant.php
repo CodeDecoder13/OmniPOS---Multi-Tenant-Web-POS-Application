@@ -35,6 +35,7 @@ Route::prefix('{tenant}')
         Route::post('setup', [SetupController::class, 'store'])->name('tenant.setup.store');
 
         Route::get('dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
+        Route::post('release-notes/mark-seen', [DashboardController::class, 'markReleaseNotesSeen'])->name('tenant.release-notes.mark-seen');
 
         // Branches
         Route::middleware('can-do:branches.view')->group(function () {

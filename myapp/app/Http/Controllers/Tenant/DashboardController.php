@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ReleaseNote;
 use App\Models\Role;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\OrderItem;
@@ -17,6 +18,17 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    public function markReleaseNotesSeen(Request $request): RedirectResponse
+    {
+        $latestId = ReleaseNote::published()->max('id');
+
+        if ($latestId) {
+            $request->user()->update(['last_seen_release_note_id' => $latestId]);
+        }
+
+        return back();
+    }
+
     public function index(Request $request, string $tenantSlug): Response|RedirectResponse
     {
         $tenant = $request->attributes->get('current_tenant');
@@ -132,7 +144,18 @@ class DashboardController extends Controller
             ])
             ->toArray();
 
+        $unreadReleaseNotes = [];
+        if ($request->session()->get('showWelcome', false)) {
+            $unreadReleaseNotes = ReleaseNote::published()
+                ->newerThan($request->user()->last_seen_release_note_id)
+                ->latest('published_at')
+                ->limit(3)
+                ->get()
+                ->toArray();
+        }
+
         return Inertia::render('tenant/Dashboard', [
+            'releaseNotes' => $unreadReleaseNotes,
             'stats' => [
                 'branches_count' => $branchesCount,
                 'active_branches_count' => $activeBranchesCount,

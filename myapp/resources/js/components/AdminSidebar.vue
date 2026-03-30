@@ -10,6 +10,7 @@ import {
     LogOut,
     Settings,
     ShieldCheck,
+    Megaphone,
     Ticket,
     Users,
     Users2,
@@ -39,6 +40,7 @@ const managementItems = [
     { title: 'Plans', href: '/admin/plans', icon: CreditCard },
     { title: 'Subscriptions', href: '/admin/subscriptions', icon: FileText },
     { title: 'Promo Codes', href: '/admin/promo-codes', icon: Ticket },
+    { title: 'Release Notes', href: '/admin/release-notes', icon: Megaphone },
     { title: 'Admins', href: '/admin/admins', icon: ShieldCheck },
 ];
 

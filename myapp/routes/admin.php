@@ -6,6 +6,7 @@ use App\Http\Controllers\SuperAdmin\Auth\LoginController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\PlanController;
 use App\Http\Controllers\SuperAdmin\PromoCodeController;
+use App\Http\Controllers\SuperAdmin\ReleaseNoteController;
 use App\Http\Controllers\SuperAdmin\ReportController;
 use App\Http\Controllers\SuperAdmin\SettingsController;
 use App\Http\Controllers\SuperAdmin\SubscriptionController;
@@ -63,6 +64,14 @@ Route::prefix('admin')->group(function () {
         Route::get('promo-codes/{id}/edit', [PromoCodeController::class, 'edit'])->name('admin.promo-codes.edit');
         Route::put('promo-codes/{id}', [PromoCodeController::class, 'update'])->name('admin.promo-codes.update');
         Route::delete('promo-codes/{id}', [PromoCodeController::class, 'destroy'])->name('admin.promo-codes.destroy');
+
+        // Release Notes
+        Route::get('release-notes', [ReleaseNoteController::class, 'index'])->name('admin.release-notes.index');
+        Route::get('release-notes/create', [ReleaseNoteController::class, 'create'])->name('admin.release-notes.create');
+        Route::post('release-notes', [ReleaseNoteController::class, 'store'])->name('admin.release-notes.store');
+        Route::get('release-notes/{id}/edit', [ReleaseNoteController::class, 'edit'])->name('admin.release-notes.edit');
+        Route::put('release-notes/{id}', [ReleaseNoteController::class, 'update'])->name('admin.release-notes.update');
+        Route::delete('release-notes/{id}', [ReleaseNoteController::class, 'destroy'])->name('admin.release-notes.destroy');
 
         // Admin Users
         Route::get('admins', [AdminController::class, 'index'])->name('admin.admins.index');

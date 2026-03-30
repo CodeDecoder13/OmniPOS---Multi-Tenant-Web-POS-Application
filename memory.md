@@ -30,6 +30,32 @@
 
 ---
 
+## Implemented Features
+
+### Release Notes Admin CRUD (2026-03-30)
+- Full CRUD for release notes at `/admin/release-notes`
+- Backend: `ReleaseNoteController`, `ReleaseNote` model, `ReleaseNoteItemType` enum
+- Migrations: `create_release_notes_table`, `add_last_seen_release_note_id_to_users_table`
+- Pages: `resources/js/pages/admin/release-notes/` (Index, Create, Edit)
+
+### Release Notes Create Page — Templates + Live Preview (2026-03-30)
+- Upgraded `Create.vue` to match PromoCode Create pattern (two-column layout)
+- **Template picker** (4 cards): Major Release (orange/Rocket), Feature Drop (purple/Sparkles), Hotfix (red/Bug), Custom (gray/SlidersHorizontal)
+- `applyTemplate()` pre-fills title, version, summary, items, and publish toggle per template
+- **Live preview** sticky right panel showing: title + version badge, summary, items with colored type badges (NEW=teal, FIX=red, IMP=blue), publish status, and "As seen in What's New" mini card mimicking WelcomeBackModal rendering
+
+### Welcome Back Modal with Release Notes (2026-03-30)
+- `WelcomeBackModal.vue` shows on dashboard login with today's stats + unread release notes
+- Colored badges: NEW (teal), FIX (red), IMP (blue) — shared `typeBadge` map
+- Dismiss calls `markReleaseNotesSeen` to update `users.last_seen_release_note_id`
+
+### Bug Fix: markReleaseNotesSeen Inertia Error (2026-03-30)
+- `DashboardController::markReleaseNotesSeen()` was returning `response()->json(['ok' => true])` (plain JSON)
+- Frontend calls it via `router.post()` (Inertia) which requires Inertia-compatible response
+- Fixed: changed return to `return back()` (RedirectResponse)
+
+---
+
 ## Issues Found & Changes Tracked
 
 ### ISSUE #1: Tenant Migrations Never Run in Production (2026-03-27)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import {
     Building2, FolderOpen, Package, Plus, Shield, ShoppingCart,
@@ -9,6 +9,7 @@ import {
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import WelcomeBackModal from '@/components/WelcomeBackModal.vue';
 import type { BreadcrumbItem } from '@/types';
+import type { ReleaseNote } from '@/types/models';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
 import { useFlash } from '@/composables/useFlash';
@@ -35,6 +36,7 @@ const props = defineProps<{
     paymentsByMethod: Record<string, number>;
     topProducts: { name: string; qty: number; revenue: number }[];
     recentOrders: { id: number; order_number: string; total: number; status: string; branch: string; created_at: string }[];
+    releaseNotes?: ReleaseNote[];
 }>();
 
 const page = usePage();
@@ -47,6 +49,13 @@ const firstName = user.name.split(' ')[0];
 const tenantName = (page.props.tenant as { name: string } | null)?.name ?? '';
 
 const showWelcomeModal = ref(!!flash.value.showWelcome);
+
+function closeWelcomeModal() {
+    showWelcomeModal.value = false;
+    if (props.releaseNotes?.length) {
+        router.post(tenantUrl('release-notes/mark-seen'), {}, { preserveState: true, preserveScroll: true });
+    }
+}
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
@@ -249,7 +258,8 @@ const topProductMax = computed(() => {
             productsCount: props.stats.products_count,
             usersCount: props.stats.users_count,
         }"
-        @close="showWelcomeModal = false"
+        :release-notes="props.releaseNotes"
+        @close="closeWelcomeModal"
     />
 
     <TenantLayout :breadcrumbs="breadcrumbs">

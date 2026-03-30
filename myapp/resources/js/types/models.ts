@@ -700,6 +700,27 @@ export interface TaxReport {
     by_order_type: { type: string; label: string; tax_amount: number; order_count: number }[];
 }
 
+// Release Note Types
+
+export type ReleaseNoteItemType = 'feature' | 'fix' | 'improvement';
+
+export interface ReleaseNoteItem {
+    type: ReleaseNoteItemType;
+    description: string;
+}
+
+export interface ReleaseNote {
+    id: number;
+    title: string;
+    version: string;
+    summary: string | null;
+    items: ReleaseNoteItem[];
+    is_published: boolean;
+    published_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
 // Forecast Types
 
 export interface ForecastData {

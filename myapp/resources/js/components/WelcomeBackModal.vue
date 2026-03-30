@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { DollarSign, ShoppingCart, Package, Users } from 'lucide-vue-next';
+import { DollarSign, ShoppingCart, Package, Users, Sparkles } from 'lucide-vue-next';
 import { useCurrency } from '@/composables/useCurrency';
+import type { ReleaseNote, ReleaseNoteItemType } from '@/types/models';
 
 defineProps<{
     show: boolean;
@@ -14,6 +15,7 @@ defineProps<{
         productsCount: number;
         usersCount: number;
     };
+    releaseNotes?: ReleaseNote[];
 }>();
 
 const emit = defineEmits<{
@@ -21,14 +23,20 @@ const emit = defineEmits<{
 }>();
 
 const { formatCurrency } = useCurrency();
+
+const typeBadge: Record<ReleaseNoteItemType, { label: string; class: string }> = {
+    feature: { label: 'NEW', class: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
+    fix: { label: 'FIX', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+    improvement: { label: 'IMP', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+};
 </script>
 
 <template>
     <Dialog :open="show" @update:open="emit('close')">
-        <DialogContent :show-close-button="false" class="sm:max-w-md">
+        <DialogContent :show-close-button="false" class="sm:max-w-lg">
             <DialogHeader class="text-center sm:text-center">
                 <DialogTitle class="text-2xl font-bold">
-                    👋 Welcome back, {{ userName }}!
+                    Welcome back, {{ userName }}!
                 </DialogTitle>
                 <DialogDescription class="text-sm text-muted-foreground">
                     Here's a quick look at <span class="font-medium text-foreground">{{ tenantName }}</span> today.
@@ -77,6 +85,32 @@ const { formatCurrency } = useCurrency();
                     <div>
                         <p class="text-lg font-bold">{{ stats.usersCount }}</p>
                         <p class="text-xs text-muted-foreground">Team Members</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Release Notes Section -->
+            <div v-if="releaseNotes?.length" class="border-t pt-4 dark:border-gray-800">
+                <div class="mb-3 flex items-center gap-2">
+                    <Sparkles class="h-4 w-4 text-amber-500" />
+                    <h3 class="text-sm font-semibold">What's New</h3>
+                </div>
+                <div class="max-h-48 space-y-3 overflow-y-auto pr-1">
+                    <div v-for="note in releaseNotes" :key="note.id" class="rounded-lg border bg-gray-50/50 p-3 dark:border-gray-800 dark:bg-gray-800/30">
+                        <div class="mb-2 flex items-center gap-2">
+                            <span class="text-sm font-semibold">{{ note.title }}</span>
+                            <span class="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium dark:bg-gray-700">
+                                v{{ note.version }}
+                            </span>
+                        </div>
+                        <ul class="space-y-1">
+                            <li v-for="(item, i) in note.items" :key="i" class="flex items-start gap-2 text-xs">
+                                <span class="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold" :class="typeBadge[item.type]?.class">
+                                    {{ typeBadge[item.type]?.label }}
+                                </span>
+                                <span class="text-muted-foreground">{{ item.description }}</span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
