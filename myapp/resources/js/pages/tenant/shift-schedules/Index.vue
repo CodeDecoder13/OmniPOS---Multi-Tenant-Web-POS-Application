@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { BreadcrumbItem, PaginatedData, ShiftSchedule } from '@/types';
+import type { BreadcrumbItem, DayOfWeek, PaginatedData, ShiftSchedule } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 
 interface UserOption {
@@ -34,13 +34,22 @@ interface BranchOption {
     name: string;
 }
 
+const ALL_DAYS: { value: DayOfWeek; label: string; short: string }[] = [
+    { value: 'mon', label: 'Monday', short: 'Mon' },
+    { value: 'tue', label: 'Tuesday', short: 'Tue' },
+    { value: 'wed', label: 'Wednesday', short: 'Wed' },
+    { value: 'thu', label: 'Thursday', short: 'Thu' },
+    { value: 'fri', label: 'Friday', short: 'Fri' },
+    { value: 'sat', label: 'Saturday', short: 'Sat' },
+    { value: 'sun', label: 'Sunday', short: 'Sun' },
+];
+
 const props = defineProps<{
     schedules: PaginatedData<ShiftSchedule>;
     branches: BranchOption[];
     users: UserOption[];
     filters: {
-        date_from: string;
-        date_to: string;
+        day: string;
         branch_id: string;
         user_id: string;
     };
@@ -58,15 +67,14 @@ const filterForm = ref({ ...props.filters });
 
 function applyFilters() {
     const params: Record<string, string> = {};
-    if (filterForm.value.date_from) params.date_from = filterForm.value.date_from;
-    if (filterForm.value.date_to) params.date_to = filterForm.value.date_to;
+    if (filterForm.value.day) params.day = filterForm.value.day;
     if (filterForm.value.branch_id) params.branch_id = filterForm.value.branch_id;
     if (filterForm.value.user_id) params.user_id = filterForm.value.user_id;
     router.get(tenantUrl('shift-schedules'), params, { preserveState: true });
 }
 
 function clearFilters() {
-    filterForm.value = { date_from: '', date_to: '', branch_id: '', user_id: '' };
+    filterForm.value = { day: '', branch_id: '', user_id: '' };
     router.get(tenantUrl('shift-schedules'), {}, { preserveState: true });
 }
 
@@ -77,12 +85,21 @@ const form = ref({
     id: 0,
     user_id: '',
     branch_id: 'none',
-    scheduled_date: '',
+    days_of_week: [] as DayOfWeek[],
     start_time: '',
     end_time: '',
     notes: '',
 });
 const saving = ref(false);
+
+function toggleDay(day: DayOfWeek) {
+    const idx = form.value.days_of_week.indexOf(day);
+    if (idx === -1) {
+        form.value.days_of_week.push(day);
+    } else {
+        form.value.days_of_week.splice(idx, 1);
+    }
+}
 
 function openCreateDialog() {
     isEditing.value = false;
@@ -90,7 +107,7 @@ function openCreateDialog() {
         id: 0,
         user_id: '',
         branch_id: 'none',
-        scheduled_date: '',
+        days_of_week: [],
         start_time: '',
         end_time: '',
         notes: '',
@@ -104,7 +121,7 @@ function openEditDialog(schedule: ShiftSchedule) {
         id: schedule.id,
         user_id: String(schedule.user_id),
         branch_id: schedule.branch_id ? String(schedule.branch_id) : 'none',
-        scheduled_date: schedule.scheduled_date.split('T')[0],
+        days_of_week: [...schedule.days_of_week],
         start_time: schedule.start_time.substring(0, 5),
         end_time: schedule.end_time.substring(0, 5),
         notes: schedule.notes ?? '',
@@ -117,7 +134,7 @@ function submitForm() {
     const payload = {
         user_id: Number(form.value.user_id),
         branch_id: form.value.branch_id !== 'none' ? Number(form.value.branch_id) : null,
-        scheduled_date: form.value.scheduled_date,
+        days_of_week: form.value.days_of_week,
         start_time: form.value.start_time,
         end_time: form.value.end_time,
         notes: form.value.notes || null,
@@ -160,8 +177,10 @@ function deleteSchedule() {
     });
 }
 
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+function formatDays(days: DayOfWeek[]): string {
+    const order: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const labels: Record<DayOfWeek, string> = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+    return order.filter(d => days.includes(d)).map(d => labels[d]).join(', ');
 }
 
 function formatTime(timeStr: string): string {
@@ -189,12 +208,16 @@ function formatTime(timeStr: string): string {
             <!-- Filters -->
             <div class="flex flex-wrap items-end gap-3 rounded-lg border p-4 dark:border-gray-800">
                 <div>
-                    <Label class="text-xs">From</Label>
-                    <Input v-model="filterForm.date_from" type="date" class="mt-1 w-40" />
-                </div>
-                <div>
-                    <Label class="text-xs">To</Label>
-                    <Input v-model="filterForm.date_to" type="date" class="mt-1 w-40" />
+                    <Label class="text-xs">Day</Label>
+                    <Select v-model="filterForm.day">
+                        <SelectTrigger class="mt-1 w-40">
+                            <SelectValue placeholder="All Days" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">All Days</SelectItem>
+                            <SelectItem v-for="d in ALL_DAYS" :key="d.value" :value="d.value">{{ d.label }}</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div>
                     <Label class="text-xs">Branch</Label>
@@ -231,7 +254,7 @@ function formatTime(timeStr: string): string {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
-                            <th class="px-4 py-3 text-left font-medium">Date</th>
+                            <th class="px-4 py-3 text-left font-medium">Days</th>
                             <th class="px-4 py-3 text-left font-medium">User</th>
                             <th class="px-4 py-3 text-left font-medium">Branch</th>
                             <th class="px-4 py-3 text-left font-medium">Time</th>
@@ -251,7 +274,17 @@ function formatTime(timeStr: string): string {
                             :key="schedule.id"
                             class="border-b last:border-0 dark:border-gray-800"
                         >
-                            <td class="px-4 py-3 font-medium">{{ formatDate(schedule.scheduled_date) }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-wrap gap-1">
+                                    <span
+                                        v-for="day in ALL_DAYS.filter(d => schedule.days_of_week.includes(d.value))"
+                                        :key="day.value"
+                                        class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                                    >
+                                        {{ day.short }}
+                                    </span>
+                                </div>
+                            </td>
                             <td class="px-4 py-3">{{ schedule.operator?.name ?? 'Unknown' }}</td>
                             <td class="px-4 py-3">
                                 <span
@@ -343,8 +376,21 @@ function formatTime(timeStr: string): string {
                     </div>
 
                     <div>
-                        <Label for="schedule-date">Date</Label>
-                        <Input id="schedule-date" v-model="form.scheduled_date" type="date" class="mt-1" required />
+                        <Label>Days of Week</Label>
+                        <div class="mt-1 flex flex-wrap gap-2">
+                            <button
+                                v-for="d in ALL_DAYS"
+                                :key="d.value"
+                                type="button"
+                                class="rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors"
+                                :class="form.days_of_week.includes(d.value)
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+                                @click="toggleDay(d.value)"
+                            >
+                                {{ d.short }}
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -365,7 +411,7 @@ function formatTime(timeStr: string): string {
 
                     <DialogFooter>
                         <Button variant="outline" type="button" @click="dialog = false">Cancel</Button>
-                        <Button type="submit" :disabled="saving || !form.user_id || !form.scheduled_date || !form.start_time || !form.end_time">
+                        <Button type="submit" :disabled="saving || !form.user_id || form.days_of_week.length === 0 || !form.start_time || !form.end_time">
                             {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Schedule') }}
                         </Button>
                     </DialogFooter>
@@ -380,7 +426,7 @@ function formatTime(timeStr: string): string {
                     <DialogTitle>Delete Schedule</DialogTitle>
                     <DialogDescription>
                         Are you sure you want to delete this schedule for {{ scheduleToDelete?.operator?.name }}
-                        on {{ scheduleToDelete ? formatDate(scheduleToDelete.scheduled_date) : '' }}?
+                        on {{ scheduleToDelete ? formatDays(scheduleToDelete.days_of_week) : '' }}?
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

@@ -12,7 +12,7 @@ class ShiftSchedule extends Model
         'tenant_id',
         'user_id',
         'branch_id',
-        'scheduled_date',
+        'days_of_week',
         'start_time',
         'end_time',
         'notes',
@@ -22,7 +22,7 @@ class ShiftSchedule extends Model
     protected function casts(): array
     {
         return [
-            'scheduled_date' => 'date',
+            'days_of_week' => 'array',
         ];
     }
 

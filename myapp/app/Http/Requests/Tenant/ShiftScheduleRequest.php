@@ -16,7 +16,8 @@ class ShiftScheduleRequest extends FormRequest
         return [
             'user_id' => ['required', 'integer'],
             'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
-            'scheduled_date' => ['required', 'date', 'after_or_equal:today'],
+            'days_of_week' => ['required', 'array', 'min:1'],
+            'days_of_week.*' => ['required', 'string', 'in:mon,tue,wed,thu,fri,sat,sun'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
             'notes' => ['nullable', 'string', 'max:500'],

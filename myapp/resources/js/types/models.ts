@@ -401,12 +401,14 @@ export interface ActivityLog {
 
 // Shift Schedule Types
 
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
 export interface ShiftSchedule {
     id: number;
     tenant_id: string;
     user_id: number;
     branch_id: number | null;
-    scheduled_date: string;
+    days_of_week: DayOfWeek[];
     start_time: string;
     end_time: string;
     notes: string | null;

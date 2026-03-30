@@ -54,6 +54,20 @@
 - Frontend calls it via `router.post()` (Inertia) which requires Inertia-compatible response
 - Fixed: changed return to `return back()` (RedirectResponse)
 
+### Shift Schedule: Date to Weekly Days Refactor (2026-03-30)
+- Replaced single `scheduled_date` (date) column with `days_of_week` (JSON array of `["mon","tue",...]`)
+- Migration `2025_01_01_000051_convert_shift_schedules_to_weekly.php` in `database/migrations/` (central)
+- Converts existing `scheduled_date` data using PostgreSQL `EXTRACT(DOW FROM ...)` to day abbreviations
+- Dropped old indexes on `scheduled_date`, added `(tenant_id, user_id)` index
+- **Files changed (7):**
+  - `database/migrations/2025_01_01_000051_convert_shift_schedules_to_weekly.php` (new)
+  - `app/Models/Tenant/ShiftSchedule.php` — fillable/casts: `scheduled_date` -> `days_of_week` (array)
+  - `app/Http/Requests/Tenant/ShiftScheduleRequest.php` — validates `days_of_week` as required array, items in `mon-sun`
+  - `app/Services/Tenant/ShiftScheduleService.php` — `list()` uses `whereJsonContains` for day filter, orders by `start_time`
+  - `app/Http/Controllers/Tenant/ShiftScheduleController.php` — single `day` query param replaces `date_from`/`date_to`
+  - `resources/js/types/models.ts` — added `DayOfWeek` type, `ShiftSchedule.days_of_week: DayOfWeek[]`
+  - `resources/js/pages/tenant/shift-schedules/Index.vue` — 7 toggle buttons (Mon-Sun) in modal, day badges in table, day dropdown filter
+
 ---
 
 ## Issues Found & Changes Tracked

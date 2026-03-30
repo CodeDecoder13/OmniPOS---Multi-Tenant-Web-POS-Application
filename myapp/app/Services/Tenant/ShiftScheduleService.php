@@ -10,22 +10,16 @@ class ShiftScheduleService
 {
     public function list(
         Tenant $tenant,
-        ?string $dateFrom = null,
-        ?string $dateTo = null,
+        ?string $dayOfWeek = null,
         ?int $branchId = null,
         ?int $userId = null,
     ): LengthAwarePaginator {
         $query = ShiftSchedule::forTenant($tenant->id)
             ->with(['operator:id,name', 'branch:id,name', 'creator:id,name'])
-            ->orderBy('scheduled_date')
             ->orderBy('start_time');
 
-        if ($dateFrom) {
-            $query->where('scheduled_date', '>=', $dateFrom);
-        }
-
-        if ($dateTo) {
-            $query->where('scheduled_date', '<=', $dateTo);
+        if ($dayOfWeek) {
+            $query->whereJsonContains('days_of_week', $dayOfWeek);
         }
 
         if ($branchId) {
@@ -45,7 +39,7 @@ class ShiftScheduleService
             'tenant_id' => $tenant->id,
             'user_id' => $data['user_id'],
             'branch_id' => $data['branch_id'] ?? null,
-            'scheduled_date' => $data['scheduled_date'],
+            'days_of_week' => $data['days_of_week'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'notes' => $data['notes'] ?? null,
@@ -58,7 +52,7 @@ class ShiftScheduleService
         $schedule->update([
             'user_id' => $data['user_id'],
             'branch_id' => $data['branch_id'] ?? null,
-            'scheduled_date' => $data['scheduled_date'],
+            'days_of_week' => $data['days_of_week'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'notes' => $data['notes'] ?? null,

@@ -25,8 +25,7 @@ class ShiftScheduleController extends Controller
 
         $schedules = $this->scheduleService->list(
             $tenant,
-            $request->query('date_from'),
-            $request->query('date_to'),
+            $request->query('day'),
             $request->query('branch_id') ? (int) $request->query('branch_id') : null,
             $request->query('user_id') ? (int) $request->query('user_id') : null,
         );
@@ -48,8 +47,7 @@ class ShiftScheduleController extends Controller
             'branches' => $branches,
             'users' => $users,
             'filters' => [
-                'date_from' => $request->query('date_from', ''),
-                'date_to' => $request->query('date_to', ''),
+                'day' => $request->query('day', ''),
                 'branch_id' => $request->query('branch_id', ''),
                 'user_id' => $request->query('user_id', ''),
             ],
