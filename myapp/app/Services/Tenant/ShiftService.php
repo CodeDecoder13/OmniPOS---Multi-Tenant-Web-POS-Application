@@ -66,9 +66,9 @@ class ShiftService
                 ->where('payments.status', 'completed')
                 ->sum('payments.amount');
 
-            $expectedCash = bcadd((string) $shift->starting_cash, (string) $cashPayments, 2);
-            $endingCash = (string) $data['ending_cash'];
-            $cashDifference = bcsub($endingCash, $expectedCash, 2);
+            $expectedCash = round((float) $shift->starting_cash + (float) $cashPayments, 2);
+            $endingCash = round((float) $data['ending_cash'], 2);
+            $cashDifference = round($endingCash - $expectedCash, 2);
 
             $shift->update([
                 'ending_cash' => $endingCash,

@@ -22,7 +22,7 @@ import { useBarcodeScanner } from '@/composables/useBarcodeScanner';
 import { usePrinter } from '@/composables/usePrinter';
 import type { KotData } from '@/composables/usePrinter';
 import { useBranchSettings } from '@/composables/useBranchSettings';
-import { useI18n } from 'vue-i18n';
+
 import type { Category, Product, VariationGroup, Addon, Table } from '@/types';
 
 interface CartItemVariation {
@@ -72,7 +72,7 @@ const { isAuthenticated, operatorCan, operatorUserId, operatorName } = usePosAut
 const { hasActiveShift, checkShiftStatus, refreshSummary, clearShift } = usePosShift();
 const { printReceipt: doPrintReceipt, printKot } = usePrinter();
 const { isEnabled } = useBranchSettings();
-const { t } = useI18n();
+
 
 const showStartShift = ref(false);
 
@@ -691,7 +691,7 @@ onMounted(() => {
                 <div class="flex items-center gap-2 border-b p-3">
                     <div class="relative flex-1">
                         <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input v-model="productSearch" :placeholder="$t('common.search') + '...'" class="pl-9" />
+                        <Input v-model="productSearch" placeholder="Search..." class="pl-9" />
                     </div>
                     <div class="flex items-center gap-1.5">
                         <span
@@ -703,7 +703,7 @@ onMounted(() => {
                         />
                         <Input
                             v-model="barcodeInput"
-                            :placeholder="$t('pos.scanBarcode')"
+                            placeholder="Scan barcode..."
                             class="w-40"
                             @keydown.enter="handleBarcodeScan"
                         />
@@ -740,7 +740,7 @@ onMounted(() => {
                         <p class="text-muted-foreground">Loading products...</p>
                     </div>
                     <div v-else-if="products.length === 0" class="flex h-full items-center justify-center">
-                        <p class="text-muted-foreground">{{ $t('pos.noProducts') }}</p>
+                        <p class="text-muted-foreground">No products found</p>
                     </div>
                     <div v-else>
                         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -767,7 +767,7 @@ onMounted(() => {
                         </div>
                         <div v-if="hasMoreProducts" class="mt-4 flex justify-center">
                             <Button variant="outline" size="sm" @click="loadMore" :disabled="loadingProducts">
-                                {{ loadingProducts ? $t('common.loading') : $t('pos.loadMore') }}
+                                {{ loadingProducts ? 'Loading...' : 'Load More' }}
                             </Button>
                         </div>
                     </div>
@@ -843,7 +843,7 @@ onMounted(() => {
                             ]"
                         >
                             <UtensilsCrossed class="h-3.5 w-3.5" />
-                            {{ $t('pos.dineIn') }}
+                            Dine In
                         </button>
                         <button
                             v-if="isEnabled('takeout')"
@@ -854,14 +854,14 @@ onMounted(() => {
                             ]"
                         >
                             <ShoppingBag class="h-3.5 w-3.5" />
-                            {{ $t('pos.takeOut') }}
+                            Take Out
                         </button>
                     </div>
                 </div>
 
                 <!-- Table selection (dine-in only) -->
                 <div v-if="cart.length > 0 && orderType === 'dine_in' && tables.length > 0" class="border-b px-4 py-2">
-                    <p class="text-xs font-medium text-muted-foreground mb-1.5">{{ $t('pos.selectTable') }}</p>
+                    <p class="text-xs font-medium text-muted-foreground mb-1.5">Select Table</p>
                     <div class="grid grid-cols-4 gap-1.5">
                         <button
                             v-for="table in tables"
@@ -883,8 +883,8 @@ onMounted(() => {
                 <div class="flex-1 overflow-y-auto">
                     <div v-if="cart.length === 0" class="flex h-full flex-col items-center justify-center text-muted-foreground">
                         <ShoppingCart class="h-12 w-12 opacity-20 mb-2" />
-                        <p class="text-sm">{{ $t('pos.cartEmpty') }}</p>
-                        <p class="text-xs">{{ $t('pos.clickToAdd') }}</p>
+                        <p class="text-sm">Cart is empty</p>
+                        <p class="text-xs">Click products to add them</p>
                     </div>
                     <div v-else class="divide-y">
                         <div v-for="(item, index) in cart" :key="item.product_id" class="flex items-center gap-3 px-4 py-2">
@@ -918,10 +918,10 @@ onMounted(() => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="percentage">
-                                    <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> {{ $t('pos.percent') }}</span>
+                                    <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> Percent</span>
                                 </SelectItem>
                                 <SelectItem value="fixed">
-                                    <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> {{ $t('pos.fixed') }}</span>
+                                    <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> Fixed</span>
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -950,12 +950,12 @@ onMounted(() => {
                     <div v-else class="flex items-center gap-2">
                         <Input
                             v-model="promoCode"
-                            :placeholder="$t('pos.promoCode')"
+                            placeholder="Promo code"
                             class="h-8 text-xs uppercase"
                             @keydown.enter="applyPromoCode"
                         />
                         <Button variant="outline" size="sm" class="h-8 shrink-0 text-xs" :disabled="promoLoading || !promoCode.trim()" @click="applyPromoCode">
-                            {{ promoLoading ? '...' : $t('common.apply') }}
+                            {{ promoLoading ? '...' : 'Apply' }}
                         </Button>
                     </div>
                     <p v-if="promoError" class="mt-1 text-xs text-destructive">{{ promoError }}</p>
@@ -963,17 +963,17 @@ onMounted(() => {
 
                 <!-- Notes -->
                 <div v-if="cart.length > 0" class="border-t px-4 py-2">
-                    <Textarea v-model="orderNotes" :placeholder="$t('pos.orderNotes')" rows="1" class="resize-none text-xs" />
+                    <Textarea v-model="orderNotes" placeholder="Order notes (optional)" rows="1" class="resize-none text-xs" />
                 </div>
 
                 <!-- Totals -->
                 <div v-if="cart.length > 0" class="border-t px-4 py-2 space-y-1 text-sm">
                     <div class="flex justify-between">
-                        <span class="text-muted-foreground">{{ $t('common.subtotal') }}</span>
+                        <span class="text-muted-foreground">Subtotal</span>
                         <span>{{ formatCurrency(subtotal) }}</span>
                     </div>
                     <div v-if="discountValue > 0" class="flex justify-between text-green-600">
-                        <span>{{ $t('common.discount') }}</span>
+                        <span>Discount</span>
                         <span>-{{ formatCurrency(discountValue) }}</span>
                     </div>
                     <div v-if="promoDiscount > 0" class="flex justify-between text-green-600">
@@ -985,7 +985,7 @@ onMounted(() => {
                         <span>{{ formatCurrency(taxAmount) }}</span>
                     </div>
                     <div class="flex justify-between border-t pt-1 text-lg font-bold">
-                        <span>{{ $t('common.total') }}</span>
+                        <span>Total</span>
                         <span>{{ formatCurrency(total) }}</span>
                     </div>
                 </div>
@@ -998,7 +998,7 @@ onMounted(() => {
                         @click="openReceiptPreview"
                     >
                         <ShoppingCart class="mr-2 h-5 w-5" />
-                        {{ $t('pos.charge') }} {{ cart.length > 0 ? formatCurrency(total) : '' }}
+                        Charge {{ cart.length > 0 ? formatCurrency(total) : '' }}
                     </Button>
                 </div>
             </div>
@@ -1010,7 +1010,7 @@ onMounted(() => {
                 <DialogHeader>
                     <DialogTitle class="flex items-center gap-2">
                         <Receipt class="h-5 w-5" />
-                        {{ $t('pos.orderPreview') }}
+                        Order Preview
                     </DialogTitle>
                 </DialogHeader>
 
@@ -1019,8 +1019,8 @@ onMounted(() => {
                 </div>
 
                 <DialogFooter class="flex-row gap-2 sm:flex-row">
-                    <Button variant="outline" class="flex-1" @click="showReceiptPreview = false">{{ $t('common.back') }}</Button>
-                    <Button class="flex-1" @click="confirmAndPay">{{ $t('pos.confirmPay') }}</Button>
+                    <Button variant="outline" class="flex-1" @click="showReceiptPreview = false">Back</Button>
+                    <Button class="flex-1" @click="confirmAndPay">Confirm & Pay</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1029,7 +1029,7 @@ onMounted(() => {
         <Dialog v-model:open="showPaymentDialog">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{{ $t('pos.payment') }}</DialogTitle>
+                    <DialogTitle>Payment</DialogTitle>
                 </DialogHeader>
 
                 <div class="space-y-4">
@@ -1037,9 +1037,9 @@ onMounted(() => {
                     <div class="grid grid-cols-4 gap-2">
                         <button
                             v-for="method in [
-                                { value: 'cash', label: $t('pos.cash') },
-                                { value: 'card', label: $t('pos.card') },
-                                { value: 'e_wallet', label: $t('pos.eWallet') },
+                                { value: 'cash', label: 'Cash' },
+                                { value: 'card', label: 'Card' },
+                                { value: 'e_wallet', label: 'E-Wallet' },
                             ]"
                             :key="method.value"
                             @click="paymentMethod = method.value"
@@ -1061,14 +1061,14 @@ onMounted(() => {
 
                     <!-- Total display -->
                     <div class="rounded-lg bg-muted p-4 text-center">
-                        <p class="text-sm text-muted-foreground">{{ $t('common.total') }}</p>
+                        <p class="text-sm text-muted-foreground">Total</p>
                         <p class="text-3xl font-bold">{{ formatCurrency(total) }}</p>
                     </div>
 
                     <!-- Cash payment -->
                     <div v-if="paymentMethod === 'cash'" class="space-y-3">
                         <div class="space-y-2">
-                            <Label>{{ $t('pos.amountTendered') }}</Label>
+                            <Label>Amount Tendered</Label>
                             <Input v-model.number="amountTendered" type="number" min="0" step="0.01" class="text-lg h-12 text-center font-bold" />
                         </div>
                         <div class="flex flex-wrap gap-2">
@@ -1083,22 +1083,22 @@ onMounted(() => {
                             </Button>
                         </div>
                         <div v-if="amountTendered >= total" class="rounded-lg bg-green-50 dark:bg-green-950 p-3 text-center">
-                            <p class="text-sm text-green-600 dark:text-green-400">{{ $t('pos.change') }}</p>
+                            <p class="text-sm text-green-600 dark:text-green-400">Change</p>
                             <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ formatCurrency(changeAmount) }}</p>
                         </div>
                     </div>
 
                     <!-- Card/E-wallet reference -->
                     <div v-else class="space-y-2">
-                        <Label>{{ $t('pos.referenceNumber') }}</Label>
-                        <Input v-model="referenceNumber" :placeholder="$t('pos.referenceNumber')" />
+                        <Label>Reference Number</Label>
+                        <Input v-model="referenceNumber" placeholder="Reference Number" />
                     </div>
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" @click="showPaymentDialog = false">{{ $t('common.cancel') }}</Button>
+                    <Button variant="outline" @click="showPaymentDialog = false">Cancel</Button>
                     <Button :disabled="!canCheckout || processing" class="min-w-[140px]" @click="processCheckout">
-                        {{ processing ? $t('pos.processing') : $t('pos.completeOrder') }}
+                        {{ processing ? 'Processing...' : 'Complete Order' }}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -1110,7 +1110,7 @@ onMounted(() => {
                 <DialogHeader>
                     <DialogTitle class="flex items-center gap-2">
                         <Receipt class="h-5 w-5" />
-                        {{ $t('pos.orderSuccess') }}
+                        Order completed successfully!
                     </DialogTitle>
                 </DialogHeader>
 
@@ -1122,14 +1122,14 @@ onMounted(() => {
                     <div class="flex gap-2 w-full">
                         <Button variant="outline" class="flex-1" @click="printReceipt">
                             <Printer class="mr-2 h-4 w-4" />
-                            {{ $t('pos.printReceipt') }}
+                            Print Receipt
                         </Button>
                         <Button variant="outline" class="flex-1" @click="downloadPdf">
                             <Download class="mr-2 h-4 w-4" />
-                            {{ $t('pos.downloadPdf') }}
+                            Download PDF
                         </Button>
                     </div>
-                    <Button class="w-full" @click="closeReceipt">{{ $t('pos.newOrder') }}</Button>
+                    <Button class="w-full" @click="closeReceipt">New Order</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
