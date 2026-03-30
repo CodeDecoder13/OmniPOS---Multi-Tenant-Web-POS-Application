@@ -20,6 +20,11 @@ class DashboardController extends Controller
             'revenueTrend' => $this->dashboardService->getRevenueTrend(),
             'planDistribution' => $this->dashboardService->getPlanDistribution(),
             'recentActivity' => $this->dashboardService->getRecentActivity(),
+            'userActivity' => $this->dashboardService->getUserActivityStats(),
+            'loginTrend' => $this->dashboardService->getLoginTrend(),
+            'pageVisits' => $this->dashboardService->getPageVisitStats(),
+            'pageVisitTrend' => $this->dashboardService->getPageVisitTrend(),
+            'topReferrers' => $this->dashboardService->getTopReferrers(),
         ]);
     }
 }

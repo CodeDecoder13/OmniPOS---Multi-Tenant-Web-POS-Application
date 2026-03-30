@@ -6,18 +6,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    return inertia('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-        'plans' => Plan::active()->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
-    ]);
-})->name('home');
+Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function () {
+    Route::get('/', function () {
+        return inertia('Welcome', [
+            'canRegister' => Features::enabled(Features::registration()),
+            'plans' => Plan::active()->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
+        ]);
+    })->name('home');
 
-Route::get('/about', function () {
-    return inertia('About', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
-})->name('about');
+    Route::get('/about', function () {
+        return inertia('About', [
+            'canRegister' => Features::enabled(Features::registration()),
+        ]);
+    })->name('about');
+});
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {

@@ -3,10 +3,12 @@
 namespace App\Services\Central;
 
 use App\Models\AdminActivityLog;
+use App\Models\PageVisit;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\TenantSubscription;
 use App\Models\User;
+use App\Models\UserLogin;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -81,6 +83,78 @@ class DashboardService
     {
         return AdminActivityLog::with('admin:id,name')
             ->latest('created_at')
+            ->limit($limit)
+            ->get()
+            ->toArray();
+    }
+
+    public function getUserActivityStats(): array
+    {
+        $now = Carbon::now();
+
+        $activeSessions = DB::table('sessions')
+            ->where('last_activity', '>=', $now->subMinutes(15)->timestamp)
+            ->count();
+
+        return [
+            'logins_today' => UserLogin::whereDate('logged_in_at', $now->toDateString())->count(),
+            'logins_week' => UserLogin::where('logged_in_at', '>=', $now->copy()->startOfWeek())->count(),
+            'logins_month' => UserLogin::where('logged_in_at', '>=', $now->copy()->startOfMonth())->count(),
+            'active_sessions' => $activeSessions,
+        ];
+    }
+
+    public function getLoginTrend(int $days = 30): array
+    {
+        $labels = [];
+        $data = [];
+
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $labels[] = $date->format('M d');
+            $data[] = UserLogin::whereDate('logged_in_at', $date->toDateString())->count();
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
+    public function getPageVisitStats(): array
+    {
+        $now = Carbon::now();
+
+        return [
+            'visits_today' => PageVisit::whereDate('visited_at', $now->toDateString())->count(),
+            'visits_week' => PageVisit::where('visited_at', '>=', $now->copy()->startOfWeek())->count(),
+            'visits_month' => PageVisit::where('visited_at', '>=', $now->copy()->startOfMonth())->count(),
+            'unique_today' => PageVisit::whereDate('visited_at', $now->toDateString())
+                ->distinct('ip_address')->count('ip_address'),
+        ];
+    }
+
+    public function getPageVisitTrend(int $days = 30): array
+    {
+        $labels = [];
+        $total = [];
+        $unique = [];
+
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $labels[] = $date->format('M d');
+            $total[] = PageVisit::whereDate('visited_at', $date->toDateString())->count();
+            $unique[] = PageVisit::whereDate('visited_at', $date->toDateString())
+                ->distinct('ip_address')->count('ip_address');
+        }
+
+        return ['labels' => $labels, 'total' => $total, 'unique' => $unique];
+    }
+
+    public function getTopReferrers(int $limit = 5): array
+    {
+        return PageVisit::whereNotNull('referrer')
+            ->where('referrer', '!=', '')
+            ->select('referrer', DB::raw('COUNT(*) as count'))
+            ->groupBy('referrer')
+            ->orderByDesc('count')
             ->limit($limit)
             ->get()
             ->toArray();
