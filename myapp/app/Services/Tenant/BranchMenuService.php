@@ -49,7 +49,7 @@ class BranchMenuService
                 'sku' => $product->sku,
                 'price' => $product->price,
                 'category' => $product->category,
-                'image_url' => $product->image_path ? '/storage/' . $product->image_path : null,
+                'image_url' => $product->image_url,
                 'effective_price' => $product->effective_price,
                 'custom_price' => $product->custom_price,
                 'is_available' => (bool) $product->branch_available,

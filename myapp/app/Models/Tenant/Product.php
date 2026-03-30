@@ -41,10 +41,22 @@ class Product extends Model
 
     protected function imageUrl(): Attribute
     {
-        return Attribute::get(fn () => $this->image_path
-            ? '/storage/' . $this->image_path
-            : null
-        );
+        return Attribute::get(function () {
+            if (!$this->image_path) {
+                return null;
+            }
+
+            $disk = config('filesystems.product_disk', 'local');
+
+            if ($disk === 's3') {
+                return Storage::disk('s3')->temporaryUrl($this->image_path, now()->addMinutes(60));
+            }
+
+            $tenant = request()->route('tenant');
+            $filename = basename($this->image_path);
+
+            return "/{$tenant}/images/products/{$this->id}/{$filename}";
+        });
     }
 
     public function scopeForTenant(Builder $query, Tenant $tenant): Builder

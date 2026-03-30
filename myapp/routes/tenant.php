@@ -14,6 +14,7 @@ use App\Http\Controllers\Tenant\OrderController;
 use App\Http\Controllers\Tenant\PosPinController;
 use App\Http\Controllers\Tenant\PosController;
 use App\Http\Controllers\Tenant\ProductController;
+use App\Http\Controllers\Tenant\ProductImageController;
 use App\Http\Controllers\Tenant\PurchaseOrderController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
@@ -102,6 +103,11 @@ Route::prefix('{tenant}')
         Route::delete('categories/{category}', [CategoryController::class, 'destroy'])
             ->middleware('can-do:products.delete')
             ->name('tenant.categories.destroy');
+
+        // Product Images (no permission guard — any authenticated tenant user)
+        Route::get('images/products/{product}/{filename}', [ProductImageController::class, 'show'])
+            ->name('tenant.images.product')
+            ->where('filename', '[a-zA-Z0-9._-]+');
 
         // Products
         Route::middleware('can-do:products.view')->group(function () {

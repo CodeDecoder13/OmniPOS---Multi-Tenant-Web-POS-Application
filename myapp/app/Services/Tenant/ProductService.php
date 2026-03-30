@@ -13,6 +13,16 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductService
 {
+    private function diskName(): string
+    {
+        return config('filesystems.product_disk', 'local');
+    }
+
+    private function disk(): \Illuminate\Contracts\Filesystem\Filesystem
+    {
+        return Storage::disk($this->diskName());
+    }
+
     public function list(Tenant $tenant, Request $request, int $perPage = 15): LengthAwarePaginator
     {
         $query = Product::forTenant($tenant)
@@ -83,14 +93,14 @@ class ProductService
 
     private function storeImage(Product $product, UploadedFile $image): void
     {
-        $path = $image->store("products/{$product->id}", 'public');
+        $path = $image->store("{$product->tenant_id}/products/{$product->id}", $this->diskName());
         $product->update(['image_path' => $path]);
     }
 
     private function deleteImage(Product $product): void
     {
-        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-            Storage::disk('public')->delete($product->image_path);
+        if ($product->image_path && $this->disk()->exists($product->image_path)) {
+            $this->disk()->delete($product->image_path);
         }
     }
 
