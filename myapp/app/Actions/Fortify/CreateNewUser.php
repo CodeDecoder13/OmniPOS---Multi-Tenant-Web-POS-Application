@@ -8,6 +8,7 @@ use App\Enums\BusinessType;
 use App\Models\Plan;
 use App\Models\PromoCode;
 use App\Models\User;
+use App\Notifications\WelcomeNotification;
 use App\Services\Central\RegisterService;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
@@ -76,6 +77,8 @@ class CreateNewUser implements CreatesNewUsers
             BusinessType::from($input['business_type']),
             $input['promo_code'] ?? null,
         );
+
+        $user->notify(new WelcomeNotification($input['store_name']));
 
         return $user;
     }

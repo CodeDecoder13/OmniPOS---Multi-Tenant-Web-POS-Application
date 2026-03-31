@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\UserLogin;
+use App\Notifications\LoginAlertNotification;
 use Illuminate\Auth\Events\Login;
 
 class LogUserLogin
@@ -22,5 +23,10 @@ class LogUserLogin
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
+
+        $user->notify(new LoginAlertNotification(
+            ipAddress: $request->ip(),
+            userAgent: $request->userAgent() ?? 'Unknown',
+        ));
     }
 }

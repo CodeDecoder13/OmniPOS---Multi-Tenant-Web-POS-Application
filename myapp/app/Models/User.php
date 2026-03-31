@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\VerifyEmailOtpNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
@@ -48,6 +49,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'email_verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
@@ -58,5 +60,24 @@ class User extends Authenticatable
         return $this->belongsToMany(Tenant::class, 'tenant_users')
             ->withPivot('role_id', 'branch_id', 'is_active', 'last_login_at')
             ->withTimestamps();
+    }
+
+    public function generateEmailVerificationCode(): string
+    {
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $this->forceFill([
+            'email_verification_code' => $code,
+            'email_verification_code_expires_at' => now()->addMinutes(15),
+        ])->save();
+
+        return $code;
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $code = $this->generateEmailVerificationCode();
+
+        $this->notify(new VerifyEmailOtpNotification($code));
     }
 }

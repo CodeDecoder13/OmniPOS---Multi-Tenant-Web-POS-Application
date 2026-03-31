@@ -21,6 +21,11 @@ Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function ()
     })->name('about');
 });
 
+Route::middleware(['auth', 'throttle:6,1'])->group(function () {
+    Route::post('/email/verify-otp', [\App\Http\Controllers\Auth\VerifyEmailOtpController::class, 'verify'])
+        ->name('verification.verify-otp');
+});
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         $user = auth()->user();
@@ -60,5 +65,26 @@ Route::post('/promo-codes/validate', function (Request $request) {
         'discount_value' => $promo->discount_value,
     ]);
 })->middleware('throttle:10,1');
+
+// Mail preview routes (local only)
+if (app()->isLocal()) {
+    Route::get('/mail-preview/{type}', function (string $type) {
+        $notification = match ($type) {
+            'welcome' => new \App\Notifications\WelcomeNotification('My Coffee Shop'),
+            'login' => new \App\Notifications\LoginAlertNotification('127.0.0.1', 'Mozilla/5.0 Chrome/120.0'),
+            'verify' => new \App\Notifications\VerifyEmailOtpNotification('482916'),
+            'reset' => new \Illuminate\Auth\Notifications\ResetPassword('fake-token-preview'),
+            default => abort(404),
+        };
+
+        $user = \App\Models\User::first() ?? new \App\Models\User(['name' => 'John Doe', 'email' => 'john@example.com']);
+
+        if ($type === 'verify') {
+            return $notification->toMail($user)->render();
+        }
+
+        return $notification->toMail($user)->render();
+    })->name('mail.preview');
+}
 
 require __DIR__.'/settings.php';

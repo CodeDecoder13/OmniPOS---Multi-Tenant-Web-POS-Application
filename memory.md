@@ -68,6 +68,40 @@
   - `resources/js/types/models.ts` — added `DayOfWeek` type, `ShiftSchedule.days_of_week: DayOfWeek[]`
   - `resources/js/pages/tenant/shift-schedules/Index.vue` — 7 toggle buttons (Mon-Sun) in modal, day badges in table, day dropdown filter
 
+### Email Template Visual Fix (2026-03-31)
+Fixed broken logo and width mismatch in email templates (password reset, login alert, verification).
+- `resources/views/vendor/mail/html/header.blade.php` — replaced base64 SVG with `icon.png` from app URL
+- `resources/views/vendor/mail/html/layout.blade.php` — moved header inside `.inner-body` (570px card)
+- `resources/views/vendor/mail/html/themes/default.css` — split border-radius: header top corners, body bottom corners
+
+### Landing Page SEO Optimization (2026-03-31)
+Full SEO overhaul of `Welcome.vue` landing page and supporting files. Domain: `omnipos.shop`.
+
+**Welcome.vue (`resources/js/pages/Welcome.vue`):**
+- Title: `"OmniPOS — All-in-One POS System for Philippine Businesses | Free POS Software"`
+- Meta description (155 chars), meta keywords (10 PH-focused terms), meta author, meta robots
+- Canonical URL: `https://omnipos.shop/`
+- Full Open Graph tags: og:type, og:url, og:title, og:description, og:image, og:site_name, og:locale (en_PH)
+- Full Twitter Card tags: summary_large_image with title, description, image
+- PWA meta tags: theme-color (#0d9488), application-name, apple-mobile-web-app-*
+- JSON-LD structured data injected via `onMounted`: `SoftwareApplication` schema (features, pricing, ratings) + `Organization` schema
+- Semantic HTML: `aria-label` on nav, logo converted to `<a href="/">`, `aria-hidden` on decorative SVGs, `role="contentinfo"` on footer, `aria-label` on hero section
+
+**Blade template (`resources/views/app.blade.php`):**
+- Added `theme-color`, default `meta description`, `X-UA-Compatible` meta tags
+- Added `dns-prefetch` for Bunny fonts
+- Changed title fallback from `'Laravel'` to `'OmniPOS'`
+- Added `<noscript>` fallback to make `data-animate` content visible without JS
+
+**New/updated files:**
+- `public/robots.txt` — Allow `/`, disallow auth/settings pages, sitemap reference
+- `public/sitemap.xml` — Homepage (priority 1.0, weekly) + About page (priority 0.8, monthly)
+- `public/favicon.svg` — Replaced Laravel logo with branded TrendingUp icon on teal rounded square
+- `public/og-image.svg` — OG image source (teal gradient, logo, tagline, POS mockup)
+- `public/og-image-preview.html` — HTML preview page with html2canvas PNG download
+
+**Pending:** Download `og-image.png` from preview page and place in `public/`
+
 ---
 
 ## Issues Found & Changes Tracked
