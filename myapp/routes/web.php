@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleController;
 use App\Models\Plan;
 use App\Models\PromoCode;
 use Illuminate\Http\Request;
@@ -19,6 +20,11 @@ Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function ()
             'canRegister' => Features::enabled(Features::registration()),
         ]);
     })->name('about');
+});
+
+Route::middleware(['guest', 'throttle:10,1'])->group(function () {
+    Route::get('auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');
+    Route::get('auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
 });
 
 Route::middleware(['auth', 'throttle:6,1'])->group(function () {

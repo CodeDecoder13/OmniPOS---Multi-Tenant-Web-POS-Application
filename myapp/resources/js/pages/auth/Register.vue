@@ -2,6 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import { computed, onMounted, reactive, ref, watch, type Component } from 'vue';
+import GoogleSignInButton from '@/components/GoogleSignInButton.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
@@ -34,10 +35,19 @@ const iconMap: Record<string, Component> = {
     ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, Factory, LayoutGrid,
 };
 
+interface GoogleUser {
+    id: string;
+    name: string;
+    email: string;
+}
+
 const props = defineProps<{
     plans: Plan[];
     businessTypes: BusinessTypeOption[];
+    googleUser?: GoogleUser | null;
 }>();
+
+const isGoogleRegistration = computed(() => !!props.googleUser);
 
 const form = useForm({
     name: '',
@@ -51,6 +61,12 @@ const form = useForm({
 });
 
 onMounted(() => {
+    if (props.googleUser) {
+        form.name = props.googleUser.name;
+        form.email = props.googleUser.email;
+        currentStep.value = 2;
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const planParam = urlParams.get('plan');
     if (planParam && props.plans.some(p => p.slug === planParam && Number(p.price) > 0)) {
@@ -60,15 +76,22 @@ onMounted(() => {
 
 // --- Step wizard logic ---
 const currentStep = ref(1);
-const totalSteps = 4;
 const direction = ref<'forward' | 'backward'>('forward');
 
-const steps = [
+const allSteps = [
     { number: 1, title: 'Your Account', icon: User },
     { number: 2, title: 'Your Business', icon: Store },
     { number: 3, title: 'Choose a Plan', icon: CreditCard },
     { number: 4, title: 'Secure Account', icon: Lock },
 ];
+
+const steps = computed(() =>
+    isGoogleRegistration.value
+        ? allSteps.filter(s => s.number !== 4)
+        : allSteps,
+);
+
+const totalSteps = computed(() => steps.value.length);
 
 const stepErrors = reactive<Record<string, string>>({});
 
@@ -110,14 +133,17 @@ function validateStep(step: number): boolean {
 
 function nextStep() {
     if (!validateStep(currentStep.value)) return;
-    if (currentStep.value < totalSteps) {
-        direction.value = 'forward';
+    direction.value = 'forward';
+    // For Google registration, skip from step 3 directly (no step 4)
+    if (isGoogleRegistration.value && currentStep.value === 3) return;
+    if (currentStep.value < (isGoogleRegistration.value ? 3 : 4)) {
         currentStep.value++;
     }
 }
 
 function prevStep() {
-    if (currentStep.value > 1) {
+    const minStep = isGoogleRegistration.value ? 2 : 1;
+    if (currentStep.value > minStep) {
         clearStepErrors();
         direction.value = 'backward';
         currentStep.value--;
@@ -208,6 +234,13 @@ function selectBusinessType(value: string) {
 
 function submit() {
     if (!validateStep(currentStep.value)) return;
+
+    // For Google registration, clear password fields
+    if (isGoogleRegistration.value) {
+        form.password = '';
+        form.password_confirmation = '';
+    }
+
     form.post('/register', {
         onFinish: () => form.reset('password', 'password_confirmation'),
         onError: (errors) => {
@@ -215,7 +248,9 @@ function submit() {
             const errorFields = Object.keys(errors);
             if (errorFields.length > 0) {
                 const firstField = errorFields[0];
-                const targetStep = fieldStepMap[firstField] ?? 1;
+                let targetStep = fieldStepMap[firstField] ?? 1;
+                // Google users don't have step 4
+                if (isGoogleRegistration.value && targetStep === 4) targetStep = 3;
                 if (targetStep !== currentStep.value) {
                     direction.value = targetStep < currentStep.value ? 'backward' : 'forward';
                     currentStep.value = targetStep;
@@ -266,7 +301,7 @@ function submit() {
                                 "
                             >
                                 <Check v-if="currentStep > step.number" class="size-4" />
-                                <span v-else>{{ step.number }}</span>
+                                <span v-else>{{ index + 1 }}</span>
                             </div>
                             <span
                                 class="hidden sm:block text-xs font-medium transition-colors duration-300"
@@ -292,6 +327,17 @@ function submit() {
                             <h2 class="mb-1 text-xl font-semibold">Your Account</h2>
                             <p class="mb-6 text-sm text-muted-foreground">Enter your personal details</p>
 
+                            <!-- Google sign-in indicator -->
+                            <div v-if="isGoogleRegistration" class="mb-5 flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-700 dark:border-teal-800 dark:bg-teal-950/20 dark:text-teal-400">
+                                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                </svg>
+                                Signed in with Google
+                            </div>
+
                             <div class="grid gap-5">
                                 <div class="grid gap-2">
                                     <Label for="name">Name</Label>
@@ -302,6 +348,8 @@ function submit() {
                                         autofocus
                                         autocomplete="name"
                                         placeholder="Full name"
+                                        :readonly="isGoogleRegistration"
+                                        :class="{ 'bg-muted': isGoogleRegistration }"
                                     />
                                     <InputError :message="stepErrors.name || form.errors.name" />
                                 </div>
@@ -314,8 +362,25 @@ function submit() {
                                         type="email"
                                         autocomplete="email"
                                         placeholder="email@example.com"
+                                        :readonly="isGoogleRegistration"
+                                        :class="{ 'bg-muted': isGoogleRegistration }"
                                     />
                                     <InputError :message="stepErrors.email || form.errors.email" />
+                                </div>
+                            </div>
+
+                            <!-- Or divider + Google sign-in -->
+                            <div v-if="!isGoogleRegistration" class="mt-6">
+                                <div class="relative my-2">
+                                    <div class="absolute inset-0 flex items-center">
+                                        <span class="w-full border-t" />
+                                    </div>
+                                    <div class="relative flex justify-center text-xs uppercase">
+                                        <span class="bg-card px-2 text-muted-foreground">Or</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <GoogleSignInButton />
                                 </div>
                             </div>
                         </div>
@@ -450,8 +515,8 @@ function submit() {
                             </div>
                         </div>
 
-                        <!-- Step 4: Secure Account -->
-                        <div v-else-if="currentStep === 4" key="step4">
+                        <!-- Step 4: Secure Account (skipped for Google users) -->
+                        <div v-else-if="currentStep === 4 && !isGoogleRegistration" key="step4">
                             <h2 class="mb-1 text-xl font-semibold">Secure Your Account</h2>
                             <p class="mb-6 text-sm text-muted-foreground">Create a strong password</p>
 
@@ -494,6 +559,16 @@ function submit() {
                             </Link>
                         </Button>
                         <Button
+                            v-else-if="isGoogleRegistration && currentStep === 2"
+                            variant="outline"
+                            as-child
+                        >
+                            <Link href="/register">
+                                <ArrowLeft class="size-4 mr-1" />
+                                Go Back
+                            </Link>
+                        </Button>
+                        <Button
                             v-else-if="currentStep > 1"
                             type="button"
                             variant="outline"
@@ -504,7 +579,7 @@ function submit() {
                         </Button>
 
                         <Button
-                            v-if="currentStep < totalSteps"
+                            v-if="isGoogleRegistration ? currentStep < 3 : currentStep < 4"
                             type="button"
                             class="bg-teal-600 hover:bg-teal-700"
                             @click="nextStep"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import GoogleSignInButton from '@/components/GoogleSignInButton.vue';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -97,6 +98,17 @@ defineProps<{
                     Log in
                 </Button>
             </div>
+
+            <div class="relative my-2">
+                <div class="absolute inset-0 flex items-center">
+                    <span class="w-full border-t" />
+                </div>
+                <div class="relative flex justify-center text-xs uppercase">
+                    <span class="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+            </div>
+
+            <GoogleSignInButton />
 
             <div
                 class="text-center text-sm text-muted-foreground"

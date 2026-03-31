@@ -25,6 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'google_id',
         'last_seen_release_note_id',
     ];
 
@@ -79,5 +80,10 @@ class User extends Authenticatable implements MustVerifyEmail
         $code = $this->generateEmailVerificationCode();
 
         $this->notify(new VerifyEmailOtpNotification($code));
+    }
+
+    public function hasPassword(): bool
+    {
+        return ! is_null($this->password);
     }
 }

@@ -30,14 +30,22 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        Validator::make($input, [
+        $googleUser = session('google_user');
+        $isGoogleRegistration = ! empty($googleUser);
+
+        $rules = [
             ...$this->profileRules(),
-            'password' => $this->passwordRules(),
             'store_name' => ['required', 'string', 'max:255'],
             'business_type' => ['required', 'string', new Enum(BusinessType::class)],
             'plan' => ['required', 'string', 'exists:plans,slug'],
             'promo_code' => ['nullable', 'string'],
-        ])->validate();
+        ];
+
+        if (! $isGoogleRegistration) {
+            $rules['password'] = $this->passwordRules();
+        }
+
+        Validator::make($input, $rules)->validate();
 
         $plan = Plan::where('slug', $input['plan'])->firstOrFail();
         $isPaid = ! $plan->isFree();
@@ -67,8 +75,17 @@ class CreateNewUser implements CreatesNewUsers
         $user = User::create([
             'name' => $input['name'],
             'email' => $input['email'],
-            'password' => $input['password'],
+            'password' => $isGoogleRegistration ? null : $input['password'],
         ]);
+
+        if ($isGoogleRegistration) {
+            $user->forceFill([
+                'google_id' => $googleUser['id'],
+                'email_verified_at' => now(),
+            ])->save();
+
+            session()->forget('google_user');
+        }
 
         $this->registerService->createTenantForUser(
             $user,

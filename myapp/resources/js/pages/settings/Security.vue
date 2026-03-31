@@ -21,12 +21,14 @@ type Props = {
     canManageTwoFactor?: boolean;
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
+    hasPassword?: boolean;
 };
 
 withDefaults(defineProps<Props>(), {
     canManageTwoFactor: false,
     requiresConfirmation: false,
     twoFactorEnabled: false,
+    hasPassword: true,
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -52,8 +54,8 @@ onUnmounted(() => clearTwoFactorAuthData());
             <div class="space-y-6">
                 <Heading
                     variant="small"
-                    title="Update password"
-                    description="Ensure your account is using a long, random password to stay secure"
+                    :title="hasPassword ? 'Update password' : 'Set a password'"
+                    :description="hasPassword ? 'Ensure your account is using a long, random password to stay secure' : 'Set a password so you can also log in with your email and password'"
                 />
 
                 <Form
@@ -70,7 +72,7 @@ onUnmounted(() => clearTwoFactorAuthData());
                     class="space-y-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
-                    <div class="grid gap-2">
+                    <div v-if="hasPassword" class="grid gap-2">
                         <Label for="current_password">Current password</Label>
                         <PasswordInput
                             id="current_password"
