@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
-const { t } = useI18n();
 
 export interface ReceiptData {
     storeName: string;
@@ -63,11 +60,11 @@ function formatPaymentMethod(method: string) {
 
         <!-- Order Info -->
         <div class="space-y-0.5">
-            <p v-if="data.orderNumber">{{ $t('receipt.order') }}: {{ data.orderNumber }}</p>
-            <p>{{ $t('receipt.date') }}: {{ data.dateTime }}</p>
-            <p>{{ $t('receipt.cashier') }}: {{ data.cashier }}</p>
-            <p v-if="data.customer">{{ $t('receipt.customer') }}: {{ data.customer }}</p>
-            <p v-if="data.tableName">{{ $t('receipt.table') }}: {{ data.tableName }}</p>
+            <p v-if="data.orderNumber">Order: {{ data.orderNumber }}</p>
+            <p>Date: {{ data.dateTime }}</p>
+            <p>Cashier: {{ data.cashier }}</p>
+            <p v-if="data.customer">Customer: {{ data.customer }}</p>
+            <p v-if="data.tableName">Table: {{ data.tableName }}</p>
             <p v-if="data.orderType" class="font-bold">** {{ data.orderType }} **</p>
         </div>
 
@@ -91,23 +88,23 @@ function formatPaymentMethod(method: string) {
         <!-- Totals -->
         <div class="space-y-0.5">
             <div class="flex justify-between">
-                <span>{{ $t('receipt.subtotal') }}</span>
+                <span>Subtotal</span>
                 <span>{{ formatCurrency(data.subtotal) }}</span>
             </div>
             <div v-if="data.discount && data.discount > 0" class="flex justify-between">
-                <span>{{ $t('receipt.discount') }}</span>
+                <span>Discount</span>
                 <span>-{{ formatCurrency(data.discount) }}</span>
             </div>
             <div v-if="data.promotionDiscount && data.promotionDiscount > 0" class="flex justify-between">
-                <span>{{ $t('receipt.promo') }}{{ data.promotionCode ? ` (${data.promotionCode})` : '' }}</span>
+                <span>Promo{{ data.promotionCode ? ` (${data.promotionCode})` : '' }}</span>
                 <span>-{{ formatCurrency(data.promotionDiscount) }}</span>
             </div>
             <div v-if="data.tax && data.tax > 0" class="flex justify-between">
-                <span>{{ data.taxLabel || $t('common.tax') }}</span>
+                <span>{{ data.taxLabel || 'Tax' }}</span>
                 <span>{{ formatCurrency(data.tax) }}</span>
             </div>
             <div class="flex justify-between font-bold text-sm border-t border-dashed border-gray-400 pt-1 mt-1">
-                <span>{{ $t('receipt.total') }}</span>
+                <span>Total</span>
                 <span>{{ formatCurrency(data.total) }}</span>
             </div>
         </div>
@@ -117,19 +114,19 @@ function formatPaymentMethod(method: string) {
             <div class="border-t border-dashed border-gray-400 my-2" />
             <div class="space-y-0.5">
                 <div class="flex justify-between">
-                    <span>{{ $t('receipt.payment') }}</span>
+                    <span>Payment</span>
                     <span>{{ formatPaymentMethod(data.paymentMethod) }}</span>
                 </div>
                 <div v-if="data.amountTendered" class="flex justify-between">
-                    <span>{{ $t('receipt.tendered') }}</span>
+                    <span>Tendered</span>
                     <span>{{ formatCurrency(data.amountTendered) }}</span>
                 </div>
                 <div v-if="data.change && data.change > 0" class="flex justify-between">
-                    <span>{{ $t('receipt.change') }}</span>
+                    <span>Change</span>
                     <span>{{ formatCurrency(data.change) }}</span>
                 </div>
                 <div v-if="data.referenceNumber" class="flex justify-between">
-                    <span>{{ $t('receipt.ref') }}</span>
+                    <span>Ref #</span>
                     <span>{{ data.referenceNumber }}</span>
                 </div>
             </div>
@@ -140,7 +137,7 @@ function formatPaymentMethod(method: string) {
         <!-- Footer -->
         <div class="text-center text-[10px] text-gray-500">
             <p v-if="data.receiptFooter" class="whitespace-pre-line">{{ data.receiptFooter }}</p>
-            <p v-else>{{ $t('receipt.thankYou') }}</p>
+            <p v-else>Thank you for your purchase!</p>
         </div>
     </div>
 </template>

@@ -32,6 +32,22 @@ The landing page has been fully optimized for search engines and social sharing.
 
 ---
 
+### Google Sign-In (SSO)
+Users can now sign in or register using their Google account for a faster, passwordless experience.
+
+Existing users who registered with email and password can also use Google to log in — if their Google email matches their account, it's automatically linked. After linking, both login methods (Google and email/password) work seamlessly.
+
+**Highlights:**
+- **Login page** — "Continue with Google" button below the email/password form lets users sign in with one click.
+- **Register page** — Google button on Step 1 lets new users skip manual name/email entry. After authenticating with Google, the wizard jumps straight to Step 2 (Your Business) with account details pre-filled.
+- **3-step registration for Google users** — The password step is removed entirely: Account ✓ → Business → Plan.
+- **Automatic account linking** — Existing email/password users who click Google are matched by email, their Google ID is linked, and they're logged in instantly. No duplicate accounts.
+- **2FA compatible** — If an existing user has two-factor authentication enabled, Google login still triggers the 2FA challenge before granting access.
+- **Set a password later** — Google-only users can add a password anytime from Security settings, enabling both login methods.
+- **Auto email verification** — Google users skip the email verification step since Google already verified the address.
+
+---
+
 ### Email Template Visual Fix
 Fixed two visual issues in the email template (used for password reset, login alert, verification, etc.):
 
@@ -41,5 +57,3 @@ Fixed two visual issues in the email template (used for password reset, login al
 - **Rounded corners** — Teal gradient header has rounded top corners; white body has rounded bottom corners.
 
 
-
-2e033b6f360468810e4135ef8ffcebca
