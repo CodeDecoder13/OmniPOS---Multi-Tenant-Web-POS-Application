@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\OrderItem;
 use App\Models\Tenant\Payment;
+use App\Models\TenantUser;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -144,6 +145,12 @@ class DashboardController extends Controller
             ])
             ->toArray();
 
+        // Check if current user needs PIN setup
+        $currentTenantUser = TenantUser::where('tenant_id', $tenant->id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+        $needsPinSetup = $currentTenantUser && ! $currentTenantUser->pos_pin;
+
         $unreadReleaseNotes = [];
         if ($request->session()->get('showWelcome', false)) {
             $unreadReleaseNotes = ReleaseNote::published()
@@ -177,6 +184,7 @@ class DashboardController extends Controller
             'paymentsByMethod' => $paymentsByMethod,
             'topProducts' => $topProducts,
             'recentOrders' => $recentOrders,
+            'needsPinSetup' => $needsPinSetup,
         ]);
     }
 }

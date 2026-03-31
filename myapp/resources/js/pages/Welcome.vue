@@ -49,9 +49,20 @@ onMounted(() => {
 
     document.querySelectorAll('[data-animate]').forEach((el) => observer.observe(el));
 
+    // Inject JSON-LD structured data for SEO
+    const ldScripts: HTMLScriptElement[] = [];
+    [jsonLd, orgJsonLd].forEach((data) => {
+        const script = document.createElement('script');
+        script.type = 'application/ld+json';
+        script.textContent = data;
+        document.head.appendChild(script);
+        ldScripts.push(script);
+    });
+
     onUnmounted(() => {
         window.removeEventListener('scroll', handleScroll);
         observer.disconnect();
+        ldScripts.forEach((s) => s.remove());
     });
 });
 
@@ -59,6 +70,55 @@ function scrollTo(id: string) {
     mobileMenuOpen.value = false;
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 }
+
+// JSON-LD structured data for SEO
+const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'OmniPOS',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: 'All-in-one cloud POS system built for Filipino businesses. Manage sales, inventory, multi-branch operations, and analytics.',
+    url: 'https://omnipos.shop',
+    offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'PHP',
+        lowPrice: '0',
+        offerCount: props.plans.length,
+    },
+    featureList: [
+        'Point of Sale',
+        'Inventory Management',
+        'Multi-Branch Management',
+        'Sales Analytics & Reports',
+        'Customer Management',
+        'Kitchen Display System',
+        'Promotions & Discounts',
+        'Role-Based Access Control',
+        'Shift Management',
+        'Supply Chain Management',
+    ],
+    screenshot: 'https://omnipos.shop/og-image.png',
+    aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.8',
+        ratingCount: '50',
+    },
+});
+
+const orgJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'OmniPOS',
+    url: 'https://omnipos.shop',
+    logo: 'https://omnipos.shop/favicon.svg',
+    description: 'The all-in-one point-of-sale system built for Filipino businesses.',
+    contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        availableLanguage: ['English', 'Filipino'],
+    },
+});
 
 const featureTabs = [
     {
@@ -264,7 +324,36 @@ function declineCookies() {
 </script>
 
 <template>
-    <Head title="OmniPOS - The All-in-One POS System">
+    <Head title="OmniPOS — All-in-One POS System for Philippine Businesses | Free POS Software">
+        <meta name="description" content="OmniPOS is the all-in-one cloud POS system built for Filipino businesses. Manage sales, inventory, multi-branch operations, and analytics. Free plan available — no credit card required." />
+        <meta name="keywords" content="POS system Philippines, point of sale software, cloud POS, free POS system, multi-branch POS, inventory management, sales analytics, Filipino business, restaurant POS, retail POS" />
+        <meta name="author" content="OmniPOS" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://omnipos.shop/" />
+
+        <!-- Open Graph -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://omnipos.shop/" />
+        <meta property="og:title" content="OmniPOS — All-in-One POS System for Philippine Businesses" />
+        <meta property="og:description" content="Manage sales, inventory, multi-branch operations, and analytics with the most complete POS solution built for Filipino businesses. Start free today." />
+        <meta property="og:image" content="https://omnipos.shop/og-image.png" />
+        <meta property="og:site_name" content="OmniPOS" />
+        <meta property="og:locale" content="en_PH" />
+
+        <!-- Twitter Card -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="OmniPOS — All-in-One POS System for Philippine Businesses" />
+        <meta name="twitter:description" content="Manage sales, inventory, multi-branch operations, and analytics with the most complete POS solution built for Filipino businesses." />
+        <meta name="twitter:image" content="https://omnipos.shop/og-image.png" />
+
+        <!-- Additional SEO -->
+        <meta name="theme-color" content="#0d9488" />
+        <meta name="application-name" content="OmniPOS" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="OmniPOS" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
         <link rel="preconnect" href="https://rsms.me/" />
         <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     </Head>
@@ -272,20 +361,21 @@ function declineCookies() {
     <div class="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
         <!-- ==================== 1. NAVBAR ==================== -->
         <nav
+            aria-label="Main navigation"
             class="sticky top-0 z-50 border-b backdrop-blur-lg transition-shadow duration-300"
             :class="scrolled
                 ? 'border-gray-200 bg-white/80 shadow-lg dark:border-gray-800 dark:bg-gray-950/80'
                 : 'border-transparent bg-white/60 dark:bg-gray-950/60'"
         >
             <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-                <div class="flex items-center gap-2">
+                <a href="/" class="flex items-center gap-2" aria-label="OmniPOS — Go to homepage">
                     <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600">
-                        <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
                     </div>
                     <span class="text-xl font-bold">OmniPOS</span>
-                </div>
+                </a>
 
                 <!-- Desktop nav -->
                 <div class="hidden items-center gap-8 md:flex">
@@ -351,7 +441,7 @@ function declineCookies() {
         </nav>
 
         <!-- ==================== 2. HERO SECTION ==================== -->
-        <section class="relative overflow-hidden">
+        <section class="relative overflow-hidden" aria-label="Hero — OmniPOS overview">
             <!-- Animated gradient background -->
             <div class="hero-bg absolute inset-0"></div>
             <div class="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)]"></div>
@@ -422,7 +512,7 @@ function declineCookies() {
                                     <div class="h-3 w-3 rounded-full bg-yellow-400"></div>
                                     <div class="h-3 w-3 rounded-full bg-green-400"></div>
                                 </div>
-                                <div class="mx-auto rounded-md bg-gray-200 px-4 py-1 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-400">omnipos.app/pos</div>
+                                <div class="mx-auto rounded-md bg-gray-200 px-4 py-1 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-400">omnipos.shop/pos</div>
                             </div>
                             <!-- POS body -->
                             <div class="flex gap-3 p-4">
@@ -1286,14 +1376,14 @@ function declineCookies() {
         </section>
 
         <!-- ==================== 12. FOOTER ==================== -->
-        <footer class="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
+        <footer class="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50" role="contentinfo">
             <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
                 <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
                     <!-- Brand -->
                     <div>
                         <div class="flex items-center gap-2">
                             <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600">
-                                <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                 </svg>
                             </div>

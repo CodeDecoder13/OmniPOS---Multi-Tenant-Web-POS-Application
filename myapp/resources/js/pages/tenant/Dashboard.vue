@@ -8,6 +8,7 @@ import {
 } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import WelcomeBackModal from '@/components/WelcomeBackModal.vue';
+import PinSetupModal from '@/components/PinSetupModal.vue';
 import type { BreadcrumbItem } from '@/types';
 import type { ReleaseNote } from '@/types/models';
 import { useTenant } from '@/composables/useTenant';
@@ -37,6 +38,7 @@ const props = defineProps<{
     topProducts: { name: string; qty: number; revenue: number }[];
     recentOrders: { id: number; order_number: string; total: number; status: string; branch: string; created_at: string }[];
     releaseNotes?: ReleaseNote[];
+    needsPinSetup?: boolean;
 }>();
 
 const page = usePage();
@@ -49,6 +51,7 @@ const firstName = user.name.split(' ')[0];
 const tenantName = (page.props.tenant as { name: string } | null)?.name ?? '';
 
 const showWelcomeModal = ref(!!flash.value.showWelcome);
+const showPinModal = ref(!!props.needsPinSetup);
 
 function closeWelcomeModal() {
     showWelcomeModal.value = false;
@@ -247,6 +250,11 @@ const topProductMax = computed(() => {
 
 <template>
     <Head title="Dashboard" />
+
+    <PinSetupModal
+        :show="showPinModal && !showWelcomeModal"
+        @close="showPinModal = false"
+    />
 
     <WelcomeBackModal
         :show="showWelcomeModal"

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OG Image Preview</title>
+    <style>
+        body { margin: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: system-ui; color: #fff; }
+        h1 { font-size: 18px; margin-bottom: 12px; opacity: 0.7; }
+        p { font-size: 14px; opacity: 0.5; margin-top: 8px; }
+        a { color: #0d9488; margin-top: 16px; font-size: 16px; cursor: pointer; text-decoration: underline; }
+        .og-wrap { width: 1200px; height: 630px; position: relative; overflow: hidden; border-radius: 4px; flex-shrink: 0; }
+        .og-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #06b6d4 100%); }
+        .og-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 60px 60px; }
+        .og-glow1 { position: absolute; top: -10%; left: -5%; width: 60%; height: 80%; background: radial-gradient(ellipse, rgba(255,255,255,0.07) 0%, transparent 70%); }
+        .og-glow2 { position: absolute; bottom: -10%; right: -5%; width: 50%; height: 70%; background: radial-gradient(ellipse, rgba(6,182,212,0.12) 0%, transparent 70%); }
+        .og-circle1 { position: absolute; top: -40px; right: 100px; width: 400px; height: 400px; border-radius: 50%; background: rgba(255,255,255,0.03); }
+        .og-circle2 { position: absolute; bottom: -60px; left: 60px; width: 320px; height: 320px; border-radius: 50%; background: rgba(255,255,255,0.02); }
+        .og-content { position: relative; z-index: 1; width: 100%; height: 100%; }
+
+        .og-logo { position: absolute; top: 200px; left: 80px; display: flex; align-items: center; gap: 16px; }
+        .og-logo-icon { width: 80px; height: 80px; border-radius: 18px; background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08)); border: 1.5px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; }
+        .og-logo-text { font-size: 56px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+
+        .og-tagline { position: absolute; top: 320px; left: 82px; }
+        .og-tagline-line { font-size: 38px; font-weight: 600; color: rgba(255,255,255,0.95); letter-spacing: -0.5px; line-height: 1.35; }
+
+        .og-pills { position: absolute; top: 430px; left: 82px; display: flex; gap: 18px; }
+        .og-pill { padding: 8px 22px; border-radius: 20px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); font-size: 16px; font-weight: 600; color: #fff; }
+
+        .og-footer { position: absolute; bottom: 42px; left: 82px; right: 82px; }
+        .og-footer-line { width: 100%; height: 1px; background: rgba(255,255,255,0.15); margin-bottom: 18px; }
+        .og-footer-text { display: flex; justify-content: space-between; }
+        .og-footer-url { font-size: 20px; font-weight: 500; color: rgba(255,255,255,0.6); }
+        .og-footer-features { font-size: 18px; font-weight: 500; color: rgba(255,255,255,0.45); }
+
+        /* Mini POS mockup */
+        .og-mockup { position: absolute; top: 140px; right: 80px; width: 370px; height: 340px; border-radius: 16px; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.18); overflow: hidden; }
+        .og-mock-titlebar { height: 44px; background: rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 16px; gap: 8px; position: relative; }
+        .og-mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .og-mock-url { position: absolute; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.1); padding: 3px 16px; border-radius: 9px; font-size: 10px; color: rgba(255,255,255,0.4); }
+        .og-mock-body { padding: 16px; display: flex; gap: 12px; }
+        .og-mock-products { flex: 1; }
+        .og-mock-cats { display: flex; gap: 8px; margin-bottom: 12px; }
+        .og-mock-cat { padding: 4px 14px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+        .og-mock-cat.active { background: rgba(255,255,255,0.25); color: #fff; }
+        .og-mock-cat.inactive { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+        .og-mock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .og-mock-item { border-radius: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); padding: 8px; }
+        .og-mock-item-img { height: 32px; border-radius: 4px; background: rgba(255,255,255,0.06); margin-bottom: 6px; }
+        .og-mock-item-name { height: 5px; width: 70%; border-radius: 3px; background: rgba(255,255,255,0.15); margin-bottom: 4px; }
+        .og-mock-item-price { height: 5px; width: 45%; border-radius: 3px; background: rgba(20,184,166,0.4); }
+        .og-mock-cart { width: 118px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 10px; display: flex; flex-direction: column; }
+        .og-mock-cart-title { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); margin-bottom: 10px; }
+        .og-mock-cart-item { margin-bottom: 10px; }
+        .og-mock-cart-item-line { height: 5px; border-radius: 3px; background: rgba(255,255,255,0.1); margin-bottom: 5px; }
+        .og-mock-cart-item-sub { height: 4px; width: 60%; border-radius: 3px; background: rgba(255,255,255,0.07); }
+        .og-mock-cart-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 8px 0; }
+        .og-mock-cart-total { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 10px; }
+        .og-mock-cart-total-label { color: rgba(255,255,255,0.4); }
+        .og-mock-cart-total-value { color: #fff; font-weight: 700; font-size: 12px; }
+        .og-mock-cart-btn { background: rgba(255,255,255,0.2); border-radius: 6px; text-align: center; padding: 7px 0; font-size: 12px; font-weight: 700; color: #fff; }
+    </style>
+</head>
+<body>
+    <h1>OmniPOS OG Image (1200 x 630) — Preview</h1>
+
+    <div class="og-wrap" id="ogImage">
+        <div class="og-bg"></div>
+        <div class="og-grid"></div>
+        <div class="og-glow1"></div>
+        <div class="og-glow2"></div>
+        <div class="og-circle1"></div>
+        <div class="og-circle2"></div>
+
+        <div class="og-content">
+            <!-- Logo -->
+            <div class="og-logo">
+                <div class="og-logo-icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 7h6v6"/>
+                        <path d="m22 7-8.5 8.5-5-5L2 17"/>
+                    </svg>
+                </div>
+                <span class="og-logo-text">OmniPOS</span>
+            </div>
+
+            <!-- Tagline -->
+            <div class="og-tagline">
+                <div class="og-tagline-line">The All-in-One POS System</div>
+                <div class="og-tagline-line">for Philippine Businesses</div>
+            </div>
+
+            <!-- Pills -->
+            <div class="og-pills">
+                <div class="og-pill">17+ Modules</div>
+                <div class="og-pill">Multi-Branch</div>
+                <div class="og-pill">Free Plan Available</div>
+            </div>
+
+            <!-- Footer -->
+            <div class="og-footer">
+                <div class="og-footer-line"></div>
+                <div class="og-footer-text">
+                    <span class="og-footer-url">omnipos.shop</span>
+                    <span class="og-footer-features">Sales &bull; Inventory &bull; Analytics &bull; Multi-Branch</span>
+                </div>
+            </div>
+
+            <!-- Mini POS Mockup -->
+            <div class="og-mockup">
+                <div class="og-mock-titlebar">
+                    <div class="og-mock-dot" style="background:#ef4444;opacity:0.7"></div>
+                    <div class="og-mock-dot" style="background:#eab308;opacity:0.7"></div>
+                    <div class="og-mock-dot" style="background:#22c55e;opacity:0.7"></div>
+                    <span class="og-mock-url">omnipos.shop/pos</span>
+                </div>
+                <div class="og-mock-body">
+                    <div class="og-mock-products">
+                        <div class="og-mock-cats">
+                            <span class="og-mock-cat active">All</span>
+                            <span class="og-mock-cat inactive">Coffee</span>
+                            <span class="og-mock-cat inactive">Food</span>
+                        </div>
+                        <div class="og-mock-grid">
+                            <div class="og-mock-item"><div class="og-mock-item-img"></div><div class="og-mock-item-name"></div><div class="og-mock-item-price"></div></div>
+                            <div class="og-mock-item"><div class="og-mock-item-img"></div><div class="og-mock-item-name"></div><div class="og-mock-item-price"></div></div>
+                            <div class="og-mock-item"><div class="og-mock-item-img"></div><div class="og-mock-item-name"></div><div class="og-mock-item-price"></div></div>
+                            <div class="og-mock-item"><div class="og-mock-item-img"></div><div class="og-mock-item-name"></div><div class="og-mock-item-price"></div></div>
+                        </div>
+                    </div>
+                    <div class="og-mock-cart">
+                        <div class="og-mock-cart-title">Cart (3)</div>
+                        <div class="og-mock-cart-item"><div class="og-mock-cart-item-line"></div><div class="og-mock-cart-item-sub"></div></div>
+                        <div class="og-mock-cart-item"><div class="og-mock-cart-item-line"></div><div class="og-mock-cart-item-sub"></div></div>
+                        <div class="og-mock-cart-item"><div class="og-mock-cart-item-line"></div><div class="og-mock-cart-item-sub"></div></div>
+                        <div class="og-mock-cart-divider"></div>
+                        <div class="og-mock-cart-total">
+                            <span class="og-mock-cart-total-label">Total</span>
+                            <span class="og-mock-cart-total-value">₱385.00</span>
+                        </div>
+                        <div class="og-mock-cart-btn">Charge</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p>Take a screenshot of the image above (exactly 1200x630), or use the download button below.</p>
+    <a id="download" href="#">Download as PNG</a>
+    <p style="opacity:0.3">Uses html2canvas for conversion</p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        document.getElementById('download').addEventListener('click', async function(e) {
+            e.preventDefault();
+            const el = document.getElementById('ogImage');
+            const canvas = await html2canvas(el, { width: 1200, height: 630, scale: 1, useCORS: true, backgroundColor: null });
+            const link = document.createElement('a');
+            link.download = 'og-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    </script>
+</body>
+</html>
