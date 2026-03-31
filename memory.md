@@ -74,6 +74,19 @@ Fixed broken logo and width mismatch in email templates (password reset, login a
 - `resources/views/vendor/mail/html/layout.blade.php` — moved header inside `.inner-body` (570px card)
 - `resources/views/vendor/mail/html/themes/default.css` — split border-radius: header top corners, body bottom corners
 
+### Mandatory Branch Assignment for Users (2026-04-01)
+Removed "All Branches" option from user management. Every user must now be assigned to a specific branch.
+- `resources/js/pages/tenant/users/Index.vue` — Removed "All Branches" `SelectItem` from Add/Edit dialogs, default to newest branch via `newestBranchId` computed
+- `app/Http/Controllers/Tenant/UserController.php` — `store()` and `update()` fallback to newest active branch when `branch_id` is null
+- `app/Http/Controllers/Tenant/SetupController.php` — `store()` now assigns owner to the newly created branch
+- `database/migrations/2026_03_31_230000_assign_null_branch_users_to_newest_branch.php` — One-time migration to fix existing users with null branch_id
+- **Files changed (4):** `Index.vue`, `UserController.php`, `SetupController.php`, new migration
+
+### Auto-Initialize Inventory on Branch Creation (2026-04-01)
+When a branch is created, inventory records (quantity=0) are auto-created for all existing products so they appear on the Inventory page immediately.
+- `app/Services/Tenant/BranchService.php` — `create()` bulk-inserts inventory records for all tenant products after branch creation
+- **Files changed (1):** `BranchService.php`
+
 ### Landing Page SEO Optimization (2026-03-31)
 Full SEO overhaul of `Welcome.vue` landing page and supporting files. Domain: `omnipos.shop`.
 

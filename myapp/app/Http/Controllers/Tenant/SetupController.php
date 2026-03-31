@@ -50,7 +50,12 @@ class SetupController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
 
-        $this->branchService->create($tenant, $request->validated(), $request->user()->id);
+        $branch = $this->branchService->create($tenant, $request->validated(), $request->user()->id);
+
+        // Assign the owner to the newly created branch
+        TenantUser::where('tenant_id', $tenant->id)
+            ->where('user_id', $request->user()->id)
+            ->update(['branch_id' => $branch->id]);
 
         // Redirect back to setup so step 2 (PIN) shows
         return redirect()->route('tenant.setup', ['tenant' => $tenant->slug]);

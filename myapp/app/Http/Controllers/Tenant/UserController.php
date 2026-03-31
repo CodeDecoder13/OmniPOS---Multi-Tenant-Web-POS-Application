@@ -90,8 +90,10 @@ class UserController extends Controller
 
         $role = Role::forTenant($tenant->id)->findOrFail($validated['role_id']);
 
-        if (!empty($validated['branch_id'])) {
-            Branch::forTenant($tenant)->findOrFail($validated['branch_id']);
+        $branchId = $validated['branch_id'] ?? Branch::forTenant($tenant)->where('is_active', true)->latest('id')->value('id');
+
+        if ($branchId) {
+            Branch::forTenant($tenant)->findOrFail($branchId);
         }
 
         $user = User::create([
@@ -104,7 +106,7 @@ class UserController extends Controller
             'user_id' => $user->id,
             'tenant_id' => $tenant->id,
             'role_id' => $role->id,
-            'branch_id' => $validated['branch_id'] ?? null,
+            'branch_id' => $branchId,
         ]);
 
         $this->activityLog->log($tenant, $request->user()->id, 'user.created', 'User', $user->id, [
@@ -134,8 +136,10 @@ class UserController extends Controller
                 'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             ]);
 
-            if (!empty($validated['branch_id'])) {
-                Branch::forTenant($tenant)->findOrFail($validated['branch_id']);
+            $branchId = $validated['branch_id'] ?? Branch::forTenant($tenant)->where('is_active', true)->latest('id')->value('id');
+
+            if ($branchId) {
+                Branch::forTenant($tenant)->findOrFail($branchId);
             }
 
             $user = User::findOrFail($userId);
@@ -147,7 +151,7 @@ class UserController extends Controller
 
             TenantUser::where('tenant_id', $tenant->id)
                 ->where('user_id', $userId)
-                ->update(['branch_id' => $validated['branch_id'] ?? null]);
+                ->update(['branch_id' => $branchId]);
         } else {
             // Editing other users: name, email, password, role, branch
             $validated = $request->validate([
@@ -160,8 +164,10 @@ class UserController extends Controller
 
             $role = Role::forTenant($tenant->id)->findOrFail($validated['role_id']);
 
-            if (!empty($validated['branch_id'])) {
-                Branch::forTenant($tenant)->findOrFail($validated['branch_id']);
+            $branchId = $validated['branch_id'] ?? Branch::forTenant($tenant)->where('is_active', true)->latest('id')->value('id');
+
+            if ($branchId) {
+                Branch::forTenant($tenant)->findOrFail($branchId);
             }
 
             $user = User::findOrFail($userId);
@@ -178,7 +184,7 @@ class UserController extends Controller
                 ->where('user_id', $userId)
                 ->update([
                     'role_id' => $role->id,
-                    'branch_id' => $validated['branch_id'] ?? null,
+                    'branch_id' => $branchId,
                 ]);
         }
 

@@ -71,7 +71,8 @@ const assignableRoles = props.roles.filter((r) => r.slug !== 'owner');
 
 // Add User dialog
 const addDialog = ref(false);
-const addForm = ref({ name: '', email: '', password: '', role_id: '', branch_id: 'all' });
+const newestBranchId = computed(() => props.branches.length ? String(props.branches[props.branches.length - 1].id) : '');
+const addForm = ref({ name: '', email: '', password: '', role_id: '', branch_id: newestBranchId.value });
 const adding = ref(false);
 
 function generatePassword(): string {
@@ -84,7 +85,7 @@ function generatePassword(): string {
 }
 
 function openAddDialog() {
-    addForm.value = { name: '', email: '', password: generatePassword(), role_id: '', branch_id: 'all' };
+    addForm.value = { name: '', email: '', password: generatePassword(), role_id: '', branch_id: newestBranchId.value };
     addDialog.value = true;
 }
 
@@ -95,7 +96,7 @@ function submitAdd() {
         email: addForm.value.email,
         password: addForm.value.password,
         role_id: Number(addForm.value.role_id),
-        branch_id: addForm.value.branch_id !== 'all' ? Number(addForm.value.branch_id) : null,
+        branch_id: Number(addForm.value.branch_id),
     }, {
         preserveScroll: true,
         onSuccess: () => {
@@ -140,7 +141,7 @@ function openEditDialog(user: TenantUser) {
         email: user.email,
         password: '',
         role_id: String(user.tenant_role?.id ?? ''),
-        branch_id: user.branch_id ? String(user.branch_id) : 'all',
+        branch_id: user.branch_id ? String(user.branch_id) : newestBranchId.value,
     };
     pinForm.value = { userId: user.id, pin: '' };
     editDialog.value = true;
@@ -155,7 +156,7 @@ function submitEdit() {
         payload.email = editForm.value.email;
         payload.role_id = Number(editForm.value.role_id);
     }
-    payload.branch_id = editForm.value.branch_id !== 'all' ? Number(editForm.value.branch_id) : null;
+    payload.branch_id = Number(editForm.value.branch_id);
     if (editForm.value.password) {
         payload.password = editForm.value.password;
     }
@@ -392,12 +393,9 @@ function roleBadgeClass(slug: string): string {
                             </td>
                             <td class="px-4 py-3">
                                 <span
-                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="user.branch
-                                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-                                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'"
+                                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
                                 >
-                                    {{ user.branch?.name ?? 'All Branches' }}
+                                    {{ user.branch?.name ?? (branches.length ? branches[branches.length - 1].name : 'No Branch') }}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
@@ -585,10 +583,9 @@ function roleBadgeClass(slug: string): string {
                         <Label for="add-branch">Branch</Label>
                         <Select v-model="addForm.branch_id">
                             <SelectTrigger class="mt-1">
-                                <SelectValue placeholder="All Branches" />
+                                <SelectValue placeholder="Select Branch" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Branches</SelectItem>
                                 <SelectItem v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
                                     {{ branch.name }}
                                 </SelectItem>
@@ -685,10 +682,9 @@ function roleBadgeClass(slug: string): string {
                         <Label for="edit-branch">Branch</Label>
                         <Select v-model="editForm.branch_id">
                             <SelectTrigger class="mt-1">
-                                <SelectValue placeholder="All Branches" />
+                                <SelectValue placeholder="Select Branch" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Branches</SelectItem>
                                 <SelectItem v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
                                     {{ branch.name }}
                                 </SelectItem>

@@ -4,7 +4,9 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
+use App\Models\Tenant\Inventory;
 use App\Models\Tenant\Order;
+use App\Models\Tenant\Product;
 use App\Models\Tenant\Shift;
 use App\Models\Tenant\StockTransfer;
 use App\Models\Tenant\PurchaseOrder;
@@ -24,11 +26,29 @@ class BranchService
 
     public function create(Tenant $tenant, array $data, int $userId): Branch
     {
-        return Branch::create([
+        $branch = Branch::create([
             ...$data,
             'tenant_id' => $tenant->id,
             'created_by' => $userId,
         ]);
+
+        // Auto-initialize inventory records for all existing products in the new branch
+        $products = Product::where('tenant_id', $tenant->id)->select('id')->get();
+        $inventoryRecords = $products->map(fn (Product $product) => [
+            'tenant_id' => $tenant->id,
+            'product_id' => $product->id,
+            'branch_id' => $branch->id,
+            'quantity_on_hand' => 0,
+            'low_stock_threshold' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ])->toArray();
+
+        if (! empty($inventoryRecords)) {
+            Inventory::insert($inventoryRecords);
+        }
+
+        return $branch;
     }
 
     public function update(Branch $branch, array $data): Branch

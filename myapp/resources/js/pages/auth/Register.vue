@@ -369,8 +369,8 @@ function submit() {
                                 </div>
                             </div>
 
-                            <!-- Or divider + Google sign-in -->
-                            <div v-if="!isGoogleRegistration" class="mt-6">
+                            <!-- Google sign-in hidden for now -->
+                            <!-- <div v-if="!isGoogleRegistration" class="mt-6">
                                 <div class="relative my-2">
                                     <div class="absolute inset-0 flex items-center">
                                         <span class="w-full border-t" />
@@ -382,7 +382,7 @@ function submit() {
                                 <div class="mt-4">
                                     <GoogleSignInButton />
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
 
                         <!-- Step 2: Your Business -->
