@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Models\Tenant;
 use App\Models\Tenant\Product;
+use App\Services\PlanLimitService;
 use App\Models\Tenant\VariationGroup;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -55,6 +56,8 @@ class ProductService
 
     public function create(Tenant $tenant, array $data, int $userId, ?UploadedFile $image = null): Product
     {
+        PlanLimitService::ensureWithinLimit($tenant, 'products');
+
         $product = Product::create([
             ...$data,
             'tenant_id' => $tenant->id,

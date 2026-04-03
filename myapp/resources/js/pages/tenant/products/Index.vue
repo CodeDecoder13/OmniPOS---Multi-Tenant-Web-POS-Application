@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Barcode, Edit, Package, Plus, Search, Trash2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
@@ -21,10 +21,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import UpgradePlanModal from '@/components/UpgradePlanModal.vue';
 import type { BreadcrumbItem, Category, PaginatedData, Product } from '@/types';
 import BarcodeLabel from '@/components/BarcodeLabel.vue';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
+import { usePlanLimits } from '@/composables/usePlanLimits';
 
 const props = defineProps<{
     products: PaginatedData<Product>;
@@ -34,10 +36,13 @@ const props = defineProps<{
         category_id?: string;
         is_active?: string;
     };
+    productsCount: number;
 }>();
 
-const { tenantUrl } = useTenant();
+const page = usePage();
+const { tenant, tenantUrl } = useTenant();
 const { can } = usePermissions();
+const { limitReached } = usePlanLimits('products', () => props.productsCount);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
@@ -100,6 +105,19 @@ function showBarcode(product: Product) {
 function formatPrice(value: string | number): string {
     return Number(value).toFixed(2);
 }
+
+// Upgrade modal
+const upgradeModal = ref(false);
+const plans = page.props.plans as any[];
+const currentPlanSlug = tenant.value?.subscription?.plan?.slug ?? '';
+
+function handleAddProduct() {
+    if (limitReached.value) {
+        upgradeModal.value = true;
+    } else {
+        router.visit(tenantUrl('products/create'));
+    }
+}
 </script>
 
 <template>
@@ -109,11 +127,9 @@ function formatPrice(value: string | number): string {
         <div class="flex flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-bold">Products</h1>
-                <Button v-if="can('products.create')" as-child>
-                    <Link :href="tenantUrl('products/create')">
-                        <Plus class="mr-2 h-4 w-4" />
-                        Add Product
-                    </Link>
+                <Button v-if="can('products.create')" @click="handleAddProduct">
+                    <Plus class="mr-2 h-4 w-4" />
+                    Add Product
                 </Button>
             </div>
 
@@ -162,8 +178,8 @@ function formatPrice(value: string | number): string {
                 <p class="mt-1 text-sm text-muted-foreground">
                     {{ search || categoryFilter !== 'all' || statusFilter !== 'all' ? 'Try adjusting your filters.' : 'Create your first product to get started.' }}
                 </p>
-                <Button v-if="can('products.create') && !search && categoryFilter === 'all'" as-child class="mt-4">
-                    <Link :href="tenantUrl('products/create')">Create Product</Link>
+                <Button v-if="can('products.create') && !search && categoryFilter === 'all'" class="mt-4" @click="handleAddProduct">
+                    Create Product
                 </Button>
             </div>
 
@@ -272,5 +288,13 @@ function formatPrice(value: string | number): string {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <!-- Upgrade Plan Modal -->
+        <UpgradePlanModal
+            v-model:open="upgradeModal"
+            :current-plan-slug="currentPlanSlug"
+            :plans="plans"
+            resource="products"
+        />
     </TenantLayout>
 </template>

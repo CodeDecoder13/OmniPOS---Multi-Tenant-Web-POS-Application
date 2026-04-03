@@ -11,6 +11,7 @@ use App\Models\Tenant\Shift;
 use App\Models\Tenant\StockTransfer;
 use App\Models\Tenant\PurchaseOrder;
 use App\Models\TenantUser;
+use App\Services\PlanLimitService;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -26,6 +27,8 @@ class BranchService
 
     public function create(Tenant $tenant, array $data, int $userId): Branch
     {
+        PlanLimitService::ensureWithinLimit($tenant, 'branches');
+
         $branch = Branch::create([
             ...$data,
             'tenant_id' => $tenant->id,

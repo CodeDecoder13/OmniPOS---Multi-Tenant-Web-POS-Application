@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -83,6 +84,9 @@ class HandleInertiaRequests extends Middleware
                 ] : null;
             },
             'tenantPermissions' => fn () => $request->attributes->get('current_permissions', []),
+            'plans' => fn () => $request->attributes->get('current_tenant')
+                ? Plan::active()->orderBy('price')->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products'])
+                : [],
             'branchSettings' => function () use ($request) {
                 $tenantUser = $request->attributes->get('current_tenant_user');
 

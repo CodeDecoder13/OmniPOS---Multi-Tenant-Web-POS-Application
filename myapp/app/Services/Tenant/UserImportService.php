@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\Tenant\Branch;
 use App\Models\TenantUser;
 use App\Models\User;
+use App\Services\PlanLimitService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -107,6 +108,8 @@ class UserImportService
 
     public function import(Tenant $tenant, array $validRows): array
     {
+        PlanLimitService::ensureWithinLimit($tenant, 'users', count($validRows));
+
         $credentials = [];
 
         DB::transaction(function () use ($tenant, $validRows, &$credentials) {

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ProductRequest;
 use App\Models\Tenant\Addon;
 use App\Models\Tenant\Category;
+use App\Models\Tenant\Product;
 use App\Services\Tenant\ProductService;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,6 +31,7 @@ class ProductController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'filters' => $request->only(['search', 'category_id', 'is_active']),
+            'productsCount' => Product::where('tenant_id', $tenant->id)->count(),
         ]);
     }
 
@@ -54,7 +57,13 @@ class ProductController extends Controller
 
         $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids']);
 
-        $product = $this->productService->create($tenant, $data, $request->user()->id, $request->file('image'));
+        try {
+            $product = $this->productService->create($tenant, $data, $request->user()->id, $request->file('image'));
+        } catch (DomainException $e) {
+            return redirect()
+                ->route('tenant.products.index', ['tenant' => $tenant->slug])
+                ->with('error', $e->getMessage());
+        }
 
         if ($request->has('variation_groups') && is_array($request->input('variation_groups'))) {
             $this->productService->syncVariations($product, $request->input('variation_groups'));

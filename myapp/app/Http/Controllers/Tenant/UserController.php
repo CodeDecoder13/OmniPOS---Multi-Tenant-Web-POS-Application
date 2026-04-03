@@ -8,8 +8,10 @@ use App\Models\Tenant\Branch;
 use App\Models\TenantUser;
 use App\Models\User;
 use App\Http\Requests\Tenant\UserImportRequest;
+use App\Services\PlanLimitService;
 use App\Services\Tenant\ActivityLogService;
 use App\Services\Tenant\UserImportService;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,6 +71,7 @@ class UserController extends Controller
             'roles' => $roles,
             'branches' => $branches,
             'activityLogs' => $activityLogs,
+            'usersCount' => TenantUser::where('tenant_id', $tenant->id)->count(),
         ]);
     }
 
@@ -78,6 +81,12 @@ class UserController extends Controller
 
         if ((int) $request->user()->id !== (int) $tenant->owner_id) {
             return back()->with('error', 'Only the organization owner can add users.');
+        }
+
+        try {
+            PlanLimitService::ensureWithinLimit($tenant, 'users');
+        } catch (DomainException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
         $validated = $request->validate([
@@ -249,7 +258,11 @@ class UserController extends Controller
             'rows.*.branch_id' => ['nullable', 'integer'],
         ]);
 
-        $credentials = $this->userImport->import($tenant, $request->input('rows'));
+        try {
+            $credentials = $this->userImport->import($tenant, $request->input('rows'));
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $this->activityLog->log($tenant, $request->user()->id, 'users.imported', null, null, [
             'count' => count($credentials),

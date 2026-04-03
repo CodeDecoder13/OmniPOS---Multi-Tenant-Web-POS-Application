@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\BranchRequest;
+use App\Models\Tenant\Branch;
 use App\Services\Tenant\BranchService;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +24,7 @@ class BranchController extends Controller
 
         return Inertia::render('tenant/branches/Index', [
             'branches' => $this->branchService->list($tenant),
+            'branchesCount' => Branch::where('tenant_id', $tenant->id)->count(),
         ]);
     }
 
@@ -34,7 +37,13 @@ class BranchController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
 
-        $this->branchService->create($tenant, $request->validated(), $request->user()->id);
+        try {
+            $this->branchService->create($tenant, $request->validated(), $request->user()->id);
+        } catch (DomainException $e) {
+            return redirect()
+                ->route('tenant.branches.index', ['tenant' => $tenant->slug])
+                ->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('tenant.branches.index', ['tenant' => $tenant->slug])

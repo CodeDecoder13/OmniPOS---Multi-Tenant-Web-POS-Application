@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Edit, List, Plus, Settings, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
@@ -13,14 +13,19 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import UpgradePlanModal from '@/components/UpgradePlanModal.vue';
 import type { BreadcrumbItem, Branch, PaginatedData } from '@/types';
 import { useTenant } from '@/composables/useTenant';
+import { usePlanLimits } from '@/composables/usePlanLimits';
 
 const props = defineProps<{
     branches: PaginatedData<Branch>;
+    branchesCount: number;
 }>();
 
-const { tenantUrl } = useTenant();
+const page = usePage();
+const { tenant, tenantUrl } = useTenant();
+const { limitReached } = usePlanLimits('branches', () => props.branchesCount);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
@@ -47,6 +52,19 @@ function deleteBranch() {
         },
     });
 }
+
+// Upgrade modal
+const upgradeModal = ref(false);
+const plans = page.props.plans as any[];
+const currentPlanSlug = tenant.value?.subscription?.plan?.slug ?? '';
+
+function handleAddBranch() {
+    if (limitReached.value) {
+        upgradeModal.value = true;
+    } else {
+        router.visit(tenantUrl('branches/create'));
+    }
+}
 </script>
 
 <template>
@@ -56,11 +74,9 @@ function deleteBranch() {
         <div class="flex flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-bold">Branches</h1>
-                <Button as-child>
-                    <Link :href="tenantUrl('branches/create')">
-                        <Plus class="mr-2 h-4 w-4" />
-                        Add Branch
-                    </Link>
+                <Button @click="handleAddBranch">
+                    <Plus class="mr-2 h-4 w-4" />
+                    Add Branch
                 </Button>
             </div>
 
@@ -74,9 +90,7 @@ function deleteBranch() {
                 </div>
                 <h3 class="mt-4 text-lg font-semibold">No branches yet</h3>
                 <p class="mt-1 text-sm text-muted-foreground">Create your first branch to get started.</p>
-                <Button as-child class="mt-4">
-                    <Link :href="tenantUrl('branches/create')">Create Branch</Link>
-                </Button>
+                <Button class="mt-4" @click="handleAddBranch">Create Branch</Button>
             </div>
 
             <!-- Table -->
@@ -171,5 +185,13 @@ function deleteBranch() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        <!-- Upgrade Plan Modal -->
+        <UpgradePlanModal
+            v-model:open="upgradeModal"
+            :current-plan-slug="currentPlanSlug"
+            :plans="plans"
+            resource="branches"
+        />
     </TenantLayout>
 </template>

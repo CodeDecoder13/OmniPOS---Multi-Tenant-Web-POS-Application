@@ -21,10 +21,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import UpgradePlanModal from '@/components/UpgradePlanModal.vue';
 import type { BreadcrumbItem, PaginatedData, User, ActivityLog } from '@/types';
 import type { SharedTenantRole } from '@/types/tenant';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
+import { usePlanLimits } from '@/composables/usePlanLimits';
 import axios from 'axios';
 
 interface TenantUser extends User {
@@ -54,12 +56,14 @@ const props = defineProps<{
     roles: RoleOption[];
     branches: BranchOption[];
     activityLogs: ActivityLog[];
+    usersCount: number;
 }>();
 
 const page = usePage();
-const { tenantUrl } = useTenant();
+const { tenant, tenantUrl } = useTenant();
 const { can } = usePermissions();
 const currentUserId = (page.props.auth.user as User).id;
+const { limitReached } = usePlanLimits('users', () => props.usersCount);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
@@ -68,6 +72,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Filter out owner role from assignable options
 const assignableRoles = props.roles.filter((r) => r.slug !== 'owner');
+
+// Upgrade modal
+const upgradeModal = ref(false);
+const plans = page.props.plans as any[];
+const currentPlanSlug = tenant.value?.subscription?.plan?.slug ?? '';
 
 // Add User dialog
 const addDialog = ref(false);
@@ -85,6 +94,10 @@ function generatePassword(): string {
 }
 
 function openAddDialog() {
+    if (limitReached.value) {
+        upgradeModal.value = true;
+        return;
+    }
     addForm.value = { name: '', email: '', password: generatePassword(), role_id: '', branch_id: newestBranchId.value };
     addDialog.value = true;
 }
@@ -114,9 +127,9 @@ function submitAdd() {
 const credentialsDialog = ref(false);
 const createdCredentials = ref({ email: '', password: '' });
 const loginUrl = `${window.location.origin}/login`;
-const copiedField = ref<'email' | 'password' | 'both' | null>(null);
+const copiedField = ref<'email' | 'password' | 'both' | 'loginUrl' | null>(null);
 
-async function copyToClipboard(text: string, field: 'email' | 'password' | 'both') {
+async function copyToClipboard(text: string, field: 'email' | 'password' | 'both' | 'loginUrl') {
     await navigator.clipboard.writeText(text);
     copiedField.value = field;
     setTimeout(() => { copiedField.value = null; }, 2000);
@@ -236,6 +249,10 @@ const importCredentials = ref<{ name: string; email: string; password: string; r
 const importLoading = ref(false);
 
 function openImportDialog() {
+    if (limitReached.value) {
+        upgradeModal.value = true;
+        return;
+    }
     importStep.value = 'upload';
     importFile.value = null;
     importValidation.value = { valid: [], errors: [] };
@@ -277,6 +294,9 @@ async function executeImport() {
         router.reload();
     } catch (err: any) {
         importStep.value = 'preview';
+        if (err.response?.status === 422 && err.response?.data?.message) {
+            importValidation.value.errors = [{ row: 0, message: err.response.data.message }];
+        }
     } finally {
         importLoading.value = false;
     }
@@ -921,5 +941,13 @@ function roleBadgeClass(slug: string): string {
                 </div>
             </DialogContent>
         </Dialog>
+
+        <!-- Upgrade Plan Modal -->
+        <UpgradePlanModal
+            v-model:open="upgradeModal"
+            :current-plan-slug="currentPlanSlug"
+            :plans="plans"
+            resource="users"
+        />
     </TenantLayout>
 </template>
