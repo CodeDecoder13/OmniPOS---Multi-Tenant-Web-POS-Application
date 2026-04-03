@@ -36,6 +36,7 @@ Route::prefix('admin')->group(function () {
         Route::put('tenants/{id}', [TenantController::class, 'update'])->name('admin.tenants.update');
         Route::delete('tenants/{id}', [TenantController::class, 'destroy'])->name('admin.tenants.destroy');
         Route::patch('tenants/{id}/toggle', [TenantController::class, 'toggle'])->name('admin.tenants.toggle');
+        Route::get('tenants/{id}/activity', [TenantController::class, 'activity'])->name('admin.tenants.activity');
 
         // Users
         Route::get('users', [UserController::class, 'index'])->name('admin.users.index');

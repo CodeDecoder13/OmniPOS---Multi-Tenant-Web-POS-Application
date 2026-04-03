@@ -9,6 +9,7 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Central\AdminActivityLogService;
+use App\Services\Central\TenantActivityService;
 use App\Services\Central\TenantService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +22,7 @@ class TenantController extends Controller
     public function __construct(
         private TenantService $tenantService,
         private AdminActivityLogService $activityLog,
+        private TenantActivityService $tenantActivity,
     ) {}
 
     public function index(Request $request): Response
@@ -113,6 +115,29 @@ class TenantController extends Controller
         );
 
         return redirect()->route('admin.tenants.index')->with('success', "Tenant {$name} deleted successfully.");
+    }
+
+    public function activity(Request $request, string $id): Response
+    {
+        $tenant = Tenant::findOrFail($id);
+
+        $filters = $request->only(['user_id', 'event_type', 'date_from', 'date_to']);
+
+        return Inertia::render('admin/tenants/Activity', [
+            'tenant' => $tenant,
+            'stats' => $this->tenantActivity->getSummaryStats($id),
+            'timeline' => $this->tenantActivity->getTimeline($id, $filters),
+            'filters' => $filters,
+            'users' => $this->tenantActivity->getTenantUsers($id),
+            'eventTypes' => [
+                ['value' => 'login', 'label' => 'Login'],
+                ['value' => 'activity', 'label' => 'Activity'],
+                ['value' => 'shift_open', 'label' => 'Shift Open'],
+                ['value' => 'shift_close', 'label' => 'Shift Close'],
+                ['value' => 'order', 'label' => 'Order'],
+                ['value' => 'product_created', 'label' => 'Product Created'],
+            ],
+        ]);
     }
 
     public function toggle(Request $request, string $id): RedirectResponse

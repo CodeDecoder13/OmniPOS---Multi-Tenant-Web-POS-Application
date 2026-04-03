@@ -723,6 +723,25 @@ export interface ReleaseNote {
     updated_at: string;
 }
 
+// Tenant Activity Types
+
+export interface TenantActivityEvent {
+    event_type: 'login' | 'activity' | 'shift_open' | 'shift_close' | 'order' | 'product_created';
+    source_id: number;
+    user_id: number;
+    user_name: string;
+    description: string;
+    occurred_at: string;
+    properties: Record<string, unknown> | null;
+}
+
+export interface TenantActivityStats {
+    logins_today: number;
+    active_users_24h: number;
+    orders_today: number;
+    open_shifts: number;
+}
+
 // Forecast Types
 
 export interface ForecastData {

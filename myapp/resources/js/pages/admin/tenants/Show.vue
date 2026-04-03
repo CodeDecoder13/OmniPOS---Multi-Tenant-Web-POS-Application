@@ -36,6 +36,9 @@ function deleteTenant() {
                 </div>
                 <div class="flex gap-2">
                     <Button variant="outline" as-child>
+                        <Link :href="`/admin/tenants/${tenant.id}/activity`">User Activity</Link>
+                    </Button>
+                    <Button variant="outline" as-child>
                         <Link :href="`/admin/tenants/${tenant.id}/edit`">Edit</Link>
                     </Button>
                     <Button
