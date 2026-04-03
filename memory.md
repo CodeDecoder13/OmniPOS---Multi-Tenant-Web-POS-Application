@@ -87,6 +87,16 @@ When a branch is created, inventory records (quantity=0) are auto-created for al
 - `app/Services/Tenant/BranchService.php` — `create()` bulk-inserts inventory records for all tenant products after branch creation
 - **Files changed (1):** `BranchService.php`
 
+### Tenant User Activity Tracking in Admin Panel (2026-04-04)
+Per-tenant "User Activity" page at `/admin/tenants/{id}/activity` for admins to monitor tenant user behavior. No new migrations — aggregates from existing tables.
+- `app/Services/Central/TenantActivityService.php` (new) — `getSummaryStats()`, `getTimeline()`, `getTenantUsers()` merging 6 data sources (user_logins, activity_logs, shifts open/close, orders, products)
+- `app/Http/Controllers/SuperAdmin/TenantController.php` — Added `activity()` method, injected `TenantActivityService`
+- `routes/admin.php` — Added `GET tenants/{id}/activity` route
+- `resources/js/pages/admin/tenants/Activity.vue` (new) — Stat cards, filter bar (user/event type/date range), timeline table with colored badges, expandable properties, pagination
+- `resources/js/types/models.ts` — Added `TenantActivityEvent`, `TenantActivityStats` interfaces
+- `resources/js/pages/admin/tenants/Show.vue` — Added "User Activity" button in actions area
+- **Files changed (6):** 2 new, 4 modified
+
 ### Landing Page SEO Optimization (2026-03-31)
 Full SEO overhaul of `Welcome.vue` landing page and supporting files. Domain: `omnipos.shop`.
 
