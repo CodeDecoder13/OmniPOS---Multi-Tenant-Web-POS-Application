@@ -8,6 +8,7 @@ import {
     FileText,
     LayoutDashboard,
     LogOut,
+    MessageSquare,
     Settings,
     ShieldCheck,
     Megaphone,
@@ -42,6 +43,7 @@ const managementItems = [
     { title: 'Promo Codes', href: '/admin/promo-codes', icon: Ticket },
     { title: 'Release Notes', href: '/admin/release-notes', icon: Megaphone },
     { title: 'Admins', href: '/admin/admins', icon: ShieldCheck },
+    { title: 'Chat', href: '/admin/chat', icon: MessageSquare },
 ];
 
 const reportItems = [

@@ -18,7 +18,8 @@ class InventoryService
     public function list(Tenant $tenant, Request $request, int $perPage = 15): LengthAwarePaginator
     {
         $query = Inventory::forTenant($tenant)
-            ->with(['product:id,name,sku,image_path', 'branch:id,name']);
+            ->with(['product:id,name,sku,image_path', 'branch:id,name'])
+            ->whereHas('product', fn ($q) => $q->where('is_food', false));
 
         if ($branchId = $request->input('branch_id')) {
             $query->where('branch_id', $branchId);
@@ -89,6 +90,11 @@ class InventoryService
             $productId = $item['product_id'];
             $quantity = $item['quantity'];
 
+            $product = Product::find($productId);
+            if ($product && $product->is_food) {
+                continue;
+            }
+
             $inventory = Inventory::where('product_id', $productId)
                 ->where('branch_id', $branchId)
                 ->lockForUpdate()
@@ -142,6 +148,11 @@ class InventoryService
 
         foreach ($order->items as $item) {
             if (! $item->product_id) {
+                continue;
+            }
+
+            $product = Product::find($item->product_id);
+            if ($product && $product->is_food) {
                 continue;
             }
 

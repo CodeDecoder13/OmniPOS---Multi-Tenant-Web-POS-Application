@@ -2,7 +2,10 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\AdjustmentType;
 use App\Models\Tenant;
+use App\Models\Tenant\Branch;
+use App\Models\Tenant\Inventory;
 use App\Models\Tenant\Product;
 use App\Services\PlanLimitService;
 use App\Models\Tenant\VariationGroup;
@@ -14,6 +17,9 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductService
 {
+    public function __construct(
+        private readonly InventoryService $inventoryService,
+    ) {}
     private function diskName(): string
     {
         return config('filesystems.product_disk', 'local');
@@ -54,7 +60,7 @@ class ProductService
             ->findOrFail($productId);
     }
 
-    public function create(Tenant $tenant, array $data, int $userId, ?UploadedFile $image = null): Product
+    public function create(Tenant $tenant, array $data, int $userId, ?UploadedFile $image = null, ?int $initialStock = null, ?int $branchId = null): Product
     {
         PlanLimitService::ensureWithinLimit($tenant, 'products');
 
@@ -68,10 +74,24 @@ class ProductService
             $this->storeImage($product, $image);
         }
 
+        if (!$product->is_food && $initialStock !== null && $branchId) {
+            $inventory = Inventory::create([
+                'tenant_id' => $tenant->id,
+                'product_id' => $product->id,
+                'branch_id' => $branchId,
+                'quantity_on_hand' => 0,
+                'low_stock_threshold' => 0,
+            ]);
+
+            if ($initialStock > 0) {
+                $this->inventoryService->adjust($inventory, AdjustmentType::Initial, $initialStock, 'Initial stock on product creation', $userId);
+            }
+        }
+
         return $product;
     }
 
-    public function update(Product $product, array $data, ?UploadedFile $image = null, bool $removeImage = false): Product
+    public function update(Product $product, array $data, ?UploadedFile $image = null, bool $removeImage = false, ?int $initialStock = null, ?int $branchId = null): Product
     {
         if ($removeImage && !$image) {
             $this->deleteImage($product);
@@ -84,6 +104,25 @@ class ProductService
         }
 
         $product->update($data);
+
+        // Create initial inventory when toggling to non-food, only if no inventory exists yet
+        if (!$product->is_food && $initialStock !== null && $initialStock > 0 && $branchId) {
+            $exists = Inventory::where('product_id', $product->id)
+                ->where('branch_id', $branchId)
+                ->exists();
+
+            if (!$exists) {
+                $inventory = Inventory::create([
+                    'tenant_id' => $product->tenant_id,
+                    'product_id' => $product->id,
+                    'branch_id' => $branchId,
+                    'quantity_on_hand' => 0,
+                    'low_stock_threshold' => 0,
+                ]);
+
+                $this->inventoryService->adjust($inventory, AdjustmentType::Initial, $initialStock, 'Initial stock on product update', $product->created_by);
+            }
+        }
 
         return $product->fresh(['category:id,name', 'creator:id,name']);
     }
@@ -138,5 +177,23 @@ class ProductService
     public function syncAddons(Product $product, array $addonIds): void
     {
         $product->addons()->sync($addonIds);
+    }
+
+    public function syncBranchAvailability(Product $product, ?array $branchIds, Tenant $tenant): void
+    {
+        $activeBranchIds = Branch::forTenant($tenant)->where('is_active', true)->pluck('id')->all();
+
+        // If all branches selected or null → global availability (no entries)
+        if ($branchIds === null || count($branchIds) >= count($activeBranchIds)) {
+            $product->branches()->detach();
+            return;
+        }
+
+        // Sync: selected = available, unselected = unavailable
+        $syncData = [];
+        foreach ($activeBranchIds as $id) {
+            $syncData[$id] = ['is_available' => in_array($id, $branchIds)];
+        }
+        $product->branches()->sync($syncData);
     }
 }

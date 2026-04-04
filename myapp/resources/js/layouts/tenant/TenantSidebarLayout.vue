@@ -4,6 +4,7 @@ import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import FlashMessage from '@/components/FlashMessage.vue';
+import OmniChat from '@/components/OmniChat.vue';
 import type { BreadcrumbItem } from '@/types';
 
 type Props = {
@@ -24,4 +25,5 @@ withDefaults(defineProps<Props>(), {
             <slot />
         </AppContent>
     </AppShell>
+    <OmniChat />
 </template>
