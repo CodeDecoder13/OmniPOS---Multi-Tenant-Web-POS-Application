@@ -87,6 +87,17 @@ export interface AdminActivityLog {
     created_at: string;
 }
 
+export interface RecentUserLogin {
+    id: number;
+    user_id: number;
+    tenant_id: string | null;
+    ip_address: string;
+    user_agent: string | null;
+    logged_in_at: string;
+    user?: { id: number; name: string; email: string } | null;
+    tenant?: { id: string; name: string } | null;
+}
+
 export interface SystemSetting {
     id: number;
     key: string;

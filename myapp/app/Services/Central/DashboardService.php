@@ -88,6 +88,15 @@ class DashboardService
             ->toArray();
     }
 
+    public function getRecentUserLogins(int $limit = 10): array
+    {
+        return UserLogin::with(['user:id,name,email', 'tenant:id,name'])
+            ->latest('logged_in_at')
+            ->limit($limit)
+            ->get()
+            ->toArray();
+    }
+
     public function getUserActivityStats(): array
     {
         $now = Carbon::now();

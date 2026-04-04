@@ -3,10 +3,11 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Building2, DollarSign, TrendingDown, TrendingUp, UserPlus, Clock, BarChart3, Activity, LogIn, Eye, Fingerprint } from 'lucide-vue-next';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import type { AdminActivityLog, BreadcrumbItem } from '@/types';
+import type { AdminActivityLog, RecentUserLogin, BreadcrumbItem } from '@/types';
 import { computed, ref } from 'vue';
 
 const activeTab = ref('revenue');
+const activityTab = ref('admin');
 
 const props = defineProps<{
     stats: {
@@ -22,6 +23,7 @@ const props = defineProps<{
     revenueTrend: { labels: string[]; data: number[] };
     planDistribution: { name: string; count: number }[];
     recentActivity: AdminActivityLog[];
+    recentUserLogins: RecentUserLogin[];
     userActivity: {
         logins_today: number;
         logins_week: number;
@@ -115,7 +117,7 @@ function timeAgo(dateStr: string): string {
     <Head title="Admin Dashboard" />
 
     <AdminLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-[calc(100vh-4rem)] flex-col gap-3 overflow-y-auto p-4">
+        <div class="flex flex-col gap-3 overflow-y-auto p-4">
 
             <!-- Row 1: Stat cards in 2 groups -->
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
@@ -193,7 +195,7 @@ function timeAgo(dateStr: string): string {
             </div>
 
             <!-- Row 2: Tabbed Chart + Plan Distribution -->
-            <div class="grid min-h-0 flex-1 gap-3 lg:grid-cols-12">
+            <div class="grid gap-3 lg:grid-cols-12">
                 <!-- Tabbed Trend Chart -->
                 <div class="lg:col-span-8 flex flex-col rounded-xl border bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
                     <Tabs v-model="activeTab" class="flex flex-1 flex-col">
@@ -232,24 +234,51 @@ function timeAgo(dateStr: string): string {
             <div class="grid gap-3 lg:grid-cols-12">
                 <!-- Recent Activity -->
                 <div class="lg:col-span-8 rounded-xl border bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-                    <div class="mb-2 flex items-center justify-between">
-                        <h2 class="text-sm font-semibold">Recent Activity</h2>
-                        <Link href="/admin/activity-log" class="text-xs text-teal-600 hover:underline">View All</Link>
-                    </div>
-                    <div v-if="recentActivity.length > 0" class="space-y-1.5">
-                        <div
-                            v-for="log in recentActivity.slice(0, 4)"
-                            :key="log.id"
-                            class="flex items-center justify-between rounded-lg border px-3 py-1.5 dark:border-gray-800"
-                        >
-                            <div class="text-xs">
-                                <span class="font-medium">{{ log.admin?.name ?? 'System' }}</span>
-                                <span class="text-muted-foreground"> {{ formatAction(log.action) }}</span>
-                            </div>
-                            <span class="text-[11px] text-muted-foreground">{{ timeAgo(log.created_at) }}</span>
+                    <Tabs v-model="activityTab">
+                        <div class="mb-2 flex items-center justify-between">
+                            <TabsList class="h-7">
+                                <TabsTrigger value="admin" class="text-xs px-2.5 py-0.5">Admin Activity</TabsTrigger>
+                                <TabsTrigger value="logins" class="text-xs px-2.5 py-0.5">User Logins</TabsTrigger>
+                            </TabsList>
+                            <Link v-if="activityTab === 'admin'" href="/admin/activity-log" class="text-xs text-teal-600 hover:underline">View All</Link>
                         </div>
-                    </div>
-                    <p v-else class="text-xs text-muted-foreground">No recent activity.</p>
+                        <TabsContent value="admin" class="mt-0">
+                            <div v-if="recentActivity.length > 0" class="space-y-1.5">
+                                <div
+                                    v-for="log in recentActivity.slice(0, 5)"
+                                    :key="log.id"
+                                    class="flex items-center justify-between rounded-lg border px-3 py-1.5 dark:border-gray-800"
+                                >
+                                    <div class="text-xs">
+                                        <span class="font-medium">{{ log.admin?.name ?? 'System' }}</span>
+                                        <span class="text-muted-foreground"> {{ formatAction(log.action) }}</span>
+                                    </div>
+                                    <span class="text-[11px] text-muted-foreground">{{ timeAgo(log.created_at) }}</span>
+                                </div>
+                            </div>
+                            <p v-else class="text-xs text-muted-foreground">No recent activity.</p>
+                        </TabsContent>
+                        <TabsContent value="logins" class="mt-0">
+                            <div v-if="recentUserLogins.length > 0" class="space-y-1.5">
+                                <div
+                                    v-for="login in recentUserLogins.slice(0, 5)"
+                                    :key="login.id"
+                                    class="flex items-center justify-between rounded-lg border px-3 py-1.5 dark:border-gray-800"
+                                >
+                                    <div class="text-xs">
+                                        <span class="font-medium">{{ login.user?.name ?? 'Unknown' }}</span>
+                                        <span class="text-muted-foreground"> logged in</span>
+                                        <span v-if="login.tenant" class="text-muted-foreground"> to <span class="font-medium text-foreground">{{ login.tenant.name }}</span></span>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                        <span v-if="login.ip_address">{{ login.ip_address }}</span>
+                                        <span>{{ timeAgo(login.logged_in_at) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p v-else class="text-xs text-muted-foreground">No recent logins.</p>
+                        </TabsContent>
+                    </Tabs>
                 </div>
 
                 <!-- Quick Actions -->
