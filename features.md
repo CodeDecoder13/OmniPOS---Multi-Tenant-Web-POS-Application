@@ -1,4 +1,4 @@
-# Upcoming Release — April 4, 2026
+# Upcoming Release — April 5, 2026
 
 ## New Features
 
@@ -63,3 +63,14 @@ When a tenant user sends a chat message, an email notification is automatically 
 - **Custom Blade template** — Teal gradient header with OmniPOS logo, card layout showing sender details (name, email, tenant, subject), and the message body.
 - **Subject line** — `"New Chat Message from {userName} ({tenantName})"` for easy inbox scanning.
 - **Triggered in `ChatService::sendUserMessage()`** — Dispatched after the conversation is updated, before any auto-reply logic.
+
+### Tenant Deactivation Blocking Page & Owner Email Notifications
+When a super admin deactivates a tenant, users now see a proper full-screen "Account Deactivated" page instead of a raw 403 error. The tenant owner also receives email notifications on both deactivation and reactivation.
+
+**Highlights:**
+- **Blocking page** — `Deactivated.vue` renders a full-screen overlay (no sidebar/nav) with OmniPOS branding, a ShieldX icon, the tenant name, support email link, and a "Go to Dashboard" button.
+- **Middleware change** — `IdentifyTenant` middleware now returns an Inertia render instead of `abort(403)` for deactivated tenants. Individual user deactivation still uses `abort(403)`.
+- **Deactivation email** — `TenantDeactivatedMail` queued to the tenant owner explaining the organization has been deactivated, with an info box about what it means (users blocked, data preserved).
+- **Reactivation email** — `TenantActivatedMail` queued to the tenant owner confirming the organization is back online, with positive messaging about restored access.
+- **`TenantService::toggle()`** — Sends the appropriate email (activated or deactivated) to the owner after toggling `is_active`.
+- **Email palette** — Both emails use the OmniPOS teal gradient header, logo, info box, and footer consistent with the existing `NewChatMessageMail` template.

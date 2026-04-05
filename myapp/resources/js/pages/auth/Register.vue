@@ -220,11 +220,8 @@ const fieldStepMap: Record<string, number> = {
     password_confirmation: 4,
 };
 
-const isFreePlan = (plan: Plan) => Number(plan.price) === 0;
-
 function selectPlan(slug: string) {
     const plan = props.plans.find(p => p.slug === slug);
-    if (plan && isFreePlan(plan)) return; // Free plan is locked
     form.plan = slug;
 }
 
@@ -442,21 +439,13 @@ function submit() {
                                     :key="plan.slug"
                                     class="relative rounded-lg border-2 p-5 transition flex flex-col"
                                     :class="[
-                                        isFreePlan(plan)
-                                            ? 'cursor-not-allowed opacity-50 border-gray-200 dark:border-gray-700'
-                                            : 'cursor-pointer',
-                                        !isFreePlan(plan) && form.plan === plan.slug
+                                        'cursor-pointer',
+                                        form.plan === plan.slug
                                             ? 'border-teal-600 bg-teal-50 dark:border-teal-500 dark:bg-teal-950/20'
-                                            : !isFreePlan(plan)
-                                                ? 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
-                                                : ''
+                                            : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
                                     ]"
                                     @click="selectPlan(plan.slug)"
                                 >
-                                    <!-- Unavailable badge for free plan -->
-                                    <div v-if="isFreePlan(plan)" class="absolute -top-2.5 right-3 rounded-full bg-gray-500 px-2.5 py-0.5 text-xs font-semibold text-white">
-                                        Unavailable
-                                    </div>
                                     <div class="flex items-center justify-between mb-3">
                                         <div>
                                             <span class="font-semibold">{{ plan.name }}</span>
@@ -464,7 +453,7 @@ function submit() {
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <span class="text-2xl font-bold" :class="isFreePlan(plan) ? 'text-gray-400 dark:text-gray-500' : 'text-teal-600'">
+                                        <span class="text-2xl font-bold text-teal-600">
                                             {{ Number(plan.price) === 0 ? 'Free' : `₱${Number(plan.price).toLocaleString('en-PH')}` }}
                                         </span>
                                         <span v-if="Number(plan.price) > 0" class="text-sm text-gray-500">/mo</span>
@@ -479,7 +468,7 @@ function submit() {
 
                             <!-- Notice -->
                             <p class="mt-3 text-center text-xs text-muted-foreground">
-                                A valid promo code is required to activate your chosen plan.
+                                A promo code is required for paid plans.
                             </p>
                             <InputError :message="stepErrors.plan || form.errors.plan" class="mt-2" />
 

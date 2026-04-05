@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SubscriptionStatus;
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
 use App\Models\Tenant\Product;
@@ -27,11 +28,15 @@ class PlanLimitService
 
     public static function ensureWithinLimit(Tenant $tenant, string $resource, int $additionalCount = 1): void
     {
-        $plan = $tenant->subscription?->plan;
+        $subscription = $tenant->subscription;
 
-        if (! $plan) {
+        if (! $subscription?->plan) {
             return;
         }
+
+        self::ensureActiveSubscription($subscription->status);
+
+        $plan = $subscription->plan;
 
         $config = self::$resourceMap[$resource] ?? null;
 
@@ -63,5 +68,20 @@ class PlanLimitService
             'products' => Product::where('tenant_id', $tenant->id)->count(),
             default => 0,
         };
+    }
+
+    private static function ensureActiveSubscription(SubscriptionStatus $status): void
+    {
+        $blocked = [
+            SubscriptionStatus::Cancelled,
+            SubscriptionStatus::Expired,
+            SubscriptionStatus::PastDue,
+        ];
+
+        if (in_array($status, $blocked, true)) {
+            throw new DomainException(
+                'Your subscription is ' . $status->label() . '. Please renew your subscription to create new resources.'
+            );
+        }
     }
 }

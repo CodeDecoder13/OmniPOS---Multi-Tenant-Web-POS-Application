@@ -90,7 +90,7 @@ const submitOtp = () => {
             <!-- Resend Code -->
             <div class="text-center">
                 <Form
-                    v-bind="send.form()"
+                    v-bind="send()"
                     class="inline"
                     v-slot="{ processing }"
                 >
