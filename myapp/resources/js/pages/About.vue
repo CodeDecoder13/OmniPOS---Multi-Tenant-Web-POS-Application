@@ -522,6 +522,13 @@ onMounted(() => {
                         </ul>
                     </div>
                     <div>
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Legal</h4>
+                        <ul class="mt-4 space-y-3">
+                            <li><Link href="/privacy" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Privacy Policy</Link></li>
+                            <li><Link href="/terms" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Terms of Use</Link></li>
+                        </ul>
+                    </div>
+                    <div>
                         <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Get Started</h4>
                         <ul class="mt-4 space-y-3">
                             <li v-if="canRegister"><Link href="/register" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Create Account</Link></li>

@@ -280,12 +280,12 @@ function submit() {
 
             <!-- Step Indicator -->
             <div class="mb-8">
-                <div class="flex items-center justify-center">
+                <div class="flex items-start justify-center">
                     <template v-for="(step, index) in steps" :key="step.number">
                         <!-- Connector line -->
                         <div
                             v-if="index > 0"
-                            class="h-0.5 w-8 sm:w-16 transition-colors duration-300"
+                            class="mt-[18px] h-0.5 flex-1 transition-colors duration-300"
                             :class="currentStep >= step.number ? 'bg-teal-600' : 'bg-gray-300 dark:bg-gray-600'"
                         />
                         <!-- Step circle -->
@@ -304,7 +304,7 @@ function submit() {
                                 <span v-else>{{ index + 1 }}</span>
                             </div>
                             <span
-                                class="hidden sm:block text-xs font-medium transition-colors duration-300"
+                                class="hidden sm:block text-xs text-center whitespace-nowrap font-medium transition-colors duration-300"
                                 :class="
                                     currentStep >= step.number
                                         ? 'text-teal-600 dark:text-teal-400'
