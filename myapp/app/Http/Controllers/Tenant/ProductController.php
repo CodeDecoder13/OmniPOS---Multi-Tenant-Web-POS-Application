@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ProductRequest;
 use App\Models\Tenant\Addon;
+use App\Models\Tenant\Branch;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Product;
 use App\Services\Tenant\ProductService;
@@ -48,6 +49,11 @@ class ProductController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'price']),
+            'branches' => Branch::forTenant($tenant)
+                ->where('is_active', true)
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -55,10 +61,12 @@ class ProductController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
 
-        $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids']);
+        $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids', 'initial_stock', 'branch_ids']);
+        $initialStock = $request->validated('initial_stock');
+        $branchId = $request->attributes->get('current_tenant_user')?->branch_id;
 
         try {
-            $product = $this->productService->create($tenant, $data, $request->user()->id, $request->file('image'));
+            $product = $this->productService->create($tenant, $data, $request->user()->id, $request->file('image'), $initialStock, $branchId);
         } catch (DomainException $e) {
             return redirect()
                 ->route('tenant.products.index', ['tenant' => $tenant->slug])
@@ -73,6 +81,8 @@ class ProductController extends Controller
             $this->productService->syncAddons($product, $request->input('addon_ids', []));
         }
 
+        $this->productService->syncBranchAvailability($product, $request->validated('branch_ids'), $tenant);
+
         return redirect()
             ->route('tenant.products.index', ['tenant' => $tenant->slug])
             ->with('success', 'Product created successfully.');
@@ -82,7 +92,7 @@ class ProductController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
         $product = $this->productService->findForTenant($tenant, $product);
-        $product->load(['variationGroups.options', 'addons:id']);
+        $product->load(['variationGroups.options', 'addons:id', 'branches' => fn ($q) => $q->wherePivot('is_available', true)->select('branches.id')]);
 
         return Inertia::render('tenant/products/Edit', [
             'product' => $product,
@@ -94,6 +104,11 @@ class ProductController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'price']),
+            'branches' => Branch::forTenant($tenant)
+                ->where('is_active', true)
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 
@@ -102,13 +117,17 @@ class ProductController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $product = $this->productService->findForTenant($tenant, $product);
 
-        $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids']);
+        $data = $request->safe()->except(['image', 'remove_image', 'variation_groups', 'addon_ids', 'initial_stock', 'branch_ids']);
+        $initialStock = $request->validated('initial_stock');
+        $branchId = $request->attributes->get('current_tenant_user')?->branch_id;
 
         $this->productService->update(
             $product,
             $data,
             $request->file('image'),
             $request->boolean('remove_image'),
+            $initialStock,
+            $branchId,
         );
 
         if ($request->has('variation_groups')) {
@@ -118,6 +137,8 @@ class ProductController extends Controller
         if ($request->has('addon_ids')) {
             $this->productService->syncAddons($product, $request->input('addon_ids', []));
         }
+
+        $this->productService->syncBranchAvailability($product, $request->validated('branch_ids'), $tenant);
 
         return redirect()
             ->route('tenant.products.index', ['tenant' => $tenant->slug])

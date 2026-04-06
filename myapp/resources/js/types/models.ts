@@ -222,6 +222,7 @@ export interface Product {
     price: string;
     cost_price: string | null;
     is_active: boolean;
+    is_food: boolean;
     created_by: number | null;
     category?: { id: number; name: string };
     creator?: { id: number; name: string };
@@ -751,6 +752,40 @@ export interface TenantActivityStats {
     active_users_24h: number;
     orders_today: number;
     open_shifts: number;
+}
+
+// Chat Types
+
+export type ChatStatus = 'open' | 'closed' | 'resolved';
+export type ChatSenderType = 'user' | 'admin';
+
+export interface ChatConversation {
+    id: number;
+    tenant_id: string | null;
+    user_id: number;
+    subject: string | null;
+    status: ChatStatus;
+    last_message_at: string | null;
+    unread_count?: number;
+    last_message?: ChatMessage;
+    user?: { id: number; name: string; email: string };
+    tenant?: { id: string; name: string; slug: string };
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChatMessage {
+    id: number;
+    conversation_id: number;
+    sender_type: ChatSenderType;
+    sender_id: number;
+    message: string;
+    attachment_path: string | null;
+    attachment_url: string | null;
+    is_read: boolean;
+    read_at: string | null;
+    created_at: string;
+    updated_at: string;
 }
 
 // Forecast Types

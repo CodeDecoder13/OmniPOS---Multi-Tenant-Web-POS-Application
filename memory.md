@@ -87,6 +87,20 @@ When a branch is created, inventory records (quantity=0) are auto-created for al
 - `app/Services/Tenant/BranchService.php` — `create()` bulk-inserts inventory records for all tenant products after branch creation
 - **Files changed (1):** `BranchService.php`
 
+### Food/Non-Food Product Toggle + Initial Stock (2026-04-04)
+Added `is_food` boolean to products for distinguishing food (made to order, no stock tracking) from non-food (physical goods, require stock count). Initial stock input on product creation for non-food items.
+- `database/migrations/tenant/2025_01_01_000051_add_is_food_to_products_table.php` (new) — `is_food` boolean, default `false`
+- `app/Models/Tenant/Product.php` — Added `is_food` to `$fillable` + `casts`
+- `resources/js/types/models.ts` — Added `is_food: boolean` to `Product` interface
+- `app/Http/Requests/Tenant/ProductRequest.php` — `is_food` + `initial_stock` validation, `withValidator()` conditional requirement (required on POST for non-food)
+- `app/Services/Tenant/ProductService.php` — Injected `InventoryService`, creates `Inventory` record + `AdjustmentType::Initial` adjustment for non-food on creation
+- `app/Http/Controllers/Tenant/ProductController.php` — Extracts `initial_stock` + `branchId`, passes to service
+- `resources/js/pages/tenant/products/Create.vue` — Switch toggle (Non-Food/Food) + conditional initial stock input
+- `resources/js/pages/tenant/products/Edit.vue` — Switch toggle (no initial stock field — managed via Inventory module)
+- `app/Services/Tenant/InventoryService.php` — `decrementForSale()` + `incrementForVoid()` skip food products
+- **Backward compatible:** All existing products default to non-food (no behavior change). Users manually toggle food products via Edit page.
+- **Files changed (9):** 1 new, 8 modified
+
 ### Tenant User Activity Tracking in Admin Panel (2026-04-04)
 Per-tenant "User Activity" page at `/admin/tenants/{id}/activity` for admins to monitor tenant user behavior. No new migrations — aggregates from existing tables.
 - `app/Services/Central/TenantActivityService.php` (new) — `getSummaryStats()`, `getTimeline()`, `getTenantUsers()` merging 6 data sources (user_logins, activity_logs, shifts open/close, orders, products)

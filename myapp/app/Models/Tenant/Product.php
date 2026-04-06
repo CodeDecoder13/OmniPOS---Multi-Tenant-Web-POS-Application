@@ -25,6 +25,7 @@ class Product extends Model
         'price',
         'cost_price',
         'is_active',
+        'is_food',
         'created_by',
     ];
 
@@ -36,6 +37,7 @@ class Product extends Model
             'price' => 'decimal:2',
             'cost_price' => 'decimal:2',
             'is_active' => 'boolean',
+            'is_food' => 'boolean',
         ];
     }
 

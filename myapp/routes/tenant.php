@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Tenant\AddonController;
 use App\Http\Controllers\Tenant\BranchController;
+use App\Http\Controllers\Tenant\ChatController;
 use App\Http\Controllers\Tenant\BranchMenuController;
 use App\Http\Controllers\Tenant\BranchSettingsController;
 use App\Http\Controllers\Tenant\CategoryController;
@@ -308,4 +309,11 @@ Route::prefix('{tenant}')
             Route::get('settings', [SettingsController::class, 'edit'])->name('tenant.settings.edit');
             Route::put('settings', [SettingsController::class, 'update'])->name('tenant.settings.update');
         });
+
+        // Chat (no permission guard — any authenticated tenant user)
+        Route::get('chat', [ChatController::class, 'index'])->name('tenant.chat.index');
+        Route::get('chat/poll', [ChatController::class, 'poll'])->name('tenant.chat.poll');
+        Route::post('chat/messages', [ChatController::class, 'sendMessage'])->name('tenant.chat.send');
+        Route::post('chat/read', [ChatController::class, 'markRead'])->name('tenant.chat.read');
+        Route::post('chat/acknowledge-resolve', [ChatController::class, 'acknowledgeResolve'])->name('tenant.chat.acknowledge-resolve');
     });

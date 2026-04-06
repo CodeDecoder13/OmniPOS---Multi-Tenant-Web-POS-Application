@@ -12,6 +12,13 @@ class ProductRequest extends FormRequest
         return true;
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->sometimes('initial_stock', 'required|integer|min:0', function ($input) {
+            return $this->isMethod('POST') && !$input->is_food;
+        });
+    }
+
     public function rules(): array
     {
         $tenant = $this->attributes->get('current_tenant');
@@ -47,6 +54,8 @@ class ProductRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'cost_price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'lte:price'],
             'is_active' => ['sometimes', 'boolean'],
+            'is_food' => ['sometimes', 'boolean'],
+            'initial_stock' => ['nullable', 'integer', 'min:0', 'max:999999'],
             'variation_groups' => ['nullable', 'array'],
             'variation_groups.*.name' => ['required', 'string', 'max:255'],
             'variation_groups.*.is_required' => ['sometimes', 'boolean'],
@@ -55,6 +64,8 @@ class ProductRequest extends FormRequest
             'variation_groups.*.options.*.price_modifier' => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
             'addon_ids' => ['nullable', 'array'],
             'addon_ids.*' => ['integer', 'exists:addons,id'],
+            'branch_ids' => ['nullable', 'array'],
+            'branch_ids.*' => ['integer', 'exists:branches,id'],
         ];
     }
 }

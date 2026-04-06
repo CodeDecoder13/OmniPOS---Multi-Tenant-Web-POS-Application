@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\SuperAdmin\ActivityLogController;
 use App\Http\Controllers\SuperAdmin\AdminController;
+use App\Http\Controllers\SuperAdmin\ChatController;
 use App\Http\Controllers\SuperAdmin\Auth\LoginController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\PlanController;
@@ -102,5 +103,16 @@ Route::prefix('admin')->group(function () {
         // Settings
         Route::get('settings', [SettingsController::class, 'index'])->name('admin.settings.index');
         Route::put('settings', [SettingsController::class, 'update'])->name('admin.settings.update');
+
+        // Chat
+        Route::get('chat', [ChatController::class, 'index'])->name('admin.chat.index');
+        Route::get('chat/conversations', [ChatController::class, 'conversations'])->name('admin.chat.conversations');
+        Route::get('chat/conversations/{id}/messages', [ChatController::class, 'messages'])->name('admin.chat.messages');
+        Route::get('chat/conversations/{id}/poll', [ChatController::class, 'poll'])->name('admin.chat.poll');
+        Route::post('chat/conversations/{id}/messages', [ChatController::class, 'sendMessage'])->name('admin.chat.send');
+        Route::post('chat/conversations/{id}/read', [ChatController::class, 'markRead'])->name('admin.chat.read');
+        Route::post('chat/conversations/{id}/close', [ChatController::class, 'close'])->name('admin.chat.close');
+        Route::post('chat/conversations/{id}/resolve', [ChatController::class, 'resolve'])->name('admin.chat.resolve');
+        Route::get('chat/unread-count', [ChatController::class, 'unreadCount'])->name('admin.chat.unread-count');
     });
 });

@@ -1,4 +1,4 @@
-# Upcoming Release — April 4, 2026
+# Upcoming Release — April 5, 2026
 
 ## New Features
 
@@ -36,3 +36,41 @@ Admins can now view a per-tenant "User Activity" page at `/admin/tenants/{id}/ac
 - **Pagination** — 25 events per page with standard pagination controls.
 - **`TenantActivityService`** — New service in `app/Services/Central/` with `getSummaryStats()`, `getTimeline()`, and `getTenantUsers()` methods.
 - **Tenant Show page** — Added "User Activity" button next to Edit in the actions area.
+
+---
+
+## Improvements
+
+### Branch Availability on Products
+Products can now be restricted to specific branches. The Create and Edit product pages include a "Branch Availability" section where users can choose which branches a product is available at.
+
+**Highlights:**
+- **"All branches" default** — Products are globally available by default. Unchecking reveals individual branch checkboxes.
+- **POS integration** — Restricted products only appear in their assigned branch's POS. Uses the existing `branch_product` pivot table.
+- **Smart sync** — Selecting all branches (or re-checking "All branches") removes pivot entries, keeping the product globally available with no unnecessary data.
+- **Validation** — `branch_ids` validated as optional array of existing branch IDs.
+- **`ProductService::syncBranchAvailability()`** — New method handles upsert logic for the `branch_product` pivot.
+
+### Compact Product Form Layout
+The Create and Edit product pages now use a persistent two-column layout instead of stacking sections full-width below the image. Secondary sections (Barcode, Branch Availability) fill the space below the product image in the left column, while Variations, Add-ons, and action buttons stay in the right column alongside Product Details. Reduces scrolling significantly.
+
+### Admin Email Notification on New Chat Message
+When a tenant user sends a chat message, an email notification is automatically dispatched to the admin team containing the user's name, email, tenant name, and message body. Uses OmniPOS teal branding consistent with existing email templates.
+
+**Highlights:**
+- **Queued Mailable** — `NewChatMessageMail` implements `ShouldQueue` for async sending, avoiding request delays.
+- **Recipients** — Sends to `rhuzzel.paramio@omnipos.shop` and `boyparamio@gmail.com`.
+- **Custom Blade template** — Teal gradient header with OmniPOS logo, card layout showing sender details (name, email, tenant, subject), and the message body.
+- **Subject line** — `"New Chat Message from {userName} ({tenantName})"` for easy inbox scanning.
+- **Triggered in `ChatService::sendUserMessage()`** — Dispatched after the conversation is updated, before any auto-reply logic.
+
+### Tenant Deactivation Blocking Page & Owner Email Notifications
+When a super admin deactivates a tenant, users now see a proper full-screen "Account Deactivated" page instead of a raw 403 error. The tenant owner also receives email notifications on both deactivation and reactivation.
+
+**Highlights:**
+- **Blocking page** — `Deactivated.vue` renders a full-screen overlay (no sidebar/nav) with OmniPOS branding, a ShieldX icon, the tenant name, support email link, and a "Go to Dashboard" button.
+- **Middleware change** — `IdentifyTenant` middleware now returns an Inertia render instead of `abort(403)` for deactivated tenants. Individual user deactivation still uses `abort(403)`.
+- **Deactivation email** — `TenantDeactivatedMail` queued to the tenant owner explaining the organization has been deactivated, with an info box about what it means (users blocked, data preserved).
+- **Reactivation email** — `TenantActivatedMail` queued to the tenant owner confirming the organization is back online, with positive messaging about restored access.
+- **`TenantService::toggle()`** — Sends the appropriate email (activated or deactivated) to the owner after toggling `is_active`.
+- **Email palette** — Both emails use the OmniPOS teal gradient header, logo, info box, and footer consistent with the existing `NewChatMessageMail` template.

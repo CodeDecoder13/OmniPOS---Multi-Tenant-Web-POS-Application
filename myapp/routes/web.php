@@ -20,6 +20,18 @@ Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function ()
             'canRegister' => Features::enabled(Features::registration()),
         ]);
     })->name('about');
+
+    Route::get('/privacy', function () {
+        return inertia('PrivacyPolicy', [
+            'canRegister' => Features::enabled(Features::registration()),
+        ]);
+    })->name('privacy');
+
+    Route::get('/terms', function () {
+        return inertia('TermsOfUse', [
+            'canRegister' => Features::enabled(Features::registration()),
+        ]);
+    })->name('terms');
 });
 
 Route::middleware(['guest', 'throttle:10,1'])->group(function () {

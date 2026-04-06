@@ -10,9 +10,12 @@ use App\Models\TenantUser;
 use App\Models\User;
 use App\Services\Tenant\CategoryService;
 use App\Services\Tenant\RoleService;
+use App\Mail\TenantActivatedMail;
+use App\Mail\TenantDeactivatedMail;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class TenantService
@@ -117,6 +120,15 @@ class TenantService
     public function toggle(Tenant $tenant): Tenant
     {
         $tenant->update(['is_active' => ! $tenant->is_active]);
+
+        $owner = $tenant->owner;
+        if ($owner) {
+            $mail = $tenant->is_active
+                ? new TenantActivatedMail($tenant, $owner)
+                : new TenantDeactivatedMail($tenant, $owner);
+
+            Mail::to($owner->email)->queue($mail);
+        }
 
         return $tenant;
     }

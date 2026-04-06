@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantUser;
 use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
 class IdentifyTenant
@@ -24,7 +25,9 @@ class IdentifyTenant
         }
 
         if (! $tenant->is_active) {
-            abort(403, 'This organization has been deactivated.');
+            return Inertia::render('tenant/Deactivated', [
+                'tenantName' => $tenant->name,
+            ])->toResponse($request);
         }
 
         $user = $request->user();

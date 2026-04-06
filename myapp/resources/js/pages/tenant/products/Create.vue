@@ -22,13 +22,17 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { BreadcrumbItem, Category, Addon } from '@/types';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CircleHelp } from 'lucide-vue-next';
+import type { BreadcrumbItem, Category, Addon, Branch } from '@/types';
 import type { AcceptableValue } from 'reka-ui';
 import { useTenant } from '@/composables/useTenant';
 
 const props = defineProps<{
     categories: Pick<Category, 'id' | 'name'>[];
     addons?: Pick<Addon, 'id' | 'name' | 'price'>[];
+    branches: Pick<Branch, 'id' | 'name'>[];
 }>();
 
 const { tenantUrl } = useTenant();
@@ -46,10 +50,13 @@ const form = useForm({
     sku: '',
     description: '',
     image: null as File | null,
+    is_food: false,
+    initial_stock: 0,
     price: 0,
     cost_price: undefined as number | undefined,
     variation_groups: [] as { name: string; is_required: boolean; options: { name: string; price_modifier: number }[] }[],
     addon_ids: [] as number[],
+    branch_ids: [] as number[],
 });
 
 function addVariationGroup() {
@@ -72,6 +79,14 @@ function toggleAddon(addonId: number) {
     const idx = form.addon_ids.indexOf(addonId);
     if (idx >= 0) form.addon_ids.splice(idx, 1);
     else form.addon_ids.push(addonId);
+}
+
+const allBranches = ref(true);
+
+function toggleBranch(branchId: number) {
+    const idx = form.branch_ids.indexOf(branchId);
+    if (idx >= 0) form.branch_ids.splice(idx, 1);
+    else form.branch_ids.push(branchId);
 }
 
 const categoryModel = ref('none');
@@ -187,7 +202,14 @@ async function createCategory() {
 }
 
 function submit() {
-    form.post(tenantUrl('products'), {
+    // When all branches selected, send null to clear restrictions
+    if (allBranches.value) {
+        form.branch_ids = [] as number[];
+    }
+    form.transform((data) => ({
+        ...data,
+        branch_ids: allBranches.value ? null : data.branch_ids,
+    })).post(tenantUrl('products'), {
         forceFormData: true,
     });
 }
@@ -200,10 +222,10 @@ function submit() {
         <div class="mx-auto max-w-5xl p-6">
             <h1 class="mb-6 text-2xl font-bold">Create Product</h1>
 
-            <form @submit.prevent="submit" class="space-y-6">
+            <form @submit.prevent="submit">
                 <div class="grid gap-6 lg:grid-cols-5">
-                    <!-- Left Column: Product Image -->
-                    <div class="lg:col-span-2">
+                    <!-- Left Column -->
+                    <div class="lg:col-span-2 space-y-6">
                         <div class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 class="mb-4 text-sm font-medium">Product Image</h2>
 
@@ -259,16 +281,55 @@ function submit() {
                             />
                             <p v-if="form.errors.image" class="mt-2 text-sm text-red-500">{{ form.errors.image }}</p>
                         </div>
+
+                        <!-- Branch Availability -->
+                        <div v-if="branches.length > 1" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                            <div class="flex items-center gap-1 mb-4">
+                                <h2 class="text-sm font-medium">Branch Availability</h2>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p>Choose which branches this product is available at</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <label class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50 mb-2">
+                                <Checkbox :model-value="allBranches" @update:model-value="allBranches = !!$event; if (allBranches) form.branch_ids = []" />
+                                <span class="text-sm font-medium">All branches</span>
+                            </label>
+                            <div v-if="!allBranches" class="space-y-2">
+                                <label v-for="branch in branches" :key="branch.id" class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50">
+                                    <Checkbox :model-value="form.branch_ids.includes(branch.id)" @update:model-value="toggleBranch(branch.id)" />
+                                    <span class="text-sm">{{ branch.name }}</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Right Column: Product Details -->
-                    <div class="lg:col-span-3">
+                    <div class="lg:col-span-3 space-y-6">
                         <div class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <h2 class="mb-4 text-sm font-medium">Product Details</h2>
 
                             <div class="space-y-4">
                                 <div>
-                                    <Label for="name">Product Name</Label>
+                                    <div class="flex items-center gap-1">
+                                        <Label for="name">Product Name</Label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    <p>The display name shown to customers and on receipts</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                     <Input
                                         id="name"
                                         v-model="form.name"
@@ -281,7 +342,19 @@ function submit() {
 
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <div>
-                                        <Label for="slug">Slug</Label>
+                                        <div class="flex items-center gap-1">
+                                            <Label for="slug">Slug</Label>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger as-child>
+                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>URL-friendly identifier, auto-generated from name</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
                                         <Input
                                             id="slug"
                                             v-model="form.slug"
@@ -292,7 +365,19 @@ function submit() {
                                     </div>
 
                                     <div>
-                                        <Label for="sku">SKU</Label>
+                                        <div class="flex items-center gap-1">
+                                            <Label for="sku">SKU</Label>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger as-child>
+                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>Stock Keeping Unit — a unique code for tracking this product</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
                                         <Input
                                             id="sku"
                                             v-model="form.sku"
@@ -304,7 +389,19 @@ function submit() {
                                 </div>
 
                                 <div>
-                                    <Label for="category_id">Category</Label>
+                                    <div class="flex items-center gap-1">
+                                        <Label for="category_id">Category</Label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    <p>Group products for easier browsing and reporting</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                     <div class="mt-1 flex gap-2">
                                         <div class="flex-1">
                                             <Select :model-value="categoryModel" @update:model-value="onCategoryChange">
@@ -335,7 +432,19 @@ function submit() {
                                 </div>
 
                                 <div>
-                                    <Label for="description">Description</Label>
+                                    <div class="flex items-center gap-1">
+                                        <Label for="description">Description</Label>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top">
+                                                    <p>Optional details about the product</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </div>
                                     <Textarea
                                         id="description"
                                         v-model="form.description"
@@ -346,9 +455,76 @@ function submit() {
                                     <p v-if="form.errors.description" class="mt-1 text-sm text-red-500">{{ form.errors.description }}</p>
                                 </div>
 
+                                <div class="rounded-lg border p-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="flex items-center gap-1">
+                                                <Label>Product Type</Label>
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger as-child>
+                                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" class="max-w-xs">
+                                                            <p>Food items are made to order with no stock tracking. Non-food items are physical goods that require inventory management.</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            </div>
+                                            <p class="text-sm text-muted-foreground">
+                                                {{ form.is_food ? 'Made to order — no stock tracking' : 'Physical goods — requires stock count' }}
+                                            </p>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm" :class="!form.is_food ? 'font-medium' : 'text-muted-foreground'">Non-Food</span>
+                                            <Switch :model-value="form.is_food" @update:model-value="form.is_food = !!$event" />
+                                            <span class="text-sm" :class="form.is_food ? 'font-medium' : 'text-muted-foreground'">Food</span>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="!form.is_food" class="mt-3">
+                                        <div class="flex items-center gap-1">
+                                            <Label for="initial_stock">Initial Stock</Label>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger as-child>
+                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>Starting inventory count for your current branch</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                        <Input
+                                            id="initial_stock"
+                                            v-model.number="form.initial_stock"
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            placeholder="0"
+                                            class="mt-1 w-40"
+                                        />
+                                        <p class="mt-1 text-xs text-muted-foreground">Stock for your current branch</p>
+                                        <p v-if="form.errors.initial_stock" class="mt-1 text-sm text-red-500">{{ form.errors.initial_stock }}</p>
+                                    </div>
+                                </div>
+
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <div>
-                                        <Label for="price">Price</Label>
+                                        <div class="flex items-center gap-1">
+                                            <Label for="price">Price</Label>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger as-child>
+                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>The selling price customers will pay</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
                                         <Input
                                             id="price"
                                             v-model.number="form.price"
@@ -362,7 +538,19 @@ function submit() {
                                     </div>
 
                                     <div>
-                                        <Label for="cost_price">Cost Price</Label>
+                                        <div class="flex items-center gap-1">
+                                            <Label for="cost_price">Cost Price</Label>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger as-child>
+                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top">
+                                                        <p>What you paid the supplier — used for profit margin calculations</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
                                         <Input
                                             id="cost_price"
                                             v-model.number="form.cost_price"
@@ -377,57 +565,81 @@ function submit() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Variation Groups -->
-                <div class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-sm font-medium">Variation Groups</h2>
-                        <Button type="button" variant="outline" size="sm" @click="addVariationGroup">+ Add Group</Button>
-                    </div>
-                    <div v-if="form.variation_groups.length === 0" class="text-sm text-muted-foreground">No variation groups.</div>
-                    <div v-for="(group, gi) in form.variation_groups" :key="gi" class="mb-4 rounded-md border p-4 space-y-3">
-                        <div class="flex items-center gap-3">
-                            <Input v-model="group.name" placeholder="Group name (e.g. Size)" class="flex-1" />
-                            <label class="flex items-center gap-1 text-sm">
-                                <Checkbox :model-value="group.is_required" @update:model-value="group.is_required = !!$event" />
-                                Required
-                            </label>
-                            <Button type="button" variant="ghost" size="sm" @click="removeVariationGroup(gi)" class="text-destructive">Remove</Button>
-                        </div>
-                        <div class="space-y-2 pl-4">
-                            <div v-for="(opt, oi) in group.options" :key="oi" class="flex items-center gap-2">
-                                <Input v-model="opt.name" placeholder="Option name" class="flex-1" />
-                                <Input v-model.number="opt.price_modifier" type="number" step="0.01" min="0" placeholder="+ Price" class="w-28" />
-                                <Button type="button" variant="ghost" size="icon" @click="removeVariationOption(gi, oi)" :disabled="group.options.length <= 1">
-                                    <span class="text-destructive text-sm">×</span>
-                                </Button>
+                        <!-- Variation Groups -->
+                        <div class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-1">
+                                    <h2 class="text-sm font-medium">Variation Groups</h2>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger as-child>
+                                                <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top">
+                                                <p>Define options like Size or Sugar Level that customers choose from</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" @click="addVariationGroup">+ Add Group</Button>
                             </div>
-                            <Button type="button" variant="outline" size="sm" @click="addVariationOption(gi)">+ Add Option</Button>
+                            <div v-if="form.variation_groups.length === 0" class="text-sm text-muted-foreground">No variation groups.</div>
+                            <div v-for="(group, gi) in form.variation_groups" :key="gi" class="mb-4 rounded-md border p-4 space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <Input v-model="group.name" placeholder="Group name (e.g. Size)" class="flex-1" />
+                                    <label class="flex items-center gap-1 text-sm">
+                                        <Checkbox :model-value="group.is_required" @update:model-value="group.is_required = !!$event" />
+                                        Required
+                                    </label>
+                                    <Button type="button" variant="ghost" size="sm" @click="removeVariationGroup(gi)" class="text-destructive">Remove</Button>
+                                </div>
+                                <div class="space-y-2 pl-4">
+                                    <div v-for="(opt, oi) in group.options" :key="oi" class="flex items-center gap-2">
+                                        <Input v-model="opt.name" placeholder="Option name" class="flex-1" />
+                                        <Input v-model.number="opt.price_modifier" type="number" step="0.01" min="0" placeholder="+ Price" class="w-28" />
+                                        <Button type="button" variant="ghost" size="icon" @click="removeVariationOption(gi, oi)" :disabled="group.options.length <= 1">
+                                            <span class="text-destructive text-sm">×</span>
+                                        </Button>
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" @click="addVariationOption(gi)">+ Add Option</Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add-ons Selection -->
+                        <div v-if="addons && addons.length > 0" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                            <div class="flex items-center gap-1 mb-4">
+                                <h2 class="text-sm font-medium">Add-ons</h2>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger as-child>
+                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p>Extra items customers can add to this product</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </div>
+                            <div class="space-y-2">
+                                <label v-for="addon in addons" :key="addon.id" class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50">
+                                    <Checkbox :model-value="form.addon_ids.includes(addon.id)" @update:model-value="toggleAddon(addon.id)" />
+                                    <span class="flex-1 text-sm">{{ addon.name }}</span>
+                                    <span class="text-sm text-muted-foreground">{{ Number(addon.price).toFixed(2) }}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <Button variant="outline" type="button" as-child>
+                                <a :href="tenantUrl('products')">Cancel</a>
+                            </Button>
+                            <Button type="submit" :disabled="form.processing">
+                                {{ form.processing ? 'Creating...' : 'Create Product' }}
+                            </Button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Add-ons Selection -->
-                <div v-if="addons && addons.length > 0" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <h2 class="mb-4 text-sm font-medium">Add-ons</h2>
-                    <div class="space-y-2">
-                        <label v-for="addon in addons" :key="addon.id" class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50">
-                            <Checkbox :model-value="form.addon_ids.includes(addon.id)" @update:model-value="toggleAddon(addon.id)" />
-                            <span class="flex-1 text-sm">{{ addon.name }}</span>
-                            <span class="text-sm text-muted-foreground">{{ Number(addon.price).toFixed(2) }}</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3">
-                    <Button variant="outline" type="button" as-child>
-                        <a :href="tenantUrl('products')">Cancel</a>
-                    </Button>
-                    <Button type="submit" :disabled="form.processing">
-                        {{ form.processing ? 'Creating...' : 'Create Product' }}
-                    </Button>
                 </div>
             </form>
         </div>
