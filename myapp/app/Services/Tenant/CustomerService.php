@@ -2,8 +2,10 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\OrderStatus;
 use App\Models\Tenant;
 use App\Models\Tenant\Customer;
+use App\Models\Tenant\Order;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -51,6 +53,33 @@ class CustomerService
         }
 
         $customer->delete();
+    }
+
+    public function getStats(Customer $customer): array
+    {
+        $orders = $customer->orders()->where('status', OrderStatus::Completed);
+
+        $totalOrders = $orders->count();
+        $totalSpent = (float) $orders->sum('total');
+        $avgOrder = $totalOrders > 0 ? round($totalSpent / $totalOrders, 2) : 0;
+        $lastVisit = $orders->max('created_at');
+
+        return [
+            'total_orders' => $totalOrders,
+            'total_spent' => $totalSpent,
+            'avg_order_value' => $avgOrder,
+            'last_visit' => $lastVisit,
+        ];
+    }
+
+    public function getOrderHistory(Customer $customer, int $perPage = 15): LengthAwarePaginator
+    {
+        return $customer->orders()
+            ->with(['creator:id,name', 'branch:id,name'])
+            ->withCount('items')
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function searchForPos(Tenant $tenant, ?string $search): Collection

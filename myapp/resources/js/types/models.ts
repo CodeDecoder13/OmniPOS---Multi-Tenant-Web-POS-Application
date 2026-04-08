@@ -232,7 +232,7 @@ export interface Product {
 
 // Inventory Module Types
 
-export type AdjustmentType = 'purchase' | 'sale' | 'return' | 'damage' | 'correction' | 'initial' | 'transfer_out' | 'transfer_in';
+export type AdjustmentType = 'purchase' | 'sale' | 'return' | 'damage' | 'correction' | 'initial' | 'transfer_out' | 'transfer_in' | 'refund';
 
 export interface Inventory {
     id: number;
@@ -241,6 +241,8 @@ export interface Inventory {
     branch_id: number;
     quantity_on_hand: number;
     low_stock_threshold: number;
+    reorder_point: number | null;
+    reorder_quantity: number | null;
     product?: Pick<Product, 'id' | 'name' | 'sku' | 'image_url'>;
     branch?: Pick<Branch, 'id' | 'name'>;
     created_at: string;
@@ -294,6 +296,13 @@ export interface Customer {
     updated_at: string;
 }
 
+export interface CustomerStats {
+    total_orders: number;
+    total_spent: number;
+    avg_order_value: number;
+    last_visit: string | null;
+}
+
 export interface Order {
     id: number;
     tenant_id: string;
@@ -317,9 +326,12 @@ export interface Order {
     kitchen_completed_at: string | null;
     kitchen_notes: string | null;
     created_by: number | null;
+    refunded_amount: string;
     voided_by: number | null;
     void_reason: string | null;
     voided_at: string | null;
+    held_at?: string | null;
+    receipt_token?: string | null;
     customer?: Customer | null;
     branch?: { id: number; name: string } | null;
     table?: { id: number; name: string } | null;
@@ -329,8 +341,33 @@ export interface Order {
     items?: OrderItem[];
     items_count?: number;
     payments?: Payment[];
+    refunds?: Refund[];
     created_at: string;
     updated_at: string;
+}
+
+export interface Refund {
+    id: number;
+    tenant_id: string;
+    order_id: number;
+    refund_number: string;
+    type: 'full' | 'partial';
+    amount: string;
+    reason: string | null;
+    created_by: number | null;
+    creator?: { id: number; name: string } | null;
+    items?: RefundItem[];
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RefundItem {
+    id: number;
+    refund_id: number;
+    order_item_id: number;
+    quantity: number;
+    amount: string;
+    order_item?: OrderItem;
 }
 
 export interface OrderItem {
@@ -341,6 +378,7 @@ export interface OrderItem {
     product_price: string;
     quantity: number;
     subtotal: string;
+    notes?: string | null;
     product?: { id: number; name: string } | null;
     variations?: OrderItemVariation[];
     item_addons?: OrderItemAddon[];
@@ -786,6 +824,19 @@ export interface ChatMessage {
     read_at: string | null;
     created_at: string;
     updated_at: string;
+}
+
+// Notification Types
+
+export interface AppNotification {
+    id: string;
+    data: {
+        type: string;
+        message: string;
+        [key: string]: unknown;
+    };
+    read_at: string | null;
+    created_at: string;
 }
 
 // Forecast Types

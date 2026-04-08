@@ -26,6 +26,8 @@ class InventoryAdjustmentRequest extends FormRequest
             'quantity_change' => ['required', 'integer', 'not_in:0'],
             'reason' => ['nullable', 'string', 'max:500'],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
+            'reorder_point' => ['nullable', 'integer', 'min:0'],
+            'reorder_quantity' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

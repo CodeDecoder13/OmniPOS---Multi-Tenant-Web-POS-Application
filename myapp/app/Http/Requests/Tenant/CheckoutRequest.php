@@ -16,6 +16,22 @@ class CheckoutRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Backward compat: wrap single payment fields into payments array
+        if (! $this->has('payments') && $this->has('payment_method')) {
+            $this->merge([
+                'payments' => [
+                    [
+                        'method' => $this->input('payment_method'),
+                        'amount' => $this->input('amount_tendered'),
+                        'reference_number' => $this->input('reference_number'),
+                    ],
+                ],
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         $tenant = $this->attributes->get('current_tenant');
@@ -31,9 +47,16 @@ class CheckoutRequest extends FormRequest
             'items.*.addons' => ['nullable', 'array'],
             'items.*.addons.*.addon_name' => ['required_with:items.*.addons', 'string', 'max:255'],
             'items.*.addons.*.addon_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.notes' => ['nullable', 'string', 'max:500'],
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', $tenant->id)],
-            'payment_method' => ['required', new Enum(PaymentMethod::class)],
-            'amount_tendered' => ['nullable', 'required_if:payment_method,cash', 'numeric', 'min:0'],
+            // Split payments
+            'payments' => ['required', 'array', 'min:1'],
+            'payments.*.method' => ['required', new Enum(PaymentMethod::class)],
+            'payments.*.amount' => ['required', 'numeric', 'min:0'],
+            'payments.*.reference_number' => ['nullable', 'string', 'max:255'],
+            // Backward compat single payment fields (ignored if payments array is present)
+            'payment_method' => ['nullable', new Enum(PaymentMethod::class)],
+            'amount_tendered' => ['nullable', 'numeric', 'min:0'],
             'reference_number' => ['nullable', 'string', 'max:255'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'discount_type' => ['nullable', 'required_with:discount_amount', new Enum(DiscountType::class)],
@@ -42,6 +65,7 @@ class CheckoutRequest extends FormRequest
             'pos_operator_id' => ['nullable', 'integer'],
             'table_id' => ['nullable', 'integer', Rule::exists('tables', 'id')->where('tenant_id', $tenant->id)],
             'promotion_id' => ['nullable', 'integer', Rule::exists('promotions', 'id')->where('tenant_id', $tenant->id)],
+            'order_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -62,8 +86,7 @@ class CheckoutRequest extends FormRequest
         return [
             'items.required' => 'Please add at least one item to the cart.',
             'items.min' => 'Please add at least one item to the cart.',
-            'amount_tendered.min' => 'Amount tendered cannot be negative.',
-            'amount_tendered.required_if' => 'Amount tendered is required for cash payments.',
+            'payments.required' => 'At least one payment is required.',
             'discount_type.required_with' => 'Discount type is required when discount amount is provided.',
         ];
     }

@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\CheckoutRequest;
+use App\Http\Requests\Tenant\HoldOrderRequest;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Branch;
+use App\Models\Tenant\Order;
 use App\Models\TenantUser;
 use App\Services\Tenant\CustomerService;
+use App\Services\Tenant\HeldOrderService;
 use App\Services\Tenant\PosService;
 use App\Services\Tenant\ShiftService;
 use App\Services\Tenant\TableService;
@@ -108,5 +111,52 @@ class PosController extends Controller
             'success' => true,
             'order' => $order,
         ]);
+    }
+
+    public function holdOrder(HoldOrderRequest $request, string $tenantSlug): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $heldOrderService = app(HeldOrderService::class);
+
+        $order = $heldOrderService->hold(
+            $tenant,
+            $request->validated(),
+            $request->user()->id,
+            $tenantUser->branch_id ?? null,
+        );
+
+        return response()->json(['success' => true, 'order' => $order]);
+    }
+
+    public function heldOrders(Request $request, string $tenantSlug): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $heldOrderService = app(HeldOrderService::class);
+
+        return response()->json(
+            $heldOrderService->listHeld($tenant, $tenantUser->branch_id ?? null)
+        );
+    }
+
+    public function recallOrder(Request $request, string $tenantSlug, int $order): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $orderModel = Order::forTenant($tenant)->where('status', 'pending')->whereNotNull('held_at')->findOrFail($order);
+        $heldOrderService = app(HeldOrderService::class);
+
+        return response()->json($heldOrderService->recall($orderModel));
+    }
+
+    public function deleteHeldOrder(Request $request, string $tenantSlug, int $order): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $orderModel = Order::forTenant($tenant)->where('status', 'pending')->whereNotNull('held_at')->findOrFail($order);
+        $heldOrderService = app(HeldOrderService::class);
+
+        $heldOrderService->delete($orderModel);
+
+        return response()->json(['success' => true]);
     }
 }

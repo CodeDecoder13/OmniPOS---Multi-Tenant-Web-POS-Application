@@ -18,6 +18,8 @@ class Inventory extends Model
         'branch_id',
         'quantity_on_hand',
         'low_stock_threshold',
+        'reorder_point',
+        'reorder_quantity',
     ];
 
     protected function casts(): array
@@ -25,6 +27,8 @@ class Inventory extends Model
         return [
             'quantity_on_hand' => 'integer',
             'low_stock_threshold' => 'integer',
+            'reorder_point' => 'integer',
+            'reorder_quantity' => 'integer',
         ];
     }
 

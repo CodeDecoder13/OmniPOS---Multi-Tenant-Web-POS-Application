@@ -4,6 +4,8 @@ namespace App\Services\Tenant;
 
 use App\Enums\OrderStatus;
 use App\Enums\ShiftStatus;
+use App\Events\ShiftClosed;
+use App\Events\ShiftOpened;
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
 use App\Models\Tenant\Order;
@@ -33,7 +35,7 @@ class ShiftService
             }
         }
 
-        return Shift::create([
+        $shift = Shift::create([
             'tenant_id' => $tenant->id,
             'branch_id' => $data['branch_id'] ?? null,
             'user_id' => $userId,
@@ -41,6 +43,10 @@ class ShiftService
             'status' => ShiftStatus::Open,
             'opened_at' => now(),
         ]);
+
+        ShiftOpened::dispatch($shift);
+
+        return $shift;
     }
 
     public function closeShift(Shift $shift, array $data): Shift
@@ -81,7 +87,11 @@ class ShiftService
                 'closed_at' => now(),
             ]);
 
-            return $shift->fresh();
+            $shift = $shift->fresh();
+
+            ShiftClosed::dispatch($shift);
+
+            return $shift;
         });
     }
 

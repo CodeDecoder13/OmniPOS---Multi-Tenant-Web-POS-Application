@@ -105,4 +105,9 @@ if (app()->isLocal()) {
     })->name('mail.preview');
 }
 
+// Public receipt route (no auth required)
+Route::get('/receipts/{token}', [\App\Http\Controllers\ReceiptController::class, 'show'])
+    ->name('receipts.show')
+    ->where('token', '[A-Za-z0-9]{64}');
+
 require __DIR__.'/settings.php';

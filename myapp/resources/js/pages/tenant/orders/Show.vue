@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { ArrowLeft, Printer } from 'lucide-vue-next';
+import { ArrowLeft, Printer, Mail, LinkIcon, Copy } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useTenant } from '@/composables/useTenant';
@@ -14,6 +15,7 @@ import { usePrinter } from '@/composables/usePrinter';
 import { useCurrency } from '@/composables/useCurrency';
 import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import type { Order } from '@/types';
+import axios from 'axios';
 
 const props = defineProps<{
     order: Order;
@@ -28,6 +30,43 @@ const page = usePage();
 const voidDialog = ref(false);
 const voiding = ref(false);
 const voidReason = ref('');
+
+// Receipt sharing
+const emailDialog = ref(false);
+const emailAddress = ref('');
+const sendingEmail = ref(false);
+const emailSent = ref(false);
+const receiptLink = ref('');
+const linkCopied = ref(false);
+
+async function sendReceiptEmail() {
+    sendingEmail.value = true;
+    try {
+        await axios.post(tenantUrl(`orders/${props.order.id}/receipt/email`), { email: emailAddress.value });
+        emailSent.value = true;
+        setTimeout(() => {
+            emailDialog.value = false;
+            emailSent.value = false;
+            emailAddress.value = '';
+        }, 2000);
+    } catch {
+        // handled by axios interceptor
+    } finally {
+        sendingEmail.value = false;
+    }
+}
+
+async function copyReceiptLink() {
+    try {
+        const { data } = await axios.get(tenantUrl(`orders/${props.order.id}/receipt/link`));
+        receiptLink.value = data.url;
+        await navigator.clipboard.writeText(data.url);
+        linkCopied.value = true;
+        setTimeout(() => { linkCopied.value = false; }, 2000);
+    } catch {
+        // handled by axios interceptor
+    }
+}
 
 function voidOrder() {
     voiding.value = true;
@@ -123,6 +162,22 @@ const breadcrumbs = [
                         <Printer class="mr-2 h-4 w-4" />
                         Print
                     </Button>
+                    <Button v-if="order.receipt_token" variant="outline" size="sm" @click="emailDialog = true">
+                        <Mail class="mr-2 h-4 w-4" />
+                        Email
+                    </Button>
+                    <Button v-if="order.receipt_token" variant="outline" size="sm" @click="copyReceiptLink">
+                        <Copy class="mr-2 h-4 w-4" />
+                        {{ linkCopied ? 'Copied!' : 'Copy Link' }}
+                    </Button>
+                    <Button
+                        v-if="can('pos.void') && order.status === 'completed' && Number(order.refunded_amount) < Number(order.total)"
+                        variant="outline"
+                        size="sm"
+                        as-child
+                    >
+                        <Link :href="tenantUrl(`orders/${order.id}/refund`)">Refund</Link>
+                    </Button>
                     <Button
                         v-if="can('pos.void') && order.status === 'completed'"
                         variant="destructive"
@@ -200,7 +255,10 @@ const breadcrumbs = [
                     </thead>
                     <tbody>
                         <tr v-for="item in order.items" :key="item.id" class="border-b last:border-0">
-                            <td class="px-4 py-3">{{ item.product_name }}</td>
+                            <td class="px-4 py-3">
+                                <div>{{ item.product_name }}</div>
+                                <p v-if="item.notes" class="text-xs text-muted-foreground italic mt-0.5">Note: {{ item.notes }}</p>
+                            </td>
                             <td class="px-4 py-3 text-right">{{ formatCurrency(item.product_price) }}</td>
                             <td class="px-4 py-3 text-center">{{ item.quantity }}</td>
                             <td class="px-4 py-3 text-right font-medium">{{ formatCurrency(item.subtotal) }}</td>
@@ -250,12 +308,52 @@ const breadcrumbs = [
                 </div>
             </div>
 
+            <!-- Refund Details -->
+            <div v-if="order.refunds && order.refunds.length > 0" class="rounded-lg border border-orange-500/50 bg-orange-500/5 p-4 space-y-3">
+                <h3 class="font-semibold text-sm text-orange-600">Refund History</h3>
+                <div v-for="refund in order.refunds" :key="refund.id" class="space-y-1 text-sm border-b last:border-0 pb-2 last:pb-0">
+                    <div class="flex justify-between">
+                        <span class="font-medium">{{ refund.refund_number }}</span>
+                        <span class="font-medium text-orange-600">-{{ formatCurrency(refund.amount) }}</span>
+                    </div>
+                    <div class="flex justify-between text-muted-foreground">
+                        <span>{{ refund.type === 'full' ? 'Full Refund' : 'Partial Refund' }}</span>
+                        <span>{{ formatDate(refund.created_at) }}</span>
+                    </div>
+                    <p v-if="refund.reason" class="text-muted-foreground">{{ refund.reason }}</p>
+                </div>
+                <div class="flex justify-between font-medium text-sm pt-1 border-t">
+                    <span>Total Refunded</span>
+                    <span class="text-orange-600">{{ formatCurrency(order.refunded_amount) }}</span>
+                </div>
+            </div>
+
             <!-- Notes -->
             <div v-if="order.notes" class="rounded-lg border p-4">
                 <h3 class="font-semibold text-sm mb-1">Notes</h3>
                 <p class="text-sm text-muted-foreground">{{ order.notes }}</p>
             </div>
         </div>
+
+        <!-- Email Receipt Dialog -->
+        <Dialog v-model:open="emailDialog">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Email Receipt</DialogTitle>
+                    <DialogDescription>Send a receipt for {{ order.order_number }} to an email address.</DialogDescription>
+                </DialogHeader>
+                <div class="space-y-2 py-2">
+                    <Label for="receipt-email">Email Address</Label>
+                    <Input id="receipt-email" v-model="emailAddress" type="email" placeholder="customer@example.com" />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" @click="emailDialog = false">Cancel</Button>
+                    <Button :disabled="sendingEmail || !emailAddress.trim() || emailSent" @click="sendReceiptEmail">
+                        {{ emailSent ? 'Sent!' : sendingEmail ? 'Sending...' : 'Send' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <!-- Void Confirmation Dialog -->
         <Dialog v-model:open="voidDialog">

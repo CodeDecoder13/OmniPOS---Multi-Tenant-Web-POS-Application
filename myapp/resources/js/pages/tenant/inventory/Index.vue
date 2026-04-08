@@ -83,6 +83,8 @@ const adjustForm = ref({
     quantity_change: 0,
     reason: '',
     low_stock_threshold: 0,
+    reorder_point: null as number | null,
+    reorder_quantity: null as number | null,
 });
 const adjusting = ref(false);
 
@@ -93,6 +95,8 @@ function openAdjust(item: Inventory) {
         quantity_change: 0,
         reason: '',
         low_stock_threshold: item.low_stock_threshold,
+        reorder_point: item.reorder_point,
+        reorder_quantity: item.reorder_quantity,
     };
     adjustDialog.value = true;
 }
@@ -389,6 +393,28 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                         />
                         <p class="text-xs text-muted-foreground">Alert when stock falls to or below this level. Set to 0 to disable.</p>
                     </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-1.5">
+                            <Label>Reorder Point</Label>
+                            <Input
+                                v-model.number="adjustForm.reorder_point"
+                                type="number"
+                                min="0"
+                                placeholder="Optional"
+                            />
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <Label>Reorder Quantity</Label>
+                            <Input
+                                v-model.number="adjustForm.reorder_quantity"
+                                type="number"
+                                min="1"
+                                placeholder="Optional"
+                            />
+                        </div>
+                    </div>
+                    <p class="text-xs text-muted-foreground -mt-1">Auto-create a purchase order when stock falls to reorder point.</p>
                 </div>
 
                 <DialogFooter>

@@ -4,7 +4,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeftRight, BarChart3, Building2, CalendarDays, ChefHat, ChevronRight, ClipboardList,
     Clock, FileText, FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle,
-    Settings, Shield, ShoppingCart, Tag, Truck, UserRound, Users, Warehouse,
+    Shield, ShoppingCart, Tag, Truck, UserRound, Users, Warehouse,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import NavUser from '@/components/NavUser.vue';
@@ -101,10 +101,6 @@ const navGroups: NavGroup[] = [
     },
 ];
 
-const systemNav: NavChild[] = [
-    { title: 'Settings', path: 'settings', icon: Settings, permission: 'settings.manage' },
-];
-
 function isActive(path: string): boolean {
     const url = page.url;
     const href = tenantUrl(path);
@@ -127,7 +123,6 @@ function filterByPermission(items: NavChild[]): NavChild[] {
 }
 
 const filteredTopLevel = computed(() => filterByPermission(topLevelItems));
-const filteredSystemNav = computed(() => filterByPermission(systemNav));
 
 const filteredGroups = computed(() =>
     navGroups
@@ -223,21 +218,6 @@ const filteredGroups = computed(() =>
                 </SidebarGroupContent>
             </SidebarGroup>
 
-            <!-- System -->
-            <SidebarGroup v-if="filteredSystemNav.length > 0" class="mt-auto">
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem v-for="item in filteredSystemNav" :key="item.title">
-                            <SidebarMenuButton as-child :is-active="isActive(item.path)">
-                                <Link :href="tenantUrl(item.path)">
-                                    <component :is="item.icon" />
-                                    <span>{{ item.title }}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter>

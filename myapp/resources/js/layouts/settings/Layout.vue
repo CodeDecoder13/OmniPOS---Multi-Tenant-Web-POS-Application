@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import type { LucideIcon } from 'lucide-vue-next';
+import { Palette, Shield, User } from 'lucide-vue-next';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
@@ -10,18 +9,29 @@ import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
+interface SettingsNavItem extends NavItem {
+    icon: LucideIcon;
+    description: string;
+}
+
+const sidebarNavItems: SettingsNavItem[] = [
     {
         title: 'Profile',
         href: editProfile(),
+        icon: User,
+        description: 'Name & email',
     },
     {
         title: 'Security',
         href: editSecurity(),
+        icon: Shield,
+        description: 'Password & 2FA',
     },
     {
         title: 'Appearance',
         href: editAppearance(),
+        icon: Palette,
+        description: 'Theme',
     },
 ];
 
@@ -29,43 +39,32 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 </script>
 
 <template>
-    <div class="px-4 py-6">
-        <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
-        />
+    <div class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold tracking-tight">Settings</h1>
+            <p class="mt-1 text-sm text-muted-foreground">Manage your account preferences</p>
+        </div>
 
-        <div class="flex flex-col lg:flex-row lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-48">
-                <nav
-                    class="flex flex-col space-y-1 space-x-0"
-                    aria-label="Settings"
-                >
-                    <Button
-                        v-for="item in sidebarNavItems"
-                        :key="toUrl(item.href)"
-                        variant="ghost"
-                        :class="[
-                            'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
-                        ]"
-                        as-child
-                    >
-                        <Link :href="item.href">
-                            <component :is="item.icon" class="h-4 w-4" />
-                            {{ item.title }}
-                        </Link>
-                    </Button>
-                </nav>
-            </aside>
+        <div class="mb-8 flex gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1">
+            <Link
+                v-for="item in sidebarNavItems"
+                :key="toUrl(item.href)"
+                :href="item.href"
+                prefetch
+                :class="[
+                    'flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap',
+                    isCurrentOrParentUrl(item.href)
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
+                ]"
+            >
+                <component :is="item.icon" class="h-4 w-4 shrink-0" />
+                <span>{{ item.title }}</span>
+            </Link>
+        </div>
 
-            <Separator class="my-6 lg:hidden" />
-
-            <div class="flex-1 md:max-w-2xl">
-                <section class="max-w-xl space-y-12">
-                    <slot />
-                </section>
-            </div>
+        <div class="space-y-6">
+            <slot />
         </div>
     </div>
 </template>

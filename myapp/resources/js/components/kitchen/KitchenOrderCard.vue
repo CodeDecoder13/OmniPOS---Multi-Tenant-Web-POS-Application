@@ -77,6 +77,7 @@ function handlePrintKot() {
             addons: item.item_addons?.map(a => ({
                 name: a.addon_name,
             })),
+            notes: item.notes,
         })),
         notes: props.order.notes,
         kitchenNotes: props.order.kitchen_notes,
@@ -131,6 +132,9 @@ function downloadKotPdf() {
                             <span v-for="a in item.item_addons" :key="a.id" class="block pl-2">
                                 + {{ a.addon_name }}
                             </span>
+                        </div>
+                        <div v-if="item.notes" class="text-xs text-yellow-300 italic pl-2">
+                            ** {{ item.notes }} **
                         </div>
                     </div>
                 </div>

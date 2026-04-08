@@ -101,6 +101,9 @@
         <div class="item-detail">+ {{ $addon->addon_name }}</div>
         @endforeach
     @endif
+    @if($item->notes)
+    <div class="item-detail" style="font-style: italic; font-weight: bold;">** {{ $item->notes }} **</div>
+    @endif
     @endforeach
 
     @if($order->notes)
