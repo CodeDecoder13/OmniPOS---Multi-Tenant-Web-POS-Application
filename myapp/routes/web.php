@@ -11,7 +11,7 @@ Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function ()
     Route::get('/', function () {
         return inertia('Welcome', [
             'canRegister' => Features::enabled(Features::registration()),
-            'plans' => Plan::active()->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
+            'plans' => Plan::active()->orderBy('price')->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
         ]);
     })->name('home');
 

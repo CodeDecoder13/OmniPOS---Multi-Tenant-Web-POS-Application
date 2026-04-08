@@ -97,6 +97,12 @@ const jsonLd = JSON.stringify({
         'Role-Based Access Control',
         'Shift Management',
         'Supply Chain Management',
+        'Refund Processing',
+        'Hold & Recall Orders',
+        'Split Payments',
+        'Digital Receipts',
+        'Low Stock Notifications',
+        'Auto Stock Reorder',
     ],
     screenshot: 'https://omnipos.shop/og-image.png',
     aggregateRating: {
@@ -130,9 +136,13 @@ const featureTabs = [
             'Real-time product display with categories',
             'Smart cart management with quantity controls',
             'Multiple payment methods (Cash, Card, GCash, Maya, Bank)',
+            'Split payments across multiple methods',
+            'Hold & recall orders (park orders)',
+            'Per-item notes for special instructions',
+            'Full & partial refund processing',
             'Dine-in, takeout & delivery order types',
             'Flexible discount application',
-            'PDF receipt generation & printing',
+            'Digital receipts (print, email & shareable link)',
             'Secure PIN-based operator login',
             'Shift management with cash reconciliation',
         ],
@@ -145,6 +155,8 @@ const featureTabs = [
         items: [
             'Per-branch inventory tracking',
             'Low-stock threshold alerts',
+            'In-app & email low stock notifications',
+            'Auto-reorder when stock hits threshold',
             '6 adjustment types (restock, damage, return, etc.)',
             'Full audit trail for all changes',
         ],
@@ -160,6 +172,7 @@ const featureTabs = [
             'Payment method analysis',
             'Operator performance tracking',
             'Branch comparison reports',
+            'End-of-day summary reports (email)',
             'Custom date range filtering',
         ],
     },
@@ -196,6 +209,7 @@ const featureTabs = [
         description: 'Build lasting relationships with your customers by tracking their preferences and purchase history.',
         items: [
             'Customer database management',
+            'Customer stats dashboard (orders, spending, average)',
             'Full order history per customer',
             'Quick search in POS checkout',
             'Customer notes & contact info',
@@ -235,6 +249,7 @@ const featureTabs = [
             'Inter-branch stock transfers',
             'Supplier management & directory',
             'Receiving with auto inventory update',
+            'Auto-reorder triggered by low stock',
         ],
     },
     {
@@ -245,6 +260,7 @@ const featureTabs = [
         items: [
             'Shift open/close with cash count',
             'Cash reconciliation & variance tracking',
+            'Auto-close stale shifts',
             'Operator performance metrics',
             'Employee shift scheduling',
         ],
@@ -255,7 +271,7 @@ const showcases = [
     {
         title: 'POS & Checkout Experience',
         description: 'A beautiful, intuitive point-of-sale interface that your staff will love. Process orders quickly with real-time product browsing, smart cart management, and flexible payment options.',
-        features: ['Category-based product browsing', 'Real-time cart updates', 'Multiple payment splitting', 'One-tap order completion'],
+        features: ['Category-based product browsing', 'Real-time cart updates', 'Split payments & hold orders', 'Digital receipts & refunds'],
         reverse: false,
     },
     {
@@ -267,7 +283,7 @@ const showcases = [
     {
         title: 'Inventory Management System',
         description: 'Stay on top of your stock levels across all branches. Get alerts before items run out, track every adjustment, and maintain a complete audit trail.',
-        features: ['Real-time stock levels', 'Low-stock threshold alerts', 'Adjustment type tracking', 'Per-branch inventory view'],
+        features: ['Real-time stock levels', 'Low-stock & auto-reorder alerts', 'Adjustment type tracking', 'Per-branch inventory view'],
         reverse: false,
     },
 ];
@@ -458,7 +474,7 @@ function declineCookies() {
                                 href="/register"
                                 class="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-8 py-3 text-base font-semibold text-white shadow-lg shadow-teal-600/25 transition hover:bg-teal-700 hover:shadow-xl hover:shadow-teal-600/30"
                             >
-                                Start Free Trial
+                                Get Started Free
                                 <ArrowRight class="h-4 w-4" />
                             </Link>
                             <button
@@ -473,7 +489,7 @@ function declineCookies() {
                         <div class="mt-10 flex flex-wrap justify-center gap-4 lg:justify-start">
                             <div class="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium shadow-md backdrop-blur dark:bg-gray-800/80">
                                 <Boxes class="h-4 w-4 text-teal-600" />
-                                17+ Modules
+                                20+ Modules
                             </div>
                             <div class="flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium shadow-md backdrop-blur dark:bg-gray-800/80">
                                 <Wallet class="h-4 w-4 text-teal-600" />
@@ -554,7 +570,7 @@ function declineCookies() {
         <section class="border-y border-gray-200 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/50">
             <div class="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-10 sm:px-6 md:grid-cols-4 lg:px-8" data-animate>
                 <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">17+</div>
+                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">20+</div>
                     <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Modules</div>
                 </div>
                 <div class="text-center">
@@ -1070,6 +1086,10 @@ function declineCookies() {
                             { icon: History, title: 'Audit Logs', desc: 'Complete activity trail for changes' },
                             { icon: Fingerprint, title: 'Two-Factor Auth', desc: 'Extra security layer for accounts' },
                             { icon: FileSpreadsheet, title: 'CSV Import/Export', desc: 'Bulk data management made easy' },
+                            { icon: RotateCcw, title: 'Refunds & Returns', desc: 'Full & partial refund processing' },
+                            { icon: Timer, title: 'Hold & Recall Orders', desc: 'Park orders and recall them later' },
+                            { icon: Bell, title: 'Low Stock Alerts', desc: 'In-app & email stock notifications' },
+                            { icon: Receipt, title: 'Digital Receipts', desc: 'Email receipts & shareable links' },
                         ]"
                         :key="feature.title"
                         class="feature-grid-card group rounded-xl border border-gray-200/60 p-5 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02] hover:border-teal-300 hover:shadow-lg bg-white/70 dark:border-gray-800/60 dark:bg-gray-900/70 dark:hover:border-teal-700"
@@ -1124,10 +1144,10 @@ function declineCookies() {
                                 </div>
                             </li>
                             <li class="flex items-start gap-3 text-sm">
-                                <Receipt class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                                <RotateCcw class="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
                                 <div>
-                                    <span class="font-medium text-gray-900 dark:text-gray-100">Tax-Inclusive/Exclusive Modes</span>
-                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Flexible tax configuration</p>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">Refund Processing</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Full & partial refunds with tracking</p>
                                 </div>
                             </li>
                         </ul>
@@ -1143,8 +1163,8 @@ function declineCookies() {
                             <li class="flex items-start gap-3 text-sm">
                                 <LineChart class="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                                 <div>
-                                    <span class="font-medium text-gray-900 dark:text-gray-100">Sales Forecasting</span>
-                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">AI-powered trend predictions</p>
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">End-of-Day Summary</span>
+                                    <p class="mt-0.5 text-gray-500 dark:text-gray-400">Automated daily email reports</p>
                                 </div>
                             </li>
                             <li class="flex items-start gap-3 text-sm">
@@ -1309,7 +1329,7 @@ function declineCookies() {
                                 ? 'bg-teal-600 text-white shadow-md hover:bg-teal-700'
                                 : 'border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800'"
                         >
-                            {{ Number(plan.price) === 0 ? 'Get Started Free' : 'Start Free Trial' }}
+                            {{ Number(plan.price) === 0 ? 'Get Started Free' : 'Get Started' }}
                         </Link>
                     </div>
                 </div>
