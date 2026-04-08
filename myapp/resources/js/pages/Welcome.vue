@@ -4,14 +4,14 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import {
     ArrowRight, Sparkles, Check, Menu, X,
     Monitor, ClipboardList, BarChart3, Building2, ShieldCheck, Heart,
-    ScanBarcode, Wallet, Receipt, Fingerprint, AlertTriangle, PackageCheck, RotateCcw,
+    ScanBarcode, Wallet, Receipt, Fingerprint, PackageCheck, RotateCcw,
     TrendingUp, PieChart, LineChart, Activity, KeyRound, Search, History,
     UserPlus, Settings, Play, Rocket,
     ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, LayoutGrid,
     CreditCard, Printer, LayoutDashboard,
     Tag, Clock, Truck, CalendarDays, Zap, Globe, Boxes, ChefHat, Star, Users,
     FileSpreadsheet, Lock, QrCode, Bell, Timer, Shuffle, TableProperties, Megaphone,
-    Cookie, Construction,
+    Cookie,
 } from 'lucide-vue-next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -292,25 +292,9 @@ const businessTypes = [
     { icon: LayoutGrid, name: 'General Store', count: 'Multi-category' },
 ];
 
-// --- Modal state ---
-const welcomeDismissed = localStorage.getItem('omnipos_welcome_dismissed');
+// --- Cookie consent ---
 const cookiesDecided = localStorage.getItem('omnipos_cookies_accepted');
-
-const showWelcomeModal = ref(!welcomeDismissed);
-const showCookieModal = ref(false);
-
-// If welcome was already dismissed but cookies not decided, show cookie modal immediately
-if (welcomeDismissed && !cookiesDecided) {
-    showCookieModal.value = true;
-}
-
-function dismissWelcome() {
-    localStorage.setItem('omnipos_welcome_dismissed', 'true');
-    showWelcomeModal.value = false;
-    if (!cookiesDecided) {
-        showCookieModal.value = true;
-    }
-}
+const showCookieModal = ref(!cookiesDecided);
 
 function acceptCookies() {
     localStorage.setItem('omnipos_cookies_accepted', 'accepted');
@@ -1440,40 +1424,6 @@ function declineCookies() {
             </div>
         </footer>
     </div>
-
-    <!-- ==================== WELCOME / TESTING PHASE MODAL ==================== -->
-    <Dialog :open="showWelcomeModal" @update:open="(v: boolean) => { if (!v) dismissWelcome() }">
-        <DialogContent :show-close-button="false" class="sm:max-w-md">
-            <div class="h-1.5 absolute top-0 left-0 right-0 rounded-t-lg bg-gradient-to-r from-teal-500 via-cyan-500 to-teal-600"></div>
-            <DialogHeader class="pt-2">
-                <DialogTitle class="flex items-center gap-2 text-xl">
-                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-100 dark:bg-teal-900/50">
-                        <Construction class="h-4.5 w-4.5 text-teal-600 dark:text-teal-400" />
-                    </div>
-                    Welcome to OmniPOS!
-                </DialogTitle>
-            </DialogHeader>
-            <DialogDescription class="space-y-3 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                <p>
-                    Our app is currently in its <span class="font-semibold text-teal-600 dark:text-teal-400">testing phase</span>.
-                    We're actively building and improving things, so you might encounter a few bugs or rough edges along the way.
-                </p>
-                <p>
-                    Don't worry — that's totally normal and part of the process! The developer will send you a
-                    <span class="font-medium text-gray-800 dark:text-gray-200">bug report form</span>
-                    so you can easily share any issues you find. No need to go looking for it.
-                </p>
-                <p class="text-gray-700 dark:text-gray-300">
-                    Thank you for being an early tester — your feedback helps make OmniPOS better for everyone!
-                </p>
-            </DialogDescription>
-            <DialogFooter>
-                <Button @click="dismissWelcome" class="w-full bg-teal-600 hover:bg-teal-700">
-                    Got it!
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
 
     <!-- ==================== COOKIE CONSENT MODAL ==================== -->
     <Dialog :open="showCookieModal" @update:open="(v: boolean) => { if (!v) declineCookies() }">

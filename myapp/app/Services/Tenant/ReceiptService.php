@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Jobs\SendReceiptEmail;
 use App\Models\Tenant;
 use App\Models\Tenant\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,11 +17,22 @@ class ReceiptService
         $pdf = Pdf::loadView('receipts.thermal', [
             'tenant' => $tenant,
             'order' => $order,
-            'payment' => $order->payments->first(),
         ]);
 
         $pdf->setPaper([0, 0, 226, 800]);
 
         return $pdf->download("receipt-{$order->order_number}.pdf");
+    }
+
+    public function getShareableUrl(Order $order): string
+    {
+        return url("/receipts/{$order->receipt_token}");
+    }
+
+    public function emailReceipt(Tenant $tenant, Order $order, string $email): void
+    {
+        $receiptUrl = $this->getShareableUrl($order);
+
+        SendReceiptEmail::dispatch($order, $tenant, $email, $receiptUrl);
     }
 }

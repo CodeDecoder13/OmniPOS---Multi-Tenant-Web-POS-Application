@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { Minus, Plus, Search, ShoppingCart, Trash2, User, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag } from 'lucide-vue-next';
+import { Minus, Plus, Search, ShoppingCart, Trash2, User, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play } from 'lucide-vue-next';
 import PosLayout from '@/layouts/PosLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,7 @@ interface CartItem {
     image_url?: string | null;
     variations?: CartItemVariation[];
     addons?: CartItemAddon[];
+    notes?: string;
 }
 
 interface PosCustomer {
@@ -294,6 +295,36 @@ const amountTendered = ref<number>(0);
 const referenceNumber = ref('');
 const processing = ref(false);
 
+// Split payment state
+interface PaymentEntry {
+    method: string;
+    amount: number;
+    reference_number: string;
+}
+const splitPayments = ref<PaymentEntry[]>([]);
+const splitMode = ref(false);
+
+function addSplitPayment() {
+    const remaining = total.value - splitPayments.value.reduce((s, p) => s + p.amount, 0);
+    splitPayments.value.push({ method: 'cash', amount: Math.max(0, remaining), reference_number: '' });
+}
+
+function removeSplitPayment(index: number) {
+    splitPayments.value.splice(index, 1);
+    if (splitPayments.value.length === 0) splitMode.value = false;
+}
+
+const splitRemaining = computed(() => {
+    return Math.max(0, total.value - splitPayments.value.reduce((s, p) => s + p.amount, 0));
+});
+
+function toggleSplitMode() {
+    splitMode.value = !splitMode.value;
+    if (splitMode.value && splitPayments.value.length === 0) {
+        splitPayments.value = [{ method: 'cash', amount: total.value, reference_number: '' }];
+    }
+}
+
 // Receipt preview state
 const showReceiptPreview = ref(false);
 
@@ -334,6 +365,9 @@ const total = computed(() => {
 const changeAmount = computed(() => paymentMethod.value === 'cash' ? Math.max(0, amountTendered.value - total.value) : 0);
 const canCheckout = computed(() => {
     if (cart.value.length === 0) return false;
+    if (splitMode.value) {
+        return splitRemaining.value <= 0 && splitPayments.value.length > 0;
+    }
     if (paymentMethod.value === 'cash' && amountTendered.value < total.value) return false;
     return true;
 });
@@ -432,6 +466,7 @@ function clearCart() {
     appliedPromo.value = null;
     promoCode.value = '';
     promoDiscount.value = 0;
+    recalledOrderId.value = null;
 }
 
 // Category filter
@@ -469,6 +504,8 @@ function openPaymentDialog() {
     amountTendered.value = total.value;
     referenceNumber.value = '';
     paymentMethod.value = 'cash';
+    splitMode.value = false;
+    splitPayments.value = [];
     showPaymentDialog.value = true;
 }
 
@@ -506,11 +543,20 @@ async function processCheckout() {
                 quantity: item.quantity,
                 variations: item.variations ?? [],
                 addons: item.addons ?? [],
+                notes: item.notes || null,
             })),
             customer_id: selectedCustomer.value?.id ?? null,
-            payment_method: paymentMethod.value,
-            amount_tendered: paymentMethod.value === 'cash' ? amountTendered.value : null,
-            reference_number: referenceNumber.value || null,
+            payments: splitMode.value
+                ? splitPayments.value.map(p => ({
+                    method: p.method,
+                    amount: p.amount,
+                    reference_number: p.reference_number || null,
+                }))
+                : [{
+                    method: paymentMethod.value,
+                    amount: paymentMethod.value === 'cash' ? amountTendered.value : total.value,
+                    reference_number: referenceNumber.value || null,
+                }],
             discount_amount: discountAmount.value || null,
             discount_type: discountAmount.value ? discountType.value : null,
             notes: orderNotes.value || null,
@@ -518,6 +564,7 @@ async function processCheckout() {
             pos_operator_id: operatorUserId.value,
             table_id: selectedTable.value ?? null,
             promotion_id: appliedPromo.value?.id ?? null,
+            order_id: recalledOrderId.value ?? null,
         };
 
         const res = await fetch(tenantUrl('pos/checkout'), {
@@ -660,6 +707,146 @@ function closeReceipt() {
     completedOrder.value = null;
 }
 
+// Hold/Park Order state
+const showHeldOrders = ref(false);
+const heldOrders = ref<any[]>([]);
+const loadingHeld = ref(false);
+const holdingOrder = ref(false);
+const recalledOrderId = ref<number | null>(null);
+
+async function holdOrder() {
+    if (cart.value.length === 0) return;
+    holdingOrder.value = true;
+
+    try {
+        const xsrfToken = decodeURIComponent(
+            document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
+        );
+
+        const payload = {
+            items: cart.value.map(item => ({
+                product_id: item.product_id,
+                product_name: item.name,
+                product_price: item.price,
+                quantity: item.quantity,
+                notes: item.notes || null,
+                variations: item.variations ?? [],
+                addons: item.addons ?? [],
+            })),
+            customer_id: selectedCustomer.value?.id ?? null,
+            notes: orderNotes.value || null,
+            order_type: orderType.value,
+            table_id: selectedTable.value ?? null,
+        };
+
+        const res = await fetch(tenantUrl('pos/hold'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrfToken,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+            clearCart();
+            recalledOrderId.value = null;
+        } else {
+            const err = await res.json();
+            alert(err.message || 'Failed to hold order.');
+        }
+    } catch {
+        alert('Failed to hold order.');
+    } finally {
+        holdingOrder.value = false;
+    }
+}
+
+async function fetchHeldOrders() {
+    loadingHeld.value = true;
+    try {
+        const res = await fetch(tenantUrl('pos/held-orders'), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        heldOrders.value = await res.json();
+    } catch {
+        heldOrders.value = [];
+    } finally {
+        loadingHeld.value = false;
+    }
+}
+
+async function recallOrder(orderId: number) {
+    try {
+        const res = await fetch(tenantUrl(`pos/held-orders/${orderId}`), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await res.json();
+
+        // Populate cart from recalled data
+        cart.value = data.items.map((item: any) => {
+            const variations = (item.variations ?? []).map((v: any) => ({
+                variation_group_name: v.variation_group_name,
+                option_name: v.option_name,
+                price_modifier: v.price_modifier,
+            }));
+            const addons = (item.addons ?? []).map((a: any) => ({
+                addon_name: a.addon_name,
+                addon_price: a.addon_price,
+            }));
+            const variationTotal = variations.reduce((s: number, v: any) => s + v.price_modifier, 0);
+            const addonTotal = addons.reduce((s: number, a: any) => s + a.addon_price, 0);
+            const extras = [...variations.map((v: any) => v.option_name), ...addons.map((a: any) => a.addon_name)];
+            const displayName = extras.length > 0 ? `${item.product_name} (${extras.join(', ')})` : item.product_name;
+
+            return {
+                product_id: item.product_id,
+                name: displayName,
+                price: item.product_price + variationTotal + addonTotal,
+                quantity: item.quantity,
+                notes: item.notes ?? '',
+                variations,
+                addons,
+            };
+        });
+
+        if (data.customer) {
+            selectedCustomer.value = data.customer;
+        }
+        if (data.notes) orderNotes.value = data.notes;
+        if (data.order_type) orderType.value = data.order_type;
+        if (data.table_id) selectedTable.value = data.table_id;
+        recalledOrderId.value = data.order_id;
+        showHeldOrders.value = false;
+    } catch {
+        alert('Failed to recall order.');
+    }
+}
+
+async function deleteHeldOrder(orderId: number) {
+    try {
+        const xsrfToken = decodeURIComponent(
+            document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
+        );
+        await fetch(tenantUrl(`pos/held-orders/${orderId}`), {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrfToken,
+            },
+        });
+        fetchHeldOrders();
+    } catch { /* silently fail */ }
+}
+
+function openHeldOrders() {
+    fetchHeldOrders();
+    showHeldOrders.value = true;
+}
+
 function selectCustomer(customer: PosCustomer) {
     selectedCustomer.value = customer;
     customerSearch.value = '';
@@ -783,9 +970,15 @@ onMounted(() => {
                         <h2 class="font-semibold text-sm">Cart</h2>
                         <Badge v-if="cartItemCount > 0" variant="secondary" class="text-xs">{{ cartItemCount }}</Badge>
                     </div>
-                    <Button v-if="cart.length > 0" variant="ghost" size="sm" class="text-xs text-muted-foreground" @click="clearCart">
-                        Clear
-                    </Button>
+                    <div class="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" class="text-xs text-muted-foreground relative" @click="openHeldOrders" title="Held Orders">
+                            <Pause class="h-3 w-3" />
+                            Held
+                        </Button>
+                        <Button v-if="cart.length > 0" variant="ghost" size="sm" class="text-xs text-muted-foreground" @click="clearCart">
+                            Clear
+                        </Button>
+                    </div>
                 </div>
 
                 <!-- Customer section -->
@@ -887,24 +1080,31 @@ onMounted(() => {
                         <p class="text-xs">Click products to add them</p>
                     </div>
                     <div v-else class="divide-y">
-                        <div v-for="(item, index) in cart" :key="item.product_id" class="flex items-center gap-3 px-4 py-2">
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium leading-tight truncate">{{ item.name }}</p>
-                                <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }}</p>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <Button variant="outline" size="icon" class="h-7 w-7" @click="updateQuantity(index, -1)">
-                                    <Minus class="h-3 w-3" />
+                        <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2">
+                            <div class="flex items-center gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium leading-tight truncate">{{ item.name }}</p>
+                                    <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }}</p>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <Button variant="outline" size="icon" class="h-7 w-7" @click="updateQuantity(index, -1)">
+                                        <Minus class="h-3 w-3" />
+                                    </Button>
+                                    <span class="w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
+                                    <Button variant="outline" size="icon" class="h-7 w-7" @click="updateQuantity(index, 1)">
+                                        <Plus class="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                <p class="w-20 text-right text-sm font-medium">{{ formatCurrency(item.price * item.quantity) }}</p>
+                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" @click="removeFromCart(index)">
+                                    <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
-                                <span class="w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
-                                <Button variant="outline" size="icon" class="h-7 w-7" @click="updateQuantity(index, 1)">
-                                    <Plus class="h-3 w-3" />
-                                </Button>
                             </div>
-                            <p class="w-20 text-right text-sm font-medium">{{ formatCurrency(item.price * item.quantity) }}</p>
-                            <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" @click="removeFromCart(index)">
-                                <Trash2 class="h-3 w-3 text-destructive" />
-                            </Button>
+                            <Input
+                                v-model="item.notes"
+                                placeholder="Item note (optional)"
+                                class="mt-1 h-6 text-[11px] text-muted-foreground"
+                            />
                         </div>
                     </div>
                 </div>
@@ -990,8 +1190,19 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Charge button -->
-                <div class="border-t p-4">
+                <!-- Action buttons -->
+                <div class="border-t p-4 space-y-2">
+                    <div v-if="cart.length > 0" class="flex gap-2">
+                        <Button
+                            variant="outline"
+                            class="flex-1 h-10"
+                            :disabled="holdingOrder"
+                            @click="holdOrder"
+                        >
+                            <Pause class="mr-1.5 h-4 w-4" />
+                            {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
+                        </Button>
+                    </div>
                     <Button
                         class="w-full h-12 text-lg font-bold"
                         :disabled="cart.length === 0"
@@ -1033,66 +1244,101 @@ onMounted(() => {
                 </DialogHeader>
 
                 <div class="space-y-4">
-                    <!-- Payment method tabs -->
-                    <div class="grid grid-cols-4 gap-2">
-                        <button
-                            v-for="method in [
-                                { value: 'cash', label: 'Cash' },
-                                { value: 'card', label: 'Card' },
-                                { value: 'e_wallet', label: 'E-Wallet' },
-                            ]"
-                            :key="method.value"
-                            @click="paymentMethod = method.value"
-                            :class="[
-                                'rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors',
-                                paymentMethod === method.value ? 'border-primary bg-primary/5 text-primary' : 'border-muted hover:border-muted-foreground/30',
-                            ]"
-                        >
-                            {{ method.label }}
-                        </button>
-                        <button
-                            disabled
-                            class="relative rounded-lg border-2 border-muted px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
-                        >
-                            Online
-                            <span class="absolute -top-2 -right-2 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">Soon</span>
-                        </button>
-                    </div>
-
                     <!-- Total display -->
                     <div class="rounded-lg bg-muted p-4 text-center">
                         <p class="text-sm text-muted-foreground">Total</p>
                         <p class="text-3xl font-bold">{{ formatCurrency(total) }}</p>
                     </div>
 
-                    <!-- Cash payment -->
-                    <div v-if="paymentMethod === 'cash'" class="space-y-3">
-                        <div class="space-y-2">
-                            <Label>Amount Tendered</Label>
-                            <Input v-model.number="amountTendered" type="number" min="0" step="0.01" class="text-lg h-12 text-center font-bold" />
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <Button
-                                v-for="amount in quickAmounts"
-                                :key="amount"
-                                variant="outline"
-                                size="sm"
-                                @click="setQuickAmount(amount)"
-                            >
-                                {{ formatCurrency(amount) }}
-                            </Button>
-                        </div>
-                        <div v-if="amountTendered >= total" class="rounded-lg bg-green-50 dark:bg-green-950 p-3 text-center">
-                            <p class="text-sm text-green-600 dark:text-green-400">Change</p>
-                            <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ formatCurrency(changeAmount) }}</p>
-                        </div>
+                    <!-- Split toggle -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium">Split Payment</span>
+                        <Button variant="outline" size="sm" class="text-xs" @click="toggleSplitMode">
+                            {{ splitMode ? 'Single Payment' : 'Split Payment' }}
+                        </Button>
                     </div>
 
-                    <!-- Card/E-wallet reference -->
-                    <div v-else class="space-y-2">
-                        <Label>Reference Number</Label>
-                        <Input v-model="referenceNumber" placeholder="Reference Number" />
-                    </div>
+                    <!-- Single Payment Mode -->
+                    <template v-if="!splitMode">
+                        <div class="grid grid-cols-4 gap-2">
+                            <button
+                                v-for="method in [
+                                    { value: 'cash', label: 'Cash' },
+                                    { value: 'card', label: 'Card' },
+                                    { value: 'e_wallet', label: 'E-Wallet' },
+                                ]"
+                                :key="method.value"
+                                @click="paymentMethod = method.value"
+                                :class="[
+                                    'rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors',
+                                    paymentMethod === method.value ? 'border-primary bg-primary/5 text-primary' : 'border-muted hover:border-muted-foreground/30',
+                                ]"
+                            >
+                                {{ method.label }}
+                            </button>
+                            <button
+                                disabled
+                                class="relative rounded-lg border-2 border-muted px-3 py-2.5 text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed"
+                            >
+                                Online
+                                <span class="absolute -top-2 -right-2 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">Soon</span>
+                            </button>
+                        </div>
+
+                        <div v-if="paymentMethod === 'cash'" class="space-y-3">
+                            <div class="space-y-2">
+                                <Label>Amount Tendered</Label>
+                                <Input v-model.number="amountTendered" type="number" min="0" step="0.01" class="text-lg h-12 text-center font-bold" />
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <Button v-for="amount in quickAmounts" :key="amount" variant="outline" size="sm" @click="setQuickAmount(amount)">
+                                    {{ formatCurrency(amount) }}
+                                </Button>
+                            </div>
+                            <div v-if="amountTendered >= total" class="rounded-lg bg-green-50 dark:bg-green-950 p-3 text-center">
+                                <p class="text-sm text-green-600 dark:text-green-400">Change</p>
+                                <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ formatCurrency(changeAmount) }}</p>
+                            </div>
+                        </div>
+
+                        <div v-else class="space-y-2">
+                            <Label>Reference Number</Label>
+                            <Input v-model="referenceNumber" placeholder="Reference Number" />
+                        </div>
+                    </template>
+
+                    <!-- Split Payment Mode -->
+                    <template v-else>
+                        <div class="space-y-3">
+                            <div v-for="(sp, idx) in splitPayments" :key="idx" class="rounded-lg border p-3 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium text-muted-foreground">Payment {{ idx + 1 }}</span>
+                                    <Button v-if="splitPayments.length > 1" variant="ghost" size="icon" class="h-6 w-6" @click="removeSplitPayment(idx)">
+                                        <X class="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                <div class="grid grid-cols-3 gap-1">
+                                    <button
+                                        v-for="m in [{ v: 'cash', l: 'Cash' }, { v: 'card', l: 'Card' }, { v: 'e_wallet', l: 'E-Wallet' }]"
+                                        :key="m.v"
+                                        @click="sp.method = m.v"
+                                        :class="['rounded border px-2 py-1 text-xs', sp.method === m.v ? 'border-primary bg-primary/10 text-primary' : '']"
+                                    >{{ m.l }}</button>
+                                </div>
+                                <Input v-model.number="sp.amount" type="number" min="0" step="0.01" placeholder="Amount" class="h-9 text-sm" />
+                                <Input v-if="sp.method !== 'cash'" v-model="sp.reference_number" placeholder="Ref #" class="h-8 text-xs" />
+                            </div>
+                            <Button variant="outline" size="sm" class="w-full text-xs" @click="addSplitPayment">
+                                <Plus class="mr-1 h-3 w-3" /> Add Payment
+                            </Button>
+                            <div v-if="splitRemaining > 0" class="text-sm text-center text-destructive">
+                                Remaining: {{ formatCurrency(splitRemaining) }}
+                            </div>
+                            <div v-else class="text-sm text-center text-green-600">
+                                Fully covered
+                            </div>
+                        </div>
+                    </template>
                 </div>
 
                 <DialogFooter>
@@ -1185,6 +1431,42 @@ onMounted(() => {
                     <Button variant="outline" @click="showVariationModal = false">Cancel</Button>
                     <Button @click="confirmVariationSelection">Add to Cart</Button>
                 </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        <!-- Held Orders Dialog -->
+        <Dialog v-model:open="showHeldOrders">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle class="flex items-center gap-2">
+                        <Pause class="h-5 w-5" />
+                        Held Orders ({{ heldOrders.length }})
+                    </DialogTitle>
+                </DialogHeader>
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <div v-if="loadingHeld" class="py-8 text-center text-muted-foreground text-sm">Loading...</div>
+                    <div v-else-if="heldOrders.length === 0" class="py-8 text-center text-muted-foreground text-sm">No held orders</div>
+                    <div v-else class="divide-y">
+                        <div v-for="held in heldOrders" :key="held.id" class="py-3 px-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-medium text-sm">{{ held.order_number }}</span>
+                                <span class="text-xs text-muted-foreground">{{ new Date(held.held_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) }}</span>
+                            </div>
+                            <div class="text-xs text-muted-foreground mb-2">
+                                {{ held.items?.length ?? 0 }} items
+                                <span v-if="held.customer"> &mdash; {{ held.customer.name }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <Button size="sm" variant="default" class="flex-1 text-xs" @click="recallOrder(held.id)">
+                                    <Play class="mr-1 h-3 w-3" />
+                                    Recall
+                                </Button>
+                                <Button size="sm" variant="destructive" class="text-xs" @click="deleteHeldOrder(held.id)">
+                                    <Trash2 class="h-3 w-3" />
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </DialogContent>
         </Dialog>
     </PosLayout>

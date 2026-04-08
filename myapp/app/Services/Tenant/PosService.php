@@ -6,6 +6,7 @@ use App\Enums\KitchenStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\TableStatus;
+use App\Events\OrderCompleted;
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
 use App\Models\Tenant\Order;
@@ -15,6 +16,7 @@ use App\Models\Tenant\Table;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PosService
@@ -90,6 +92,20 @@ class PosService
         }
 
         return DB::transaction(function () use ($tenant, $data, $userId, $branchId) {
+            // If recalling a held order, delete it first
+            if (! empty($data['order_id'])) {
+                $heldOrder = Order::forTenant($tenant)
+                    ->where('id', $data['order_id'])
+                    ->where('status', OrderStatus::Pending)
+                    ->whereNotNull('held_at')
+                    ->first();
+
+                if ($heldOrder) {
+                    $heldOrder->items()->delete();
+                    $heldOrder->delete();
+                }
+            }
+
             $orderNumber = $this->generateOrderNumber($tenant);
 
             // Calculate totals from items
@@ -158,6 +174,7 @@ class PosService
                     'product_price' => $unitPrice,
                     'quantity' => $item['quantity'],
                     'subtotal' => $itemSubtotal,
+                    'notes' => $item['notes'] ?? null,
                 ];
             }
 
@@ -216,14 +233,21 @@ class PosService
                 $total = $afterDiscount;
             }
 
-            // Validate cash amount tendered
-            if (($data['payment_method'] ?? '') === 'cash') {
-                $amountTendered = $data['amount_tendered'] ?? 0;
-                if ($amountTendered < $total) {
+            // Validate payments total covers order total
+            $payments = $data['payments'] ?? [];
+            $paymentSum = collect($payments)->sum('amount');
+
+            // For cash-only single payment, validate tendered >= total
+            if (count($payments) === 1 && ($payments[0]['method'] ?? '') === 'cash') {
+                if ($paymentSum < $total) {
                     throw ValidationException::withMessages([
-                        'amount_tendered' => "Amount tendered ({$amountTendered}) is less than the total ({$total}).",
+                        'payments' => "Amount tendered ({$paymentSum}) is less than the total ({$total}).",
                     ]);
                 }
+            } elseif ($paymentSum < $total) {
+                throw ValidationException::withMessages([
+                    'payments' => "Total payments ({$paymentSum}) must cover the order total ({$total}).",
+                ]);
             }
 
             // Create order
@@ -247,6 +271,7 @@ class PosService
                 'created_by' => $userId,
                 'shift_id' => $data['shift_id'] ?? null,
                 'table_id' => $tableId,
+                'receipt_token' => Str::random(64),
             ]);
 
             // Mark table as occupied
@@ -298,21 +323,33 @@ class PosService
             // Decrement inventory
             $this->inventoryService->decrementForSale($tenant, $branchId, $items, $order->id, $userId);
 
-            // Create payment
-            $paymentMethod = $data['payment_method'];
-            $amountTendered = $data['amount_tendered'] ?? $total;
-            $changeAmount = $paymentMethod === 'cash' ? max(0, $amountTendered - $total) : 0;
+            // Create payments (split payment support)
+            foreach ($payments as $paymentData) {
+                $method = $paymentData['method'];
+                $amount = (float) $paymentData['amount'];
+                $isCash = $method === 'cash';
+                $changeAmount = 0;
 
-            $order->payments()->create([
-                'amount' => $total,
-                'method' => $paymentMethod,
-                'reference_number' => $data['reference_number'] ?? null,
-                'status' => PaymentStatus::Completed,
-                'amount_tendered' => $amountTendered,
-                'change_amount' => $changeAmount,
-            ]);
+                // For the last cash payment, calculate change
+                if ($isCash && count($payments) === 1) {
+                    $changeAmount = max(0, $amount - $total);
+                }
 
-            return $order->load(['items.variations', 'items.itemAddons', 'payments', 'customer:id,name', 'table:id,name', 'promotion:id,code,name']);
+                $order->payments()->create([
+                    'amount' => $isCash && count($payments) === 1 ? $total : $amount,
+                    'method' => $method,
+                    'reference_number' => $paymentData['reference_number'] ?? null,
+                    'status' => PaymentStatus::Completed,
+                    'amount_tendered' => $isCash ? $amount : null,
+                    'change_amount' => $changeAmount,
+                ]);
+            }
+
+            $order = $order->load(['items.variations', 'items.itemAddons', 'payments', 'customer:id,name', 'table:id,name', 'promotion:id,code,name']);
+
+            OrderCompleted::dispatch($order, $tenant);
+
+            return $order;
         });
     }
 

@@ -11,6 +11,7 @@ use App\Http\Controllers\Tenant\DashboardController;
 use App\Http\Controllers\Tenant\SetupController;
 use App\Http\Controllers\Tenant\InventoryController;
 use App\Http\Controllers\Tenant\KitchenDisplayController;
+use App\Http\Controllers\Tenant\NotificationController;
 use App\Http\Controllers\Tenant\OrderController;
 use App\Http\Controllers\Tenant\PosPinController;
 use App\Http\Controllers\Tenant\PosController;
@@ -157,6 +158,10 @@ Route::prefix('{tenant}')
                 ->middleware('throttle:60,1')
                 ->name('tenant.pos.checkout');
             Route::post('pos/promotions/apply', [PromotionController::class, 'applyCode'])->name('tenant.pos.promotions.apply');
+            Route::post('pos/hold', [PosController::class, 'holdOrder'])->name('tenant.pos.hold');
+            Route::get('pos/held-orders', [PosController::class, 'heldOrders'])->name('tenant.pos.held-orders');
+            Route::get('pos/held-orders/{order}', [PosController::class, 'recallOrder'])->name('tenant.pos.held-orders.recall');
+            Route::delete('pos/held-orders/{order}', [PosController::class, 'deleteHeldOrder'])->name('tenant.pos.held-orders.delete');
             Route::post('pos/shifts/open', [ShiftController::class, 'open'])->name('tenant.pos.shifts.open');
             Route::post('pos/shifts/close', [ShiftController::class, 'close'])->name('tenant.pos.shifts.close');
             Route::get('pos/shifts/status', [ShiftController::class, 'status'])->name('tenant.pos.shifts.status');
@@ -173,10 +178,16 @@ Route::prefix('{tenant}')
             Route::get('orders', [OrderController::class, 'index'])->name('tenant.orders.index');
             Route::get('orders/{order}', [OrderController::class, 'show'])->name('tenant.orders.show');
             Route::get('orders/{order}/receipt/pdf', [OrderController::class, 'receiptPdf'])->name('tenant.orders.receipt.pdf');
+            Route::post('orders/{order}/receipt/email', [OrderController::class, 'emailReceipt'])->name('tenant.orders.receipt.email');
+            Route::get('orders/{order}/receipt/link', [OrderController::class, 'receiptLink'])->name('tenant.orders.receipt.link');
         });
         Route::post('orders/{order}/void', [OrderController::class, 'void'])
             ->middleware('can-do:pos.void')
             ->name('tenant.orders.void');
+        Route::middleware('can-do:pos.void')->group(function () {
+            Route::get('orders/{order}/refund', [OrderController::class, 'refundPage'])->name('tenant.orders.refund');
+            Route::post('orders/{order}/refund', [OrderController::class, 'refund'])->name('tenant.orders.refund.store');
+        });
 
         // Reports
         Route::middleware('can-do:reports.view')->group(function () {
@@ -185,12 +196,15 @@ Route::prefix('{tenant}')
         });
 
         // Customers
-        Route::middleware('can-do:orders.view')->group(function () {
-            Route::get('customers', [CustomerController::class, 'index'])->name('tenant.customers.index');
-        });
         Route::middleware('can-do:orders.manage')->group(function () {
             Route::get('customers/create', [CustomerController::class, 'create'])->name('tenant.customers.create');
             Route::post('customers', [CustomerController::class, 'store'])->name('tenant.customers.store');
+        });
+        Route::middleware('can-do:orders.view')->group(function () {
+            Route::get('customers', [CustomerController::class, 'index'])->name('tenant.customers.index');
+            Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('tenant.customers.show');
+        });
+        Route::middleware('can-do:orders.manage')->group(function () {
             Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('tenant.customers.edit');
             Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('tenant.customers.update');
             Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('tenant.customers.destroy');
@@ -309,6 +323,11 @@ Route::prefix('{tenant}')
             Route::get('settings', [SettingsController::class, 'edit'])->name('tenant.settings.edit');
             Route::put('settings', [SettingsController::class, 'update'])->name('tenant.settings.update');
         });
+
+        // Notifications (no permission guard — any authenticated tenant user)
+        Route::get('notifications', [NotificationController::class, 'index'])->name('tenant.notifications.index');
+        Route::post('notifications/mark-read', [NotificationController::class, 'markAllRead'])->name('tenant.notifications.mark-read');
+        Route::post('notifications/{notification}/read', [NotificationController::class, 'markOneRead'])->name('tenant.notifications.read');
 
         // Chat (no permission guard — any authenticated tenant user)
         Route::get('chat', [ChatController::class, 'index'])->name('tenant.chat.index');

@@ -38,8 +38,18 @@ class InventoryController extends Controller
             $request->user()->id,
         );
 
+        $updateFields = [];
         if ($request->has('low_stock_threshold')) {
-            $inventory->update(['low_stock_threshold' => $request->validated('low_stock_threshold')]);
+            $updateFields['low_stock_threshold'] = $request->validated('low_stock_threshold');
+        }
+        if ($request->has('reorder_point')) {
+            $updateFields['reorder_point'] = $request->validated('reorder_point');
+        }
+        if ($request->has('reorder_quantity')) {
+            $updateFields['reorder_quantity'] = $request->validated('reorder_quantity');
+        }
+        if (! empty($updateFields)) {
+            $inventory->update($updateFields);
         }
 
         return redirect()->back()->with('success', 'Inventory adjusted successfully.');

@@ -3,6 +3,7 @@
 namespace App\Services\Tenant;
 
 use App\Enums\AdjustmentType;
+use App\Events\LowStockReached;
 use App\Models\Tenant;
 use App\Models\Tenant\Inventory;
 use App\Models\Tenant\InventoryAdjustment;
@@ -135,6 +136,19 @@ class InventoryService
                 'reference_id' => $orderId,
                 'created_by' => $userId,
             ]);
+
+            // Check if stock crossed low_stock_threshold or reorder_point downward
+            $crossedLowStock = $inventory->low_stock_threshold > 0
+                && $quantityBefore > $inventory->low_stock_threshold
+                && $quantityAfter <= $inventory->low_stock_threshold;
+
+            $crossedReorder = $inventory->reorder_point
+                && $quantityBefore > $inventory->reorder_point
+                && $quantityAfter <= $inventory->reorder_point;
+
+            if ($crossedLowStock || $crossedReorder) {
+                LowStockReached::dispatch($inventory, $tenant);
+            }
         }
     }
 

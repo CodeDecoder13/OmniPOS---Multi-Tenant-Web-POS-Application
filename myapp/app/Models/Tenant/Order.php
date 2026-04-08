@@ -18,10 +18,11 @@ class Order extends Model
     protected $fillable = [
         'tenant_id', 'branch_id', 'customer_id', 'order_number',
         'subtotal', 'discount_amount', 'discount_type', 'tax_amount',
-        'total', 'notes', 'order_type', 'status', 'created_by', 'shift_id',
+        'total', 'refunded_amount', 'notes', 'order_type', 'status', 'created_by', 'shift_id',
         'table_id', 'promotion_id', 'promotion_discount',
         'kitchen_status', 'kitchen_sent_at', 'kitchen_completed_at', 'kitchen_notes',
         'voided_by', 'void_reason', 'voided_at',
+        'held_at', 'receipt_token',
     ];
 
     protected function casts(): array
@@ -36,9 +37,11 @@ class Order extends Model
             'tax_amount' => 'decimal:2',
             'total' => 'decimal:2',
             'promotion_discount' => 'decimal:2',
+            'refunded_amount' => 'decimal:2',
             'kitchen_sent_at' => 'datetime',
             'kitchen_completed_at' => 'datetime',
             'voided_at' => 'datetime',
+            'held_at' => 'datetime',
         ];
     }
 
@@ -66,6 +69,12 @@ class Order extends Model
     public function canBeVoided(): bool
     {
         return $this->status === OrderStatus::Completed;
+    }
+
+    public function canBeRefunded(): bool
+    {
+        return $this->status === OrderStatus::Completed
+            && (float) $this->refunded_amount < (float) $this->total;
     }
 
     public function tenant(): BelongsTo
@@ -116,5 +125,10 @@ class Order extends Model
     public function voidedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
     }
 }

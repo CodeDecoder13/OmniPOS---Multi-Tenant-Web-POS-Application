@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Permission;
 use App\Models\Plan;
+use App\Models\Tenant;
+use App\Models\TenantUser;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -36,6 +39,37 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // Resolve default tenant for authenticated users on non-tenant routes
+        if (! $request->attributes->get('current_tenant') && $request->user()) {
+            $tenantUser = TenantUser::where('user_id', $request->user()->id)
+                ->where('is_active', true)
+                ->orderByDesc('last_login_at')
+                ->with('role.permissions')
+                ->first();
+
+            if ($tenantUser) {
+                $tenant = Tenant::where('id', $tenantUser->tenant_id)
+                    ->where('is_active', true)
+                    ->with('subscription.plan')
+                    ->first();
+
+                if ($tenant) {
+                    $role = $tenantUser->role;
+
+                    if ($role && $role->is_system && $role->slug === 'owner') {
+                        $permissions = Permission::pluck('slug')->toArray();
+                    } else {
+                        $permissions = $role ? $role->permissions->pluck('slug')->toArray() : [];
+                    }
+
+                    $request->attributes->set('current_tenant', $tenant);
+                    $request->attributes->set('current_tenant_user', $tenantUser);
+                    $request->attributes->set('current_role', $role);
+                    $request->attributes->set('current_permissions', $permissions);
+                }
+            }
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),

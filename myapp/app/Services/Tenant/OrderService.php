@@ -4,6 +4,7 @@ namespace App\Services\Tenant;
 
 use App\Enums\OrderStatus;
 use App\Enums\TableStatus;
+use App\Events\OrderVoided;
 use App\Models\Tenant;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\Table;
@@ -53,7 +54,7 @@ class OrderService
     public function findForTenant(Tenant $tenant, int $orderId, ?int $branchId = null): Order
     {
         $query = Order::forTenant($tenant)
-            ->with(['items.product:id,name', 'payments', 'customer', 'creator:id,name', 'branch:id,name', 'voidedByUser:id,name']);
+            ->with(['items.product:id,name', 'items.variations', 'items.itemAddons', 'payments', 'customer', 'creator:id,name', 'branch:id,name', 'voidedByUser:id,name', 'refunds.creator:id,name', 'refunds.items.orderItem']);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -95,7 +96,12 @@ class OrderService
                 $order->promotion->decrement('used_count');
             }
 
-            return $order->fresh();
+            $order = $order->fresh();
+
+            $tenant = Tenant::find($order->tenant_id);
+            OrderVoided::dispatch($order, $tenant, $voidReason);
+
+            return $order;
         });
     }
 }

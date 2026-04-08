@@ -12,6 +12,7 @@ enum AdjustmentType: string
     case Initial = 'initial';
     case TransferOut = 'transfer_out';
     case TransferIn = 'transfer_in';
+    case Refund = 'refund';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum AdjustmentType: string
             self::Initial => 'Initial',
             self::TransferOut => 'Transfer Out',
             self::TransferIn => 'Transfer In',
+            self::Refund => 'Refund',
         };
     }
 }

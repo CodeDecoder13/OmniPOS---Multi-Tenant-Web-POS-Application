@@ -81,7 +81,9 @@ const breadcrumbs = [{ title: 'Customers', href: tenantUrl('customers') }];
                     </thead>
                     <tbody>
                         <tr v-for="customer in customers.data" :key="customer.id" class="border-b last:border-0">
-                            <td class="px-4 py-3 font-medium">{{ customer.name }}</td>
+                            <td class="px-4 py-3 font-medium">
+                                <Link :href="tenantUrl(`customers/${customer.id}`)" class="text-primary hover:underline">{{ customer.name }}</Link>
+                            </td>
                             <td class="px-4 py-3 text-muted-foreground">{{ customer.email ?? '—' }}</td>
                             <td class="px-4 py-3 text-muted-foreground">{{ customer.phone ?? '—' }}</td>
                             <td class="px-4 py-3 text-center">{{ customer.orders_count ?? 0 }}</td>

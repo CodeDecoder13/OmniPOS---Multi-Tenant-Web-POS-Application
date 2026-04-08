@@ -3,8 +3,10 @@ import { onMounted } from 'vue';
 import AppearanceToggle from '@/components/AppearanceToggle.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue';
+import NotificationBell from '@/components/NotificationBell.vue';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useLocale } from '@/composables/useLocale';
+import { useTenant } from '@/composables/useTenant';
 import type { BreadcrumbItem } from '@/types';
 
 withDefaults(
@@ -17,6 +19,7 @@ withDefaults(
 );
 
 const { initLocale } = useLocale();
+const { tenant } = useTenant();
 onMounted(() => initLocale());
 </script>
 
@@ -31,6 +34,7 @@ onMounted(() => initLocale());
             </template>
         </div>
         <div class="flex items-center gap-1">
+            <NotificationBell v-if="tenant" />
             <AppearanceToggle />
             <LanguageSwitcher />
         </div>

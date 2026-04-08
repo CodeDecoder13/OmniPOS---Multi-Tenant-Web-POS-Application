@@ -24,6 +24,18 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $tenantSlug, int $customer): Response
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $customer = $this->customerService->findForTenant($tenant, $customer);
+
+        return Inertia::render('tenant/customers/Show', [
+            'customer' => $customer,
+            'stats' => $this->customerService->getStats($customer),
+            'orders' => $this->customerService->getOrderHistory($customer),
+        ]);
+    }
+
     public function create(): Response
     {
         return Inertia::render('tenant/customers/Create');

@@ -110,6 +110,13 @@
                 {{ $item->quantity }} x ₱{{ number_format($item->product_price, 2) }}
             </td>
         </tr>
+        @if($item->notes)
+        <tr>
+            <td colspan="2" class="item-detail" style="font-style: italic;">
+                Note: {{ $item->notes }}
+            </td>
+        </tr>
+        @endif
         @endforeach
     </table>
 
@@ -138,32 +145,36 @@
         </tr>
     </table>
 
-    @if($payment)
+    @if($order->payments->count() > 0)
     <div class="separator"></div>
 
     <table>
+        @foreach($order->payments as $p)
+        @if(!$p->refund_id)
         <tr>
-            <td>Payment</td>
-            <td class="right">{{ $payment->method->label() }}</td>
+            <td>Payment{{ $order->payments->where('refund_id', null)->count() > 1 ? ' ' . $loop->iteration : '' }}</td>
+            <td class="right">{{ $p->method->label() }} — ₱{{ number_format($p->amount, 2) }}</td>
         </tr>
-        @if($payment->amount_tendered)
+        @if($p->amount_tendered && $p->method->value === 'cash')
         <tr>
             <td>Tendered</td>
-            <td class="right">₱{{ number_format($payment->amount_tendered, 2) }}</td>
+            <td class="right">₱{{ number_format($p->amount_tendered, 2) }}</td>
         </tr>
         @endif
-        @if($payment->change_amount > 0)
+        @if($p->change_amount > 0)
         <tr>
             <td>Change</td>
-            <td class="right">₱{{ number_format($payment->change_amount, 2) }}</td>
+            <td class="right">₱{{ number_format($p->change_amount, 2) }}</td>
         </tr>
         @endif
-        @if($payment->reference_number)
+        @if($p->reference_number && !str_starts_with($p->reference_number, 'REFUND:'))
         <tr>
             <td>Ref#</td>
-            <td class="right">{{ $payment->reference_number }}</td>
+            <td class="right">{{ $p->reference_number }}</td>
         </tr>
         @endif
+        @endif
+        @endforeach
     </table>
     @endif
 

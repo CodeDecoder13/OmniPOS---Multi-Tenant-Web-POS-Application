@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Tenant;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tenant\RefundRequest;
 use App\Services\Tenant\OrderService;
 use App\Services\Tenant\ReceiptService;
+use App\Services\Tenant\RefundService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,6 +18,7 @@ class OrderController extends Controller
     public function __construct(
         private readonly OrderService $orderService,
         private readonly ReceiptService $receiptService,
+        private readonly RefundService $refundService,
     ) {}
 
     public function index(Request $request, string $tenantSlug): Response
@@ -53,6 +57,34 @@ class OrderController extends Controller
         return redirect()->back()->with('success', 'Order has been voided.');
     }
 
+    public function refundPage(Request $request, string $tenantSlug, int $order): Response
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $order = $this->orderService->findForTenant($tenant, $order, $tenantUser->branch_id ?? null);
+
+        if (! $order->canBeRefunded()) {
+            return redirect()->route('tenant.orders.show', ['tenant' => $tenant->slug, 'order' => $order->id])
+                ->with('error', 'This order cannot be refunded.');
+        }
+
+        return Inertia::render('tenant/orders/Refund', [
+            'order' => $order,
+        ]);
+    }
+
+    public function refund(RefundRequest $request, string $tenantSlug, int $order): RedirectResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $order = $this->orderService->findForTenant($tenant, $order, $tenantUser->branch_id ?? null);
+
+        $this->refundService->processRefund($tenant, $order, $request->validated(), $request->user()->id);
+
+        return redirect()->route('tenant.orders.show', ['tenant' => $tenant->slug, 'order' => $order->id])
+            ->with('success', 'Refund processed successfully.');
+    }
+
     public function receiptPdf(Request $request, string $tenantSlug, int $order): \Illuminate\Http\Response
     {
         $tenant = $request->attributes->get('current_tenant');
@@ -60,5 +92,31 @@ class OrderController extends Controller
         $order = $this->orderService->findForTenant($tenant, $order, $tenantUser->branch_id ?? null);
 
         return $this->receiptService->generatePdf($tenant, $order);
+    }
+
+    public function emailReceipt(Request $request, string $tenantSlug, int $order): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $order = $this->orderService->findForTenant($tenant, $order, $tenantUser->branch_id ?? null);
+
+        $this->receiptService->emailReceipt($tenant, $order, $request->input('email'));
+
+        return response()->json(['success' => true]);
+    }
+
+    public function receiptLink(Request $request, string $tenantSlug, int $order): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $order = $this->orderService->findForTenant($tenant, $order, $tenantUser->branch_id ?? null);
+
+        return response()->json([
+            'url' => $this->receiptService->getShareableUrl($order),
+        ]);
     }
 }
