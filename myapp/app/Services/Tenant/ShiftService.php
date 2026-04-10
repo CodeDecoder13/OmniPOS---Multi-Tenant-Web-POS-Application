@@ -81,6 +81,7 @@ class ShiftService
                 'notes' => $data['notes'] ?? $shift->notes,
                 'status' => ShiftStatus::Closed,
                 'closed_at' => now(),
+                'hours_rendered' => round($shift->opened_at->diffInMinutes(now()) / 60, 2),
             ]);
 
             $shift = $shift->fresh();
