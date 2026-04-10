@@ -8,11 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->unsignedBigInteger('voided_by')->nullable()->after('status');
-            $table->text('void_reason')->nullable()->after('voided_by');
-            $table->timestamp('voided_at')->nullable()->after('void_reason');
-        });
+        if (!Schema::hasColumn('orders', 'voided_by')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->unsignedBigInteger('voided_by')->nullable()->after('status');
+                $table->text('void_reason')->nullable()->after('voided_by');
+                $table->timestamp('voided_at')->nullable()->after('void_reason');
+            });
+        }
     }
 
     public function down(): void

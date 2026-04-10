@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->string('receipt_token', 64)->nullable()->unique()->after('held_at');
-        });
+        if (!Schema::hasColumn('orders', 'receipt_token')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('receipt_token', 64)->nullable()->unique()->after('held_at');
+            });
+        }
     }
 
     public function down(): void

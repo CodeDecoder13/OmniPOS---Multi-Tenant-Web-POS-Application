@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->unsignedBigInteger('table_id')->nullable()->after('shift_id');
-            $table->foreign('table_id')->references('id')->on('tables')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('orders', 'table_id')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->unsignedBigInteger('table_id')->nullable()->after('shift_id');
+                $table->foreign('table_id')->references('id')->on('tables')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
