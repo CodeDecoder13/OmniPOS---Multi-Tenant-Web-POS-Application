@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('inventory', function (Blueprint $table) {
-            $table->integer('reorder_point')->nullable()->after('low_stock_threshold');
-            $table->integer('reorder_quantity')->nullable()->after('reorder_point');
-        });
+        if (!Schema::hasColumn('inventory', 'reorder_point')) {
+            Schema::table('inventory', function (Blueprint $table) {
+                $table->integer('reorder_point')->nullable()->after('low_stock_threshold');
+                $table->integer('reorder_quantity')->nullable()->after('reorder_point');
+            });
+        }
     }
 
     public function down(): void

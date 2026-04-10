@@ -8,7 +8,6 @@ use App\Events\ShiftClosed;
 use App\Events\ShiftOpened;
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
-use App\Models\Tenant\Order;
 use App\Models\Tenant\Shift;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -56,12 +55,9 @@ class ShiftService
         }
 
         return DB::transaction(function () use ($shift, $data) {
-            $orders = Order::where('shift_id', $shift->id)
-                ->where('status', OrderStatus::Completed)
-                ->get();
-
-            $totalSales = $orders->sum('total');
-            $totalOrders = $orders->count();
+            $summary = $this->getShiftSummary($shift);
+            $totalSales = $summary['total_sales'];
+            $totalOrders = $summary['total_orders'];
 
             // Sum cash payments for expected cash calculation
             $cashPayments = DB::table('payments')
@@ -140,17 +136,18 @@ class ShiftService
 
     public function getShiftSummary(Shift $shift): array
     {
-        // Use aggregate query instead of loading all orders
-        $stats = Order::where('shift_id', $shift->id)
+        // Use raw DB query to bypass Eloquent casts/scopes, with COALESCE for null safety
+        $stats = DB::table('orders')
+            ->where('shift_id', $shift->id)
             ->selectRaw("
-                SUM(CASE WHEN status = ? THEN total ELSE 0 END) as total_sales,
-                COUNT(CASE WHEN status = ? THEN 1 END) as total_orders,
-                COUNT(CASE WHEN status = ? THEN 1 END) as voided_count
+                COALESCE(SUM(CASE WHEN status = ? THEN total ELSE 0 END), 0) as total_sales,
+                COALESCE(COUNT(CASE WHEN status = ? THEN 1 END), 0) as total_orders,
+                COALESCE(COUNT(CASE WHEN status = ? THEN 1 END), 0) as voided_count
             ", [OrderStatus::Completed->value, OrderStatus::Completed->value, OrderStatus::Voided->value])
             ->first();
 
-        $totalSales = (float) ($stats->total_sales ?? 0);
-        $totalOrders = (int) ($stats->total_orders ?? 0);
+        $totalSales = (float) $stats->total_sales;
+        $totalOrders = (int) $stats->total_orders;
         $avgOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
         $voidedCount = (int) ($stats->voided_count ?? 0);
 

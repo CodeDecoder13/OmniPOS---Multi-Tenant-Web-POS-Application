@@ -8,11 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->unsignedBigInteger('promotion_id')->nullable()->after('table_id');
-            $table->decimal('promotion_discount', 10, 2)->default(0)->after('promotion_id');
-            $table->foreign('promotion_id')->references('id')->on('promotions')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('orders', 'promotion_id')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->unsignedBigInteger('promotion_id')->nullable()->after('table_id');
+                $table->decimal('promotion_discount', 10, 2)->default(0)->after('promotion_id');
+                $table->foreign('promotion_id')->references('id')->on('promotions')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void

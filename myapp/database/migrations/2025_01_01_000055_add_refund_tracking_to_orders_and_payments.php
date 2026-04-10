@@ -8,13 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->decimal('refunded_amount', 12, 2)->default(0)->after('total');
-        });
+        if (!Schema::hasColumn('orders', 'refunded_amount')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->decimal('refunded_amount', 12, 2)->default(0)->after('total');
+            });
+        }
 
-        Schema::table('payments', function (Blueprint $table) {
-            $table->foreignId('refund_id')->nullable()->after('order_id')->constrained()->nullOnDelete();
-        });
+        if (!Schema::hasColumn('payments', 'refund_id')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->foreignId('refund_id')->nullable()->after('order_id')->constrained()->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void

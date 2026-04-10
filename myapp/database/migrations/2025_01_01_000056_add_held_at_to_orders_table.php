@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->timestamp('held_at')->nullable()->after('voided_at');
-        });
+        if (!Schema::hasColumn('orders', 'held_at')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->timestamp('held_at')->nullable()->after('voided_at');
+            });
+        }
     }
 
     public function down(): void
