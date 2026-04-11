@@ -272,6 +272,9 @@ class PosService
                 'shift_id' => $data['shift_id'] ?? null,
                 'table_id' => $tableId,
                 'receipt_token' => Str::random(64),
+                'discount_customer_name' => $data['discount_customer_name'] ?? null,
+                'discount_customer_id_number' => $data['discount_customer_id_number'] ?? null,
+                'discount_customer_birthday' => $data['discount_customer_birthday'] ?? null,
             ]);
 
             // Mark table as occupied

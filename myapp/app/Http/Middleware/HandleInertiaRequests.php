@@ -94,7 +94,13 @@ class HandleInertiaRequests extends Middleware
                     'name' => $tenant->name,
                     'slug' => $tenant->slug,
                     'is_active' => $tenant->is_active,
-                    'settings' => $tenant->data ?? [],
+                    'settings' => (function () use ($tenant) {
+                        $settings = $tenant->data ?? [];
+                        if (! empty($settings['receipt_logo'])) {
+                            $settings['receipt_logo_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($settings['receipt_logo']);
+                        }
+                        return $settings;
+                    })(),
                     'subscription' => $tenant->subscription ? [
                         'status' => $tenant->subscription->status,
                         'plan' => $tenant->subscription->plan ? [

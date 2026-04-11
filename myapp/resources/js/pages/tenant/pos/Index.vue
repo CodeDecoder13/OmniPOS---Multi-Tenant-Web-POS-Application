@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { Minus, Plus, Search, ShoppingCart, Trash2, User, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play } from 'lucide-vue-next';
+import { Minus, Plus, Search, ShoppingCart, Trash2, User, UserPlus, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play, Tag } from 'lucide-vue-next';
 import PosLayout from '@/layouts/PosLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PosLoginModal from '@/components/PosLoginModal.vue';
 import StartShiftDialog from '@/components/StartShiftDialog.vue';
 import ReceiptTemplate from '@/components/ReceiptTemplate.vue';
+import DiscountPanel from '@/components/DiscountPanel.vue';
 import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
@@ -63,6 +64,7 @@ interface PosCustomer {
 const props = defineProps<{
     categories: Pick<Category, 'id' | 'name'>[];
     tables: Pick<Table, 'id' | 'name' | 'capacity' | 'status'>[];
+    presetDiscounts?: { id: number; code: string; name: string; type: string; value: string }[];
     branchSettings?: Record<string, boolean> | null;
 }>();
 
@@ -174,6 +176,27 @@ async function applyPromoCode() {
     }
 }
 
+// Discount panel state
+const showDiscountPanel = ref(false);
+const appliedPresetDiscount = ref<{ id: number; code: string; name: string; type: string; value: string } | null>(null);
+const discountCustomer = ref<{ name: string; id_number: string; birthday: string } | null>(null);
+
+function applyPresetDiscount(discount: { id: number; code: string; name: string; type: string; value: string }, customer: { name: string; id_number: string; birthday: string }) {
+    // Apply as promotion (uses the promotion flow)
+    appliedPromo.value = discount;
+    promoDiscount.value = Math.round(afterDiscount.value * (parseFloat(discount.value) / 100) * 100) / 100;
+    appliedPresetDiscount.value = discount;
+    discountCustomer.value = customer;
+    promoCode.value = '';
+    promoError.value = '';
+}
+
+function removePresetDiscount() {
+    appliedPresetDiscount.value = null;
+    discountCustomer.value = null;
+    removePromo();
+}
+
 function removePromo() {
     appliedPromo.value = null;
     promoDiscount.value = 0;
@@ -186,6 +209,64 @@ const customerSearch = ref('');
 const customerResults = ref<PosCustomer[]>([]);
 const showCustomerSearch = ref(false);
 const searchingCustomers = ref(false);
+
+// Add customer modal
+const showAddCustomer = ref(false);
+const newCustomer = ref({ name: '', email: '', phone: '' });
+const newCustomerErrors = ref<Record<string, string>>({});
+const savingCustomer = ref(false);
+
+function openAddCustomer() {
+    newCustomer.value = { name: '', email: '', phone: '' };
+    newCustomerErrors.value = {};
+    showAddCustomer.value = true;
+}
+
+async function saveNewCustomer() {
+    newCustomerErrors.value = {};
+    if (!newCustomer.value.name.trim()) {
+        newCustomerErrors.value.name = 'Name is required.';
+        return;
+    }
+    savingCustomer.value = true;
+    try {
+        const xsrfToken = decodeURIComponent(
+            document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1] ?? ''
+        );
+        const res = await fetch(tenantUrl('pos/customers'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': xsrfToken,
+            },
+            body: JSON.stringify({
+                name: newCustomer.value.name.trim(),
+                email: newCustomer.value.email.trim() || null,
+                phone: newCustomer.value.phone.trim() || null,
+            }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            if (err.errors) {
+                for (const [key, msgs] of Object.entries(err.errors)) {
+                    newCustomerErrors.value[key] = (msgs as string[])[0];
+                }
+            } else {
+                newCustomerErrors.value.name = err.message || 'Failed to create customer.';
+            }
+            return;
+        }
+        const created: PosCustomer = await res.json();
+        selectCustomer(created);
+        showAddCustomer.value = false;
+    } catch {
+        newCustomerErrors.value.name = 'Network error. Please try again.';
+    } finally {
+        savingCustomer.value = false;
+    }
+}
 
 // Barcode scanner state
 const barcodeInput = ref('');
@@ -466,6 +547,8 @@ function clearCart() {
     appliedPromo.value = null;
     promoCode.value = '';
     promoDiscount.value = 0;
+    appliedPresetDiscount.value = null;
+    discountCustomer.value = null;
     recalledOrderId.value = null;
 }
 
@@ -564,6 +647,9 @@ async function processCheckout() {
             pos_operator_id: operatorUserId.value,
             table_id: selectedTable.value ?? null,
             promotion_id: appliedPromo.value?.id ?? null,
+            discount_customer_name: discountCustomer.value?.name ?? null,
+            discount_customer_id_number: discountCustomer.value?.id_number ?? null,
+            discount_customer_birthday: discountCustomer.value?.birthday ?? null,
             order_id: recalledOrderId.value ?? null,
         };
 
@@ -594,7 +680,17 @@ async function processCheckout() {
         // Auto-print receipt if branch setting is enabled
         nextTick(() => {
             if (props.branchSettings?.receipt_printing && completedReceiptData.value) {
-                doPrintReceipt(completedReceiptData.value, true);
+                doPrintReceipt(completedReceiptData.value, true, {
+                    logoUrl: tenant.value?.settings?.receipt_logo_url ?? null,
+                    showAddress: tenant.value?.settings?.receipt_show_address !== false,
+                    showPhone: tenant.value?.settings?.receipt_show_phone !== false,
+                    showCustomer: tenant.value?.settings?.receipt_show_customer !== false,
+                    showTable: tenant.value?.settings?.receipt_show_table !== false,
+                    showOrderType: tenant.value?.settings?.receipt_show_order_type !== false,
+                    showTaxBreakdown: tenant.value?.settings?.receipt_show_tax_breakdown !== false,
+                    thankYouMessage: (tenant.value?.settings?.receipt_thank_you_message as string) ?? '',
+                    width: (tenant.value?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm',
+                });
             }
             // Auto-print KOT if kitchen display is enabled
             if (props.branchSettings?.kitchen_display && data.order) {
@@ -693,7 +789,17 @@ const completedReceiptData = computed<ReceiptData>(() => {
 
 function printReceipt() {
     if (completedReceiptData.value) {
-        doPrintReceipt(completedReceiptData.value, true);
+        doPrintReceipt(completedReceiptData.value, true, {
+            logoUrl: tenant.value?.settings?.receipt_logo_url ?? null,
+            showAddress: tenant.value?.settings?.receipt_show_address !== false,
+            showPhone: tenant.value?.settings?.receipt_show_phone !== false,
+            showCustomer: tenant.value?.settings?.receipt_show_customer !== false,
+            showTable: tenant.value?.settings?.receipt_show_table !== false,
+            showOrderType: tenant.value?.settings?.receipt_show_order_type !== false,
+            showTaxBreakdown: tenant.value?.settings?.receipt_show_tax_breakdown !== false,
+            thankYouMessage: (tenant.value?.settings?.receipt_thank_you_message as string) ?? '',
+            width: (tenant.value?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm',
+        });
     }
 }
 
@@ -996,13 +1102,22 @@ onMounted(() => {
                         </Button>
                     </div>
                     <div v-else class="relative">
-                        <button
-                            @click="showCustomerSearch = !showCustomerSearch"
-                            class="flex w-full items-center gap-2 rounded-md py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            <User class="h-4 w-4" />
-                            <span>Add customer (optional)</span>
-                        </button>
+                        <div class="flex items-center justify-between">
+                            <button
+                                @click="showCustomerSearch = !showCustomerSearch"
+                                class="flex items-center gap-2 rounded-md py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <User class="h-4 w-4" />
+                                <span>Add customer (optional)</span>
+                            </button>
+                            <button
+                                @click="openAddCustomer"
+                                class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                title="Create new customer"
+                            >
+                                <UserPlus class="h-3.5 w-3.5" />
+                            </button>
+                        </div>
                         <div v-if="showCustomerSearch" class="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border bg-popover p-2 shadow-md">
                             <Input v-model="customerSearch" placeholder="Search by name, email, phone..." class="text-sm" autofocus />
                             <div v-if="customerResults.length > 0" class="mt-1 max-h-40 overflow-y-auto">
@@ -1017,9 +1132,16 @@ onMounted(() => {
                                     <span v-if="c.phone" class="text-xs text-muted-foreground">{{ c.phone }}</span>
                                 </button>
                             </div>
-                            <p v-else-if="customerSearch.length >= 2 && !searchingCustomers" class="py-2 text-center text-xs text-muted-foreground">
-                                No customers found
-                            </p>
+                            <div v-else-if="customerSearch.length >= 2 && !searchingCustomers" class="py-2 text-center">
+                                <p class="text-xs text-muted-foreground">No customers found</p>
+                                <button
+                                    @click="showCustomerSearch = false; openAddCustomer()"
+                                    class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                                >
+                                    <UserPlus class="h-3 w-3" />
+                                    Create new customer
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1109,56 +1231,86 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Discount section -->
-                <div v-if="operatorCan('pos.discount') && cart.length > 0 && isEnabled('discounts_enabled')" class="border-t px-4 py-2">
-                    <div class="flex items-center gap-2">
-                        <Select v-model="discountType">
-                            <SelectTrigger class="w-[100px] h-8 text-xs">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="percentage">
-                                    <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> Percent</span>
-                                </SelectItem>
-                                <SelectItem value="fixed">
-                                    <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> Fixed</span>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Input
-                            v-model.number="discountAmount"
-                            type="number"
-                            min="0"
-                            :max="discountType === 'percentage' ? 100 : subtotal"
-                            placeholder="0"
-                            class="h-8 text-sm"
-                        />
+                <!-- Discount & Promo section -->
+                <div v-if="cart.length > 0" class="border-t px-4 py-2 space-y-2">
+                    <!-- Applied preset discount badge -->
+                    <div v-if="appliedPresetDiscount" class="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950 px-3 py-2.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <Tag class="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-green-700 dark:text-green-300">{{ appliedPresetDiscount.name }}</p>
+                                <p class="text-[10px] text-green-600 dark:text-green-400 truncate">
+                                    {{ discountCustomer?.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
+                                </p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0 hover:bg-green-100 dark:hover:bg-green-900" @click="removePresetDiscount">
+                            <X class="h-3 w-3 text-green-600" />
+                        </Button>
                     </div>
-                </div>
 
-                <!-- Promo code -->
-                <div v-if="cart.length > 0" class="border-t px-4 py-2">
-                    <div v-if="appliedPromo" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-3 py-2">
-                        <div>
-                            <p class="text-xs font-medium text-green-700 dark:text-green-300">{{ appliedPromo.code }}</p>
+                    <!-- Applied promo code badge (non-preset) -->
+                    <div v-else-if="appliedPromo" class="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950 px-3 py-2.5 border border-green-200 dark:border-green-800">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold text-green-700 dark:text-green-300">{{ appliedPromo.code }}</p>
                             <p class="text-[10px] text-green-600 dark:text-green-400">{{ appliedPromo.name }} &mdash; -{{ formatCurrency(promoDiscount) }}</p>
                         </div>
-                        <Button variant="ghost" size="icon" class="h-6 w-6" @click="removePromo">
+                        <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" @click="removePromo">
                             <X class="h-3 w-3" />
                         </Button>
                     </div>
-                    <div v-else class="flex items-center gap-2">
-                        <Input
-                            v-model="promoCode"
-                            placeholder="Promo code"
-                            class="h-8 text-xs uppercase"
-                            @keydown.enter="applyPromoCode"
-                        />
-                        <Button variant="outline" size="sm" class="h-8 shrink-0 text-xs" :disabled="promoLoading || !promoCode.trim()" @click="applyPromoCode">
-                            {{ promoLoading ? '...' : 'Apply' }}
-                        </Button>
+
+                    <!-- Discount & promo buttons (when nothing applied) -->
+                    <div v-else class="space-y-2">
+                        <!-- Manual discount row -->
+                        <div v-if="operatorCan('pos.discount') && isEnabled('discounts_enabled')" class="flex items-center gap-2">
+                            <Select v-model="discountType">
+                                <SelectTrigger class="w-[100px] h-8 text-xs">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="percentage">
+                                        <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> Percent</span>
+                                    </SelectItem>
+                                    <SelectItem value="fixed">
+                                        <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> Fixed</span>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Input
+                                v-model.number="discountAmount"
+                                type="number"
+                                min="0"
+                                :max="discountType === 'percentage' ? 100 : subtotal"
+                                placeholder="0"
+                                class="h-8 text-sm"
+                            />
+                        </div>
+
+                        <!-- Promo code + preset discount row -->
+                        <div class="flex items-center gap-2">
+                            <Input
+                                v-model="promoCode"
+                                placeholder="Promo code"
+                                class="h-8 text-xs uppercase flex-1"
+                                @keydown.enter="applyPromoCode"
+                            />
+                            <Button variant="outline" size="sm" class="h-8 shrink-0 text-xs" :disabled="promoLoading || !promoCode.trim()" @click="applyPromoCode">
+                                {{ promoLoading ? '...' : 'Apply' }}
+                            </Button>
+                            <Button
+                                v-if="presetDiscounts && presetDiscounts.length > 0"
+                                variant="outline"
+                                size="sm"
+                                class="h-8 shrink-0 text-xs gap-1"
+                                @click="showDiscountPanel = true"
+                            >
+                                <Tag class="h-3 w-3" />
+                                ID Discount
+                            </Button>
+                        </div>
+                        <p v-if="promoError" class="text-xs text-destructive">{{ promoError }}</p>
                     </div>
-                    <p v-if="promoError" class="mt-1 text-xs text-destructive">{{ promoError }}</p>
                 </div>
 
                 <!-- Notes -->
@@ -1226,7 +1378,19 @@ onMounted(() => {
                 </DialogHeader>
 
                 <div class="max-h-[60vh] overflow-y-auto py-2">
-                    <ReceiptTemplate :data="previewReceiptData" :showPaymentDetails="false" />
+                    <ReceiptTemplate
+                        :data="previewReceiptData"
+                        :showPaymentDetails="false"
+                        :logo-url="tenant?.settings?.receipt_logo_url ?? null"
+                        :show-address="tenant?.settings?.receipt_show_address !== false"
+                        :show-phone="tenant?.settings?.receipt_show_phone !== false"
+                        :show-customer="tenant?.settings?.receipt_show_customer !== false"
+                        :show-table="tenant?.settings?.receipt_show_table !== false"
+                        :show-order-type="tenant?.settings?.receipt_show_order_type !== false"
+                        :show-tax-breakdown="tenant?.settings?.receipt_show_tax_breakdown !== false"
+                        :thank-you-message="(tenant?.settings?.receipt_thank_you_message as string) ?? ''"
+                        :width="(tenant?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm'"
+                    />
                 </div>
 
                 <DialogFooter class="flex-row gap-2 sm:flex-row">
@@ -1361,7 +1525,19 @@ onMounted(() => {
                 </DialogHeader>
 
                 <div v-if="completedOrder" id="receipt-print-area" class="max-h-[60vh] overflow-y-auto py-2">
-                    <ReceiptTemplate :data="completedReceiptData" :showPaymentDetails="true" />
+                    <ReceiptTemplate
+                        :data="completedReceiptData"
+                        :showPaymentDetails="true"
+                        :logo-url="tenant?.settings?.receipt_logo_url ?? null"
+                        :show-address="tenant?.settings?.receipt_show_address !== false"
+                        :show-phone="tenant?.settings?.receipt_show_phone !== false"
+                        :show-customer="tenant?.settings?.receipt_show_customer !== false"
+                        :show-table="tenant?.settings?.receipt_show_table !== false"
+                        :show-order-type="tenant?.settings?.receipt_show_order_type !== false"
+                        :show-tax-breakdown="tenant?.settings?.receipt_show_tax_breakdown !== false"
+                        :thank-you-message="(tenant?.settings?.receipt_thank_you_message as string) ?? ''"
+                        :width="(tenant?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm'"
+                    />
                 </div>
 
                 <DialogFooter class="flex-col gap-2 sm:flex-col">
@@ -1467,6 +1643,62 @@ onMounted(() => {
                         </div>
                     </div>
                 </div>
+            </DialogContent>
+        </Dialog>
+        <!-- Discount Panel -->
+        <DiscountPanel
+            v-model:open="showDiscountPanel"
+            :preset-discounts="presetDiscounts ?? []"
+            :subtotal="afterDiscount"
+            @apply="applyPresetDiscount"
+        />
+
+        <!-- Add Customer Modal -->
+        <Dialog v-model:open="showAddCustomer">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>New Customer</DialogTitle>
+                </DialogHeader>
+                <form @submit.prevent="saveNewCustomer" class="flex flex-col gap-4 py-2">
+                    <div class="space-y-1.5">
+                        <Label for="new-cust-name">Name <span class="text-destructive">*</span></Label>
+                        <Input
+                            id="new-cust-name"
+                            v-model="newCustomer.name"
+                            placeholder="Customer name"
+                            :class="{ 'border-destructive': newCustomerErrors.name }"
+                            autofocus
+                        />
+                        <p v-if="newCustomerErrors.name" class="text-xs text-destructive">{{ newCustomerErrors.name }}</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <Label for="new-cust-email">Email</Label>
+                        <Input
+                            id="new-cust-email"
+                            v-model="newCustomer.email"
+                            type="email"
+                            placeholder="email@example.com"
+                            :class="{ 'border-destructive': newCustomerErrors.email }"
+                        />
+                        <p v-if="newCustomerErrors.email" class="text-xs text-destructive">{{ newCustomerErrors.email }}</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <Label for="new-cust-phone">Phone</Label>
+                        <Input
+                            id="new-cust-phone"
+                            v-model="newCustomer.phone"
+                            placeholder="+63 912 345 6789"
+                            :class="{ 'border-destructive': newCustomerErrors.phone }"
+                        />
+                        <p v-if="newCustomerErrors.phone" class="text-xs text-destructive">{{ newCustomerErrors.phone }}</p>
+                    </div>
+                    <DialogFooter class="gap-2 sm:gap-0">
+                        <Button variant="outline" type="button" @click="showAddCustomer = false">Cancel</Button>
+                        <Button type="submit" :disabled="savingCustomer">
+                            {{ savingCustomer ? 'Saving...' : 'Save Customer' }}
+                        </Button>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     </PosLayout>

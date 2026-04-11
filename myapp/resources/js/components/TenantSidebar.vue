@@ -3,8 +3,8 @@ import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeftRight, BarChart3, Building2, CalendarDays, ChefHat, ChevronRight, ClipboardList,
-    Clock, FileText, FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle,
-    Shield, ShoppingCart, Tag, Truck, UserRound, Users, Warehouse,
+    Clock, Crown, FileText, FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle,
+    ReceiptText, Settings2, Shield, ShoppingCart, Store, Tag, Truck, UserRound, Users, Warehouse,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import NavUser from '@/components/NavUser.vue';
@@ -38,6 +38,7 @@ interface NavChild {
     permission: string | null;
     external?: boolean;
     feature?: keyof BranchSettings;
+    plan?: string;
 }
 
 interface NavGroup {
@@ -57,7 +58,7 @@ const topLevelItems: NavChild[] = [
     { title: 'Kitchen', path: 'kitchen', icon: ChefHat, permission: 'kitchen.access', external: true, feature: 'kitchen_display' },
 ];
 
-const navGroups: NavGroup[] = [
+const operationsGroups: NavGroup[] = [
     {
         title: 'Sales & Orders',
         icon: ClipboardList,
@@ -89,6 +90,9 @@ const navGroups: NavGroup[] = [
             { title: 'Purchase Orders', path: 'purchase-orders', icon: FileText, permission: 'inventory.view', feature: 'inventory_tracking' },
         ],
     },
+];
+
+const storeGroups: NavGroup[] = [
     {
         title: 'Team',
         icon: Users,
@@ -96,7 +100,15 @@ const navGroups: NavGroup[] = [
             { title: 'Users', path: 'users', icon: Users, permission: 'users.view' },
             { title: 'Roles', path: 'roles', icon: Shield, permission: 'roles.view' },
             { title: 'Schedules', path: 'shift-schedules', icon: CalendarDays, permission: 'users.edit-role' },
+        ],
+    },
+    {
+        title: 'Store',
+        icon: Store,
+        children: [
             { title: 'Branches', path: 'branches', icon: Building2, permission: 'branches.view' },
+            { title: 'Settings', path: 'settings', icon: Settings2, permission: 'settings.manage' },
+            { title: 'Receipt Design', path: 'receipt-customization', icon: ReceiptText, permission: 'settings.manage', plan: 'enterprise' },
         ],
     },
 ];
@@ -118,14 +130,29 @@ function filterByPermission(items: NavChild[]): NavChild[] {
     return items.filter((item) => {
         if (item.permission && !can(item.permission)) return false;
         if (item.feature && !isEnabled(item.feature)) return false;
+        if (item.plan && tenant.value?.subscription?.plan?.slug !== item.plan) return false;
         return true;
     });
 }
 
+function requiresUpgrade(item: NavChild): boolean {
+    if (!item.plan) return false;
+    return tenant.value?.subscription?.plan?.slug !== item.plan;
+}
+
 const filteredTopLevel = computed(() => filterByPermission(topLevelItems));
 
-const filteredGroups = computed(() =>
-    navGroups
+const filteredOperationsGroups = computed(() =>
+    operationsGroups
+        .map((group) => ({
+            ...group,
+            children: filterByPermission(group.children),
+        }))
+        .filter((group) => group.children.length > 0),
+);
+
+const filteredStoreGroups = computed(() =>
+    storeGroups
         .map((group) => ({
             ...group,
             children: filterByPermission(group.children),
@@ -182,13 +209,13 @@ const filteredGroups = computed(() =>
 
             <SidebarSeparator />
 
-            <!-- Collapsible groups — all in one group, no redundant labels -->
+            <!-- Operations groups -->
             <SidebarGroup>
-                <SidebarGroupLabel>Manage</SidebarGroupLabel>
+                <SidebarGroupLabel>Operations</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <Collapsible
-                            v-for="group in filteredGroups"
+                            v-for="group in filteredOperationsGroups"
                             :key="group.title"
                             as-child
                             :default-open="hasActiveChild(group)"
@@ -207,6 +234,48 @@ const filteredGroups = computed(() =>
                                             <SidebarMenuSubButton as-child size="sm" :is-active="isActive(child.path)">
                                                 <Link :href="tenantUrl(child.path)">
                                                     <span>{{ child.title }}</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarSeparator />
+
+            <!-- Store groups -->
+            <SidebarGroup>
+                <SidebarGroupLabel>Store</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <Collapsible
+                            v-for="group in filteredStoreGroups"
+                            :key="group.title"
+                            as-child
+                            :default-open="hasActiveChild(group)"
+                        >
+                            <SidebarMenuItem>
+                                <CollapsibleTrigger as-child>
+                                    <SidebarMenuButton>
+                                        <component :is="group.icon" />
+                                        <span>{{ group.title }}</span>
+                                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        <SidebarMenuSubItem v-for="child in group.children" :key="child.title">
+                                            <SidebarMenuSubButton as-child size="sm" :is-active="isActive(child.path)">
+                                                <Link :href="tenantUrl(child.path)">
+                                                    <span>{{ child.title }}</span>
+                                                    <Crown
+                                                        v-if="requiresUpgrade(child)"
+                                                        class="ml-auto h-3 w-3 shrink-0 text-amber-500"
+                                                    />
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

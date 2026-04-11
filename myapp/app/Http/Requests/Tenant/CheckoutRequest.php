@@ -65,6 +65,9 @@ class CheckoutRequest extends FormRequest
             'pos_operator_id' => ['nullable', 'integer'],
             'table_id' => ['nullable', 'integer', Rule::exists('tables', 'id')->where('tenant_id', $tenant->id)],
             'promotion_id' => ['nullable', 'integer', Rule::exists('promotions', 'id')->where('tenant_id', $tenant->id)],
+            'discount_customer_name' => ['nullable', 'required_with:discount_customer_id_number', 'string', 'max:255'],
+            'discount_customer_id_number' => ['nullable', 'required_with:discount_customer_name', 'string', 'max:100'],
+            'discount_customer_birthday' => ['nullable', 'date', 'before_or_equal:today'],
             'order_id' => ['nullable', 'integer'],
         ];
     }

@@ -12,6 +12,7 @@ use App\Models\TenantUser;
 use App\Services\Tenant\CustomerService;
 use App\Services\Tenant\HeldOrderService;
 use App\Services\Tenant\PosService;
+use App\Services\Tenant\PromotionService;
 use App\Services\Tenant\ShiftService;
 use App\Services\Tenant\TableService;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,7 @@ class PosController extends Controller
     public function __construct(
         private readonly PosService $posService,
         private readonly CustomerService $customerService,
+        private readonly PromotionService $promotionService,
     ) {}
 
     public function index(Request $request, string $tenantSlug): Response
@@ -41,6 +43,7 @@ class PosController extends Controller
                 ->orderBy('name')
                 ->get(['id', 'name']),
             'tables' => app(TableService::class)->getAvailableForBranch($tenant, $branchId),
+            'presetDiscounts' => $this->promotionService->getPresetDiscounts($tenant),
             'branchSettings' => $branch?->getSettings(),
         ]);
     }
@@ -63,6 +66,26 @@ class PosController extends Controller
         return response()->json(
             $this->customerService->searchForPos($tenant, $request->input('search'))
         );
+    }
+
+    public function storeCustomer(Request $request, string $tenantSlug): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^[+]?[\d\s\-().]+$/'],
+        ]);
+
+        $customer = $this->customerService->create($tenant, $validated, $request->user()->id);
+
+        return response()->json([
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'phone' => $customer->phone,
+        ], 201);
     }
 
     public function checkout(CheckoutRequest $request, string $tenantSlug): JsonResponse

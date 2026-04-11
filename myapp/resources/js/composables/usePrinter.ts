@@ -23,6 +23,18 @@ export interface BarcodeData {
     svgHtml: string;
 }
 
+export interface PrintOptions {
+    logoUrl?: string | null;
+    showAddress?: boolean;
+    showPhone?: boolean;
+    showCustomer?: boolean;
+    showTable?: boolean;
+    showOrderType?: boolean;
+    showTaxBreakdown?: boolean;
+    thankYouMessage?: string;
+    width?: '58mm' | '80mm';
+}
+
 const CURRENCY_MAP: Record<string, string> = {
     PHP: 'en-PH',
     USD: 'en-US',
@@ -70,19 +82,35 @@ function openPrintWindow(html: string): void {
     win.onload = () => win.print();
 }
 
-function buildReceiptHtml(data: ReceiptData, showPayment: boolean): string {
+function buildReceiptHtml(data: ReceiptData, showPayment: boolean, opts?: PrintOptions): string {
+    const o = opts ?? {};
+    const showAddress = o.showAddress !== false;
+    const showPhone = o.showPhone !== false;
+    const showCustomer = o.showCustomer !== false;
+    const showTable = o.showTable !== false;
+    const showOrderType = o.showOrderType !== false;
+    const showTaxBreakdown = o.showTaxBreakdown !== false;
+    const thankYouMessage = o.thankYouMessage ?? '';
+    const width = o.width ?? '80mm';
+    const bodyWidth = width === '58mm' ? '219px' : '302px';
+
     const sep = '<div style="border-bottom:1px dashed #000;margin:4px 0"></div>';
     const row = (l: string, r: string) => `<div style="display:flex;justify-content:space-between;gap:4px"><span>${l}</span><span>${r}</span></div>`;
 
     let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt - ${data.orderNumber || 'Preview'}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',Courier,monospace;font-size:11px;color:#000;width:302px;margin:0 auto;line-height:1.4;padding:4px}
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',Courier,monospace;font-size:11px;color:#000;width:${bodyWidth};margin:0 auto;line-height:1.4;padding:4px}
 .center{text-align:center}.bold{font-weight:bold}.small{font-size:10px;color:#333}.total{font-weight:bold;font-size:13px;border-top:1px dashed #000;padding-top:4px;margin-top:4px}
-@media print{@page{size:80mm auto;margin:2mm}body{width:100%}}</style></head><body>`;
+@media print{@page{size:${width} auto;margin:2mm}body{width:100%}}</style></head><body>`;
+
+    // Logo
+    if (o.logoUrl) {
+        html += `<div class="center" style="margin-bottom:4px"><img src="${o.logoUrl}" style="max-width:120px;max-height:60px" /></div>`;
+    }
 
     // Store header
     html += `<div class="center"><div class="bold" style="font-size:13px">${data.storeName}</div>`;
-    if (data.storeAddress) html += `<div class="small">${data.storeAddress}</div>`;
-    if (data.storePhone) html += `<div class="small">${data.storePhone}</div>`;
+    if (showAddress && data.storeAddress) html += `<div class="small">${data.storeAddress}</div>`;
+    if (showPhone && data.storePhone) html += `<div class="small">${data.storePhone}</div>`;
     if (data.receiptHeader) html += `<div class="small" style="white-space:pre-line;margin-top:2px">${data.receiptHeader}</div>`;
     html += `</div>${sep}`;
 
@@ -90,9 +118,9 @@ function buildReceiptHtml(data: ReceiptData, showPayment: boolean): string {
     if (data.orderNumber) html += row('Order:', data.orderNumber);
     html += row('Date:', data.dateTime);
     html += row('Cashier:', data.cashier);
-    if (data.customer) html += row('Customer:', data.customer);
-    if (data.tableName) html += row('Table:', data.tableName);
-    if (data.orderType) html += `<div class="bold center">** ${data.orderType} **</div>`;
+    if (showCustomer && data.customer) html += row('Customer:', data.customer);
+    if (showTable && data.tableName) html += row('Table:', data.tableName);
+    if (showOrderType && data.orderType) html += `<div class="bold center">** ${data.orderType} **</div>`;
     html += sep;
 
     // Items
@@ -108,7 +136,7 @@ function buildReceiptHtml(data: ReceiptData, showPayment: boolean): string {
     if (data.promotionDiscount && data.promotionDiscount > 0) {
         html += row(`Promo${data.promotionCode ? ` (${data.promotionCode})` : ''}`, `-${formatCurrency(data.promotionDiscount)}`);
     }
-    if (data.tax && data.tax > 0) html += row(data.taxLabel || 'Tax', formatCurrency(data.tax));
+    if (showTaxBreakdown && data.tax && data.tax > 0) html += row(data.taxLabel || 'Tax', formatCurrency(data.tax));
     html += `<div class="total">${row('TOTAL', formatCurrency(data.total))}</div>`;
 
     // Payment
@@ -124,7 +152,8 @@ function buildReceiptHtml(data: ReceiptData, showPayment: boolean): string {
     html += sep;
 
     // Footer
-    html += `<div class="center small" style="color:#666;padding-top:4px;white-space:pre-line">${data.receiptFooter || 'Thank you for your purchase!'}</div>`;
+    const footerText = thankYouMessage || data.receiptFooter || 'Thank you for your purchase!';
+    html += `<div class="center small" style="color:#666;padding-top:4px;white-space:pre-line">${footerText}</div>`;
     html += '</body></html>';
 
     return html;
@@ -187,8 +216,8 @@ function buildBarcodeHtml(data: BarcodeData): string {
 }
 
 export function usePrinter() {
-    function printReceipt(data: ReceiptData, showPayment = true) {
-        openPrintWindow(buildReceiptHtml(data, showPayment));
+    function printReceipt(data: ReceiptData, showPayment = true, opts?: PrintOptions) {
+        openPrintWindow(buildReceiptHtml(data, showPayment, opts));
     }
 
     function printKot(data: KotData) {

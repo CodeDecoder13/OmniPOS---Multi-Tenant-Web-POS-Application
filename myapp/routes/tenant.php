@@ -20,6 +20,7 @@ use App\Http\Controllers\Tenant\ProductImageController;
 use App\Http\Controllers\Tenant\PurchaseOrderController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
+use App\Http\Controllers\Tenant\ReceiptCustomizationController;
 use App\Http\Controllers\Tenant\SettingsController;
 use App\Http\Controllers\Tenant\ShiftController;
 use App\Http\Controllers\Tenant\ShiftScheduleController;
@@ -154,6 +155,7 @@ Route::prefix('{tenant}')
             Route::get('pos', [PosController::class, 'index'])->name('tenant.pos.index');
             Route::get('pos/products', [PosController::class, 'products'])->name('tenant.pos.products');
             Route::get('pos/customers/search', [PosController::class, 'searchCustomers'])->name('tenant.pos.customers.search');
+            Route::post('pos/customers', [PosController::class, 'storeCustomer'])->name('tenant.pos.customers.store');
             Route::post('pos/checkout', [PosController::class, 'checkout'])
                 ->middleware('throttle:60,1')
                 ->name('tenant.pos.checkout');
@@ -322,6 +324,12 @@ Route::prefix('{tenant}')
         Route::middleware('can-do:settings.manage')->group(function () {
             Route::get('settings', [SettingsController::class, 'edit'])->name('tenant.settings.edit');
             Route::put('settings', [SettingsController::class, 'update'])->name('tenant.settings.update');
+        });
+
+        // Receipt Customization
+        Route::middleware('can-do:settings.manage')->group(function () {
+            Route::get('receipt-customization', [ReceiptCustomizationController::class, 'edit'])->name('tenant.receipt-customization.edit');
+            Route::post('receipt-customization', [ReceiptCustomizationController::class, 'update'])->name('tenant.receipt-customization.update');
         });
 
         // Notifications (no permission guard — any authenticated tenant user)

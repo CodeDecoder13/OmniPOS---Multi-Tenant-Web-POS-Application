@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
-import { Eye } from 'lucide-vue-next';
+import { CheckCircle, Clock, DollarSign, Eye, PlayCircle, StopCircle, Timer } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Pagination from '@/components/Pagination.vue';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
 import type { Shift, Branch, PaginatedData } from '@/types';
@@ -36,6 +36,13 @@ function applyFilters() {
 
 watch([statusFilter, branchFilter, dateFrom, dateTo], applyFilters);
 
+const stats = computed(() => {
+    const data = props.shifts.data;
+    const open = data.filter(s => s.status === 'open').length;
+    const totalSales = data.reduce((sum, s) => sum + Number(s.total_sales), 0);
+    return { total: data.length, open, closed: data.length - open, totalSales };
+});
+
 function formatDate(date: string | null) {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -55,62 +62,143 @@ const breadcrumbs = [{ title: 'Shifts', href: tenantUrl('shifts') }];
 
 <template>
     <TenantLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-7xl space-y-6 p-6">
-            <h1 class="text-2xl font-bold tracking-tight">Shifts</h1>
-
-            <div class="flex flex-wrap items-center gap-4">
-                <Select v-model="statusFilter">
-                    <SelectTrigger class="w-[160px]">
-                        <SelectValue placeholder="All Statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Select v-model="branchFilter">
-                    <SelectTrigger class="w-[180px]">
-                        <SelectValue placeholder="All Branches" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Branches</SelectItem>
-                        <SelectItem v-for="b in branches" :key="b.id" :value="String(b.id)">{{ b.name }}</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Input type="date" v-model="dateFrom" class="w-[160px]" placeholder="From date" />
-                <Input type="date" v-model="dateTo" class="w-[160px]" placeholder="To date" />
+        <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+            <!-- Header -->
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+                        <Timer class="h-4 w-4" />
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">Shifts</h1>
+                        <p class="text-sm text-muted-foreground">Monitor cashier shifts and sales</p>
+                    </div>
+                </div>
             </div>
 
-            <div class="rounded-md border">
-                <table class="w-full text-sm">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                <div class="rounded-xl border bg-card p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-950/50">
+                            <Timer class="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs text-muted-foreground">Total Shifts</p>
+                            <p class="text-lg font-bold tabular-nums">{{ stats.total }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-xl border bg-card p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950/50">
+                            <PlayCircle class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs text-muted-foreground">Open</p>
+                            <p class="text-lg font-bold tabular-nums">{{ stats.open }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-xl border bg-card p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-950/50">
+                            <StopCircle class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs text-muted-foreground">Closed</p>
+                            <p class="text-lg font-bold tabular-nums">{{ stats.closed }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-xl border bg-card p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-950/50">
+                            <DollarSign class="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs text-muted-foreground">Total Sales</p>
+                            <p class="text-lg font-bold tabular-nums">{{ formatCurrency(stats.totalSales) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="rounded-xl border bg-card p-3 sm:p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <Select v-model="statusFilter">
+                        <SelectTrigger class="w-full sm:w-[160px]">
+                            <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Statuses</SelectItem>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select v-model="branchFilter">
+                        <SelectTrigger class="w-full sm:w-[180px]">
+                            <SelectValue placeholder="All Branches" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Branches</SelectItem>
+                            <SelectItem v-for="b in branches" :key="b.id" :value="String(b.id)">{{ b.name }}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Input type="date" v-model="dateFrom" class="w-full sm:w-[160px]" placeholder="From date" />
+                    <Input type="date" v-model="dateTo" class="w-full sm:w-[160px]" placeholder="To date" />
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto rounded-xl border bg-card">
+                <table class="w-full min-w-[750px] text-sm">
                     <thead>
                         <tr class="border-b bg-muted/50">
                             <th class="px-4 py-3 text-left font-medium">Operator</th>
-                            <th class="px-4 py-3 text-left font-medium">Branch</th>
+                            <th class="hidden px-4 py-3 text-left font-medium sm:table-cell">Branch</th>
                             <th class="px-4 py-3 text-center font-medium">Status</th>
-                            <th class="px-4 py-3 text-left font-medium">Opened</th>
-                            <th class="px-4 py-3 text-left font-medium">Closed</th>
-                            <th class="px-4 py-3 text-center font-medium">Duration</th>
+                            <th class="hidden px-4 py-3 text-left font-medium md:table-cell">Opened</th>
+                            <th class="hidden px-4 py-3 text-left font-medium md:table-cell">Closed</th>
+                            <th class="hidden px-4 py-3 text-center font-medium sm:table-cell">Duration</th>
                             <th class="px-4 py-3 text-center font-medium">Orders</th>
                             <th class="px-4 py-3 text-right font-medium">Total Sales</th>
                             <th class="px-4 py-3 text-right font-medium">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="shift in shifts.data" :key="shift.id" class="border-b last:border-0">
-                            <td class="px-4 py-3 font-medium">{{ shift.operator?.name ?? 'Unknown' }}</td>
-                            <td class="px-4 py-3 text-muted-foreground">{{ shift.branch?.name ?? '-' }}</td>
-                            <td class="px-4 py-3 text-center">
-                                <Badge :variant="shift.status === 'open' ? 'default' : 'secondary'" class="capitalize">
-                                    {{ shift.status }}
-                                </Badge>
+                        <tr
+                            v-for="shift in shifts.data"
+                            :key="shift.id"
+                            class="border-b transition-colors last:border-0 hover:bg-muted/30"
+                        >
+                            <td class="px-4 py-3">
+                                <div class="font-medium">{{ shift.operator?.name ?? 'Unknown' }}</div>
+                                <div class="text-xs text-muted-foreground sm:hidden">{{ shift.branch?.name ?? '-' }}</div>
                             </td>
-                            <td class="px-4 py-3 text-xs text-muted-foreground">{{ formatDate(shift.opened_at) }}</td>
-                            <td class="px-4 py-3 text-xs text-muted-foreground">{{ formatDate(shift.closed_at) }}</td>
-                            <td class="px-4 py-3 text-center text-xs">{{ shiftDuration(shift) }}</td>
-                            <td class="px-4 py-3 text-center">{{ shift.total_orders }}</td>
-                            <td class="px-4 py-3 text-right font-medium">{{ formatCurrency(shift.total_sales) }}</td>
+                            <td class="hidden px-4 py-3 text-muted-foreground sm:table-cell">{{ shift.branch?.name ?? '-' }}</td>
+                            <td class="px-4 py-3 text-center">
+                                <span
+                                    v-if="shift.status === 'open'"
+                                    class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-800"
+                                >
+                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                    Open
+                                </span>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200 dark:bg-gray-950/50 dark:text-gray-400 dark:ring-gray-700"
+                                >
+                                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                                    Closed
+                                </span>
+                            </td>
+                            <td class="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">{{ formatDate(shift.opened_at) }}</td>
+                            <td class="hidden px-4 py-3 text-xs text-muted-foreground md:table-cell">{{ formatDate(shift.closed_at) }}</td>
+                            <td class="hidden px-4 py-3 text-center text-xs sm:table-cell">{{ shiftDuration(shift) }}</td>
+                            <td class="px-4 py-3 text-center tabular-nums">{{ shift.total_orders }}</td>
+                            <td class="px-4 py-3 text-right font-medium tabular-nums">{{ formatCurrency(shift.total_sales) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <Button variant="ghost" size="icon" as-child>
                                     <Link :href="tenantUrl(`shifts/${shift.id}`)">
@@ -120,32 +208,20 @@ const breadcrumbs = [{ title: 'Shifts', href: tenantUrl('shifts') }];
                             </td>
                         </tr>
                         <tr v-if="shifts.data.length === 0">
-                            <td colspan="9" class="px-4 py-8 text-center text-muted-foreground">No shifts found.</td>
+                            <td colspan="9" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center gap-2">
+                                    <Timer class="h-8 w-8 text-muted-foreground/50" />
+                                    <p class="text-sm font-medium text-muted-foreground">No shifts found.</p>
+                                    <p class="text-xs text-muted-foreground/70">Try adjusting your filters to find what you're looking for.</p>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Pagination -->
-            <div v-if="shifts.last_page > 1" class="flex items-center justify-between">
-                <p class="text-sm text-muted-foreground">
-                    Showing {{ shifts.from }} to {{ shifts.to }} of {{ shifts.total }} shifts
-                </p>
-                <div class="flex gap-1">
-                    <template v-for="link in shifts.links" :key="link.label">
-                        <Button
-                            v-if="link.url"
-                            variant="outline"
-                            size="sm"
-                            :class="{ 'bg-primary text-primary-foreground': link.active }"
-                            as-child
-                        >
-                            <Link :href="link.url" v-html="link.label" />
-                        </Button>
-                        <Button v-else variant="outline" size="sm" disabled v-html="link.label" />
-                    </template>
-                </div>
-            </div>
+            <Pagination :data="shifts" />
         </div>
     </TenantLayout>
 </template>

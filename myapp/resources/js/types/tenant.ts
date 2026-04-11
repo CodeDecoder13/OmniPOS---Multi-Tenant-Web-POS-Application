@@ -17,6 +17,17 @@ export interface TenantSettings {
     currency?: string;
     default_theme?: 'light' | 'dark' | 'system';
     default_language?: string;
+    // Receipt customization (Enterprise)
+    receipt_logo?: string | null;
+    receipt_logo_url?: string | null;
+    receipt_show_address?: boolean;
+    receipt_show_phone?: boolean;
+    receipt_show_customer?: boolean;
+    receipt_show_table?: boolean;
+    receipt_show_order_type?: boolean;
+    receipt_show_tax_breakdown?: boolean;
+    receipt_thank_you_message?: string;
+    receipt_width?: '58mm' | '80mm';
 }
 
 export interface SharedTenant {

@@ -316,6 +316,9 @@ export interface Order {
     discount_amount: string;
     discount_type: DiscountType | null;
     promotion_discount: string;
+    discount_customer_name: string | null;
+    discount_customer_id_number: string | null;
+    discount_customer_birthday: string | null;
     tax_amount: string;
     total: string;
     notes: string | null;
@@ -547,7 +550,7 @@ export interface Table {
 
 // Promotion Engine Types
 
-export type PromotionType = 'percentage' | 'fixed' | 'buy_x_get_y';
+export type PromotionType = 'percentage' | 'fixed' | 'buy_x_get_y' | 'student' | 'pwd' | 'senior_citizen';
 
 export interface Promotion {
     id: number;
@@ -564,6 +567,7 @@ export interface Promotion {
     usage_limit: number | null;
     used_count: number;
     description: string | null;
+    is_preset: boolean;
     created_at: string;
     updated_at: string;
 }
