@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { BarChart3, CheckCircle, Pencil, Plus, Search, Tag, Trash2, XCircle } from 'lucide-vue-next';
+import { BarChart3, CheckCircle, Eye, Pencil, Plus, Search, Tag, Trash2, XCircle } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -132,6 +132,27 @@ function submitForm() {
         submit.post(tenantUrl('promotions'), {
             onSuccess: () => { formDialog.value = false; },
         });
+    }
+}
+
+// View Dialog
+const viewDialog = ref(false);
+const viewPromo = ref<Promotion | null>(null);
+const usageData = ref<Array<{ id: number; order_number: string; customer_name: string; promotion_discount: string; total: string; created_at: string }>>([]);
+const loadingUsage = ref(false);
+
+async function openViewDialog(promo: Promotion) {
+    viewPromo.value = promo;
+    viewDialog.value = true;
+    usageData.value = [];
+    if (promo.used_count > 0) {
+        loadingUsage.value = true;
+        try {
+            const res = await fetch(tenantUrl(`promotions/${promo.id}/usage`));
+            usageData.value = await res.json();
+        } finally {
+            loadingUsage.value = false;
+        }
     }
 }
 
@@ -342,6 +363,9 @@ const breadcrumbs = [{ title: 'Promotions', href: tenantUrl('promotions') }];
                             </td>
                             <td class="px-3 py-3 text-right sm:px-4">
                                 <div class="flex items-center justify-end gap-1">
+                                    <Button v-if="can('promotions.view')" variant="ghost" size="icon" @click="openViewDialog(promo)">
+                                        <Eye class="h-4 w-4" />
+                                    </Button>
                                     <Button v-if="can('promotions.edit')" variant="ghost" size="icon" @click="openEditDialog(promo)">
                                         <Pencil class="h-4 w-4" />
                                     </Button>
@@ -488,6 +512,136 @@ const breadcrumbs = [{ title: 'Promotions', href: tenantUrl('promotions') }];
                 <DialogFooter class="gap-2 sm:gap-0">
                     <Button variant="outline" @click="deleteDialog = false">Cancel</Button>
                     <Button variant="destructive" @click="deletePromo">Delete</Button>
+                </DialogFooter>
+            </DialogScrollContent>
+        </Dialog>
+
+        <!-- View Detail Dialog -->
+        <Dialog v-model:open="viewDialog">
+            <DialogScrollContent class="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Promotion Details</DialogTitle>
+                    <DialogDescription>Read-only view of this promotion.</DialogDescription>
+                </DialogHeader>
+
+                <div v-if="viewPromo" class="space-y-4">
+                    <!-- Code + Name -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground">Code</p>
+                            <p class="font-mono font-semibold">{{ viewPromo.code }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground">Name</p>
+                            <p class="font-semibold">{{ viewPromo.name }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Type + Value + Status -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground">Type</p>
+                            <span :class="['mt-1 inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset', typeBadgeClasses(viewPromo.type)]">
+                                {{ formatType(viewPromo.type) }}
+                            </span>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground">Value</p>
+                            <p class="text-lg font-bold tabular-nums">{{ formatValue(viewPromo) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-muted-foreground">Status</p>
+                            <span
+                                v-if="viewPromo.is_active"
+                                class="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800"
+                            >
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                Active
+                            </span>
+                            <span
+                                v-else
+                                class="mt-1 inline-flex items-center gap-1 rounded-full bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:ring-gray-700"
+                            >
+                                <span class="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                                Inactive
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Date Range -->
+                    <div>
+                        <p class="text-xs font-medium text-muted-foreground">Date Range</p>
+                        <p class="text-sm">
+                            <template v-if="viewPromo.start_date || viewPromo.end_date">
+                                {{ formatDate(viewPromo.start_date) }} → {{ formatDate(viewPromo.end_date) }}
+                            </template>
+                            <span v-else class="text-muted-foreground">No date restriction</span>
+                        </p>
+                    </div>
+
+                    <!-- Usage -->
+                    <div>
+                        <p class="text-xs font-medium text-muted-foreground">Usage</p>
+                        <p class="text-sm tabular-nums">
+                            {{ viewPromo.used_count }}{{ viewPromo.usage_limit ? ` / ${viewPromo.usage_limit}` : '' }}
+                            <span v-if="!viewPromo.usage_limit" class="text-muted-foreground"> (Unlimited)</span>
+                        </p>
+                    </div>
+
+                    <!-- Min Order + Max Discount -->
+                    <div v-if="viewPromo.min_order_amount || viewPromo.max_discount" class="grid grid-cols-2 gap-4">
+                        <div v-if="viewPromo.min_order_amount">
+                            <p class="text-xs font-medium text-muted-foreground">Min Order Amount</p>
+                            <p class="text-sm font-medium tabular-nums">{{ formatCurrency(viewPromo.min_order_amount) }}</p>
+                        </div>
+                        <div v-if="viewPromo.max_discount">
+                            <p class="text-xs font-medium text-muted-foreground">Max Discount</p>
+                            <p class="text-sm font-medium tabular-nums">{{ formatCurrency(viewPromo.max_discount) }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div v-if="viewPromo.description">
+                        <p class="text-xs font-medium text-muted-foreground">Description</p>
+                        <p class="text-sm">{{ viewPromo.description }}</p>
+                    </div>
+
+                    <!-- Preset indicator -->
+                    <div v-if="viewPromo.is_preset">
+                        <Badge variant="outline" class="text-amber-600 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                            Preset Discount
+                        </Badge>
+                    </div>
+
+                    <!-- Usage Table -->
+                    <div v-if="viewPromo.used_count > 0" class="space-y-2">
+                        <p class="text-xs font-medium text-muted-foreground">Usage History</p>
+                        <div v-if="loadingUsage" class="py-4 text-center text-sm text-muted-foreground">Loading...</div>
+                        <div v-else class="max-h-48 overflow-y-auto rounded-lg border">
+                            <table class="w-full text-sm">
+                                <thead class="sticky top-0 border-b bg-muted/50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-medium">Customer</th>
+                                        <th class="px-3 py-2 text-left font-medium">Order #</th>
+                                        <th class="px-3 py-2 text-right font-medium">Discount</th>
+                                        <th class="px-3 py-2 text-right font-medium">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="usage in usageData" :key="usage.id" class="border-b last:border-0">
+                                        <td class="px-3 py-2">{{ usage.customer_name }}</td>
+                                        <td class="px-3 py-2 font-mono text-xs">{{ usage.order_number }}</td>
+                                        <td class="px-3 py-2 text-right tabular-nums">{{ formatCurrency(usage.promotion_discount) }}</td>
+                                        <td class="px-3 py-2 text-right text-xs text-muted-foreground">{{ formatDate(usage.created_at) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" @click="viewDialog = false">Close</Button>
                 </DialogFooter>
             </DialogScrollContent>
         </Dialog>

@@ -299,6 +299,7 @@ Route::prefix('{tenant}')
         // Promotions
         Route::middleware('can-do:promotions.view')->group(function () {
             Route::get('promotions', [PromotionController::class, 'index'])->name('tenant.promotions.index');
+            Route::get('promotions/{promotion}/usage', [PromotionController::class, 'usage'])->name('tenant.promotions.usage');
         });
         Route::middleware('can-do:promotions.create')->group(function () {
             Route::get('promotions/create', [PromotionController::class, 'create'])->name('tenant.promotions.create');
