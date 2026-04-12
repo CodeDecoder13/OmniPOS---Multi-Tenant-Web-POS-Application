@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Barcode, Edit, Package, Plus, Search, Trash2 } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { Barcode, CheckCircle, Edit, Layers, Package, Plus, Search, Trash2, XCircle } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,11 +22,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import UpgradePlanModal from '@/components/UpgradePlanModal.vue';
-import type { BreadcrumbItem, Category, PaginatedData, Product } from '@/types';
+import Pagination from '@/components/Pagination.vue';
 import BarcodeLabel from '@/components/BarcodeLabel.vue';
+import type { BreadcrumbItem, Category, PaginatedData, Product } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
 import { usePlanLimits } from '@/composables/usePlanLimits';
+import { useCurrency } from '@/composables/useCurrency';
 
 const props = defineProps<{
     products: PaginatedData<Product>;
@@ -43,12 +45,26 @@ const page = usePage();
 const { tenant, tenantUrl } = useTenant();
 const { can } = usePermissions();
 const { limitReached } = usePlanLimits('products', () => props.productsCount);
+const { formatCurrency } = useCurrency();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
     { title: 'Products', href: tenantUrl('products') },
 ];
 
+// Stats
+const stats = computed(() => {
+    const data = props.products.data;
+    const active = data.filter(p => p.is_active).length;
+    return {
+        total: props.productsCount,
+        active,
+        inactive: data.length - active,
+        categories: props.categories.length,
+    };
+});
+
+// Filters
 const search = ref(props.filters.search ?? '');
 const categoryFilter = ref(props.filters.category_id ?? 'all');
 const statusFilter = ref(props.filters.is_active ?? 'all');
@@ -73,6 +89,7 @@ watch([categoryFilter, statusFilter], () => {
     applyFilters();
 });
 
+// Delete dialog
 const deleteDialog = ref(false);
 const productToDelete = ref<Product | null>(null);
 const deleting = ref(false);
@@ -94,16 +111,13 @@ function deleteProduct() {
     });
 }
 
+// Barcode dialog
 const barcodeDialog = ref(false);
 const barcodeProduct = ref<Product | null>(null);
 
 function showBarcode(product: Product) {
     barcodeProduct.value = product;
     barcodeDialog.value = true;
-}
-
-function formatPrice(value: string | number): string {
-    return Number(value).toFixed(2);
 }
 
 // Upgrade modal
@@ -124,55 +138,106 @@ function handleAddProduct() {
     <Head title="Products" />
 
     <TenantLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Products</h1>
-                <Button v-if="can('products.create')" @click="handleAddProduct">
+        <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+            <!-- Page Header -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-md">
+                        <Package class="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Products</h1>
+                        <p class="text-sm text-muted-foreground">Manage your product catalog</p>
+                    </div>
+                </div>
+                <Button v-if="can('products.create')" class="w-full sm:w-auto" @click="handleAddProduct">
                     <Plus class="mr-2 h-4 w-4" />
                     Add Product
                 </Button>
             </div>
 
-            <!-- Filters -->
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        v-model="search"
-                        placeholder="Search by name or SKU..."
-                        class="pl-9"
-                    />
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+                        <Package class="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.total }}</p>
+                        <p class="text-xs text-muted-foreground">Total Products</p>
+                    </div>
                 </div>
-                <Select v-model="categoryFilter">
-                    <SelectTrigger class="w-[180px]">
-                        <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem v-for="cat in categories" :key="cat.id" :value="String(cat.id)">
-                            {{ cat.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <Select v-model="statusFilter">
-                    <SelectTrigger class="w-[140px]">
-                        <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="1">Active</SelectItem>
-                        <SelectItem value="0">Inactive</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                        <CheckCircle class="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.active }}</p>
+                        <p class="text-xs text-muted-foreground">Active</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-900/40">
+                        <XCircle class="h-4.5 w-4.5 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.inactive }}</p>
+                        <p class="text-xs text-muted-foreground">Inactive</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/40">
+                        <Layers class="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.categories }}</p>
+                        <p class="text-xs text-muted-foreground">Categories</p>
+                    </div>
+                </div>
             </div>
 
-            <!-- Empty state -->
+            <!-- Filter Bar -->
+            <div class="rounded-xl border bg-card p-3 sm:p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div class="relative flex-1 min-w-0">
+                        <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            v-model="search"
+                            placeholder="Search by name or SKU..."
+                            class="pl-9"
+                        />
+                    </div>
+                    <Select v-model="categoryFilter">
+                        <SelectTrigger class="w-full sm:w-[180px]">
+                            <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            <SelectItem v-for="cat in categories" :key="cat.id" :value="String(cat.id)">
+                                {{ cat.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select v-model="statusFilter">
+                        <SelectTrigger class="w-full sm:w-[140px]">
+                            <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="1">Active</SelectItem>
+                            <SelectItem value="0">Inactive</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <!-- Empty State -->
             <div
                 v-if="products.data.length === 0"
-                class="flex flex-col items-center justify-center rounded-xl border bg-white py-16 dark:border-gray-800 dark:bg-gray-900"
+                class="flex flex-col items-center justify-center rounded-xl border bg-card py-16"
             >
-                <div class="rounded-full bg-gray-100 p-4 dark:bg-gray-800">
-                    <Package class="h-8 w-8 text-gray-400" />
+                <div class="rounded-full bg-muted p-4">
+                    <Package class="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 class="mt-4 text-lg font-semibold">No products found</h3>
                 <p class="mt-1 text-sm text-muted-foreground">
@@ -184,74 +249,107 @@ function handleAddProduct() {
             </div>
 
             <!-- Table -->
-            <div v-else class="overflow-hidden rounded-xl border bg-white dark:border-gray-800 dark:bg-gray-900">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
-                            <th class="px-4 py-3 text-left font-medium">Name</th>
-                            <th class="hidden px-4 py-3 text-left font-medium md:table-cell">SKU</th>
-                            <th class="hidden px-4 py-3 text-left font-medium lg:table-cell">Category</th>
-                            <th class="px-4 py-3 text-right font-medium">Price</th>
-                            <th class="px-4 py-3 text-left font-medium">Status</th>
-                            <th class="px-4 py-3 text-right font-medium">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="product in products.data"
-                            :key="product.id"
-                            class="border-b last:border-0 dark:border-gray-800"
-                        >
-                            <td class="px-4 py-3 font-medium">{{ product.name }}</td>
-                            <td class="hidden px-4 py-3 font-mono text-xs md:table-cell">{{ product.sku || '—' }}</td>
-                            <td class="hidden px-4 py-3 lg:table-cell">{{ product.category?.name || '—' }}</td>
-                            <td class="px-4 py-3 text-right font-mono">{{ formatPrice(product.price) }}</td>
-                            <td class="px-4 py-3">
-                                <Badge :variant="product.is_active ? 'default' : 'secondary'">
-                                    {{ product.is_active ? 'Active' : 'Inactive' }}
-                                </Badge>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="flex items-center justify-end gap-1">
-                                    <Button v-if="product.sku" variant="ghost" size="icon" @click="showBarcode(product)" title="Print Barcode">
-                                        <Barcode class="h-4 w-4" />
-                                    </Button>
-                                    <Button v-if="can('products.edit')" variant="ghost" size="icon" as-child>
-                                        <Link :href="tenantUrl(`products/${product.id}/edit`)">
-                                            <Edit class="h-4 w-4" />
-                                        </Link>
-                                    </Button>
-                                    <Button
-                                        v-if="can('products.delete')"
-                                        variant="ghost"
-                                        size="icon"
-                                        @click="confirmDelete(product)"
+            <div v-else>
+                <div class="overflow-x-auto rounded-xl border bg-card">
+                    <table class="w-full min-w-[600px] text-sm">
+                        <thead class="border-b bg-muted/50">
+                            <tr>
+                                <th class="px-3 py-3 text-left font-medium sm:px-4">Product</th>
+                                <th class="hidden px-3 py-3 text-left font-medium md:table-cell sm:px-4">SKU</th>
+                                <th class="hidden px-3 py-3 text-left font-medium lg:table-cell sm:px-4">Category</th>
+                                <th class="px-3 py-3 text-right font-medium sm:px-4">Price</th>
+                                <th class="hidden px-3 py-3 text-right font-medium md:table-cell sm:px-4">Cost</th>
+                                <th class="px-3 py-3 text-center font-medium sm:px-4">Status</th>
+                                <th class="px-3 py-3 text-right font-medium sm:px-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="product in products.data"
+                                :key="product.id"
+                                class="border-b transition-colors last:border-0 hover:bg-muted/30"
+                            >
+                                <!-- Product: thumbnail + name -->
+                                <td class="px-3 py-3 sm:px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-8 w-8 shrink-0 overflow-hidden rounded-md bg-muted">
+                                            <img
+                                                v-if="product.image_url"
+                                                :src="product.image_url"
+                                                :alt="product.name"
+                                                class="h-full w-full object-cover"
+                                            />
+                                            <div v-else class="flex h-full w-full items-center justify-center">
+                                                <Package class="h-4 w-4 text-muted-foreground" />
+                                            </div>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="truncate font-medium">{{ product.name }}</p>
+                                            <p class="truncate text-xs text-muted-foreground lg:hidden">
+                                                {{ product.category?.name }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <!-- SKU -->
+                                <td class="hidden px-3 py-3 font-mono text-xs md:table-cell sm:px-4">{{ product.sku || '—' }}</td>
+                                <!-- Category -->
+                                <td class="hidden px-3 py-3 lg:table-cell sm:px-4">
+                                    <span v-if="product.category?.name" class="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:ring-purple-800">
+                                        {{ product.category.name }}
+                                    </span>
+                                    <span v-else class="text-muted-foreground">—</span>
+                                </td>
+                                <!-- Price -->
+                                <td class="px-3 py-3 text-right tabular-nums sm:px-4">{{ formatCurrency(product.price) }}</td>
+                                <!-- Cost -->
+                                <td class="hidden px-3 py-3 text-right tabular-nums md:table-cell sm:px-4">
+                                    {{ product.cost_price ? formatCurrency(product.cost_price) : '—' }}
+                                </td>
+                                <!-- Status -->
+                                <td class="px-3 py-3 text-center sm:px-4">
+                                    <span
+                                        :class="product.is_active
+                                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800'
+                                            : 'bg-gray-50 text-gray-600 ring-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:ring-gray-700'"
+                                        class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset"
                                     >
-                                        <Trash2 class="h-4 w-4 text-red-500" />
-                                    </Button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                        <span
+                                            :class="product.is_active ? 'bg-emerald-500' : 'bg-gray-400'"
+                                            class="h-1.5 w-1.5 rounded-full"
+                                        />
+                                        {{ product.is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <!-- Actions -->
+                                <td class="px-3 py-3 text-right sm:px-4">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <Button v-if="product.sku" variant="ghost" size="icon" @click="showBarcode(product)" title="Print Barcode">
+                                            <Barcode class="h-4 w-4" />
+                                        </Button>
+                                        <Button v-if="can('products.edit')" variant="ghost" size="icon" as-child>
+                                            <Link :href="tenantUrl(`products/${product.id}/edit`)">
+                                                <Edit class="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                        <Button
+                                            v-if="can('products.delete')"
+                                            variant="ghost"
+                                            size="icon"
+                                            @click="confirmDelete(product)"
+                                        >
+                                            <Trash2 class="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
                 <!-- Pagination -->
-                <div v-if="products.last_page > 1" class="flex items-center justify-between border-t px-4 py-3 dark:border-gray-800">
-                    <p class="text-sm text-muted-foreground">
-                        Showing {{ products.from }} to {{ products.to }} of {{ products.total }}
-                    </p>
-                    <div class="flex gap-1">
-                        <template v-for="link in products.links" :key="link.label">
-                            <Link
-                                v-if="link.url"
-                                :href="link.url"
-                                class="rounded-md px-3 py-1 text-sm"
-                                :class="link.active ? 'bg-primary text-primary-foreground' : 'hover:bg-gray-100 dark:hover:bg-gray-800'"
-                                v-html="link.label"
-                            />
-                            <span v-else class="px-3 py-1 text-sm text-muted-foreground" v-html="link.label" />
-                        </template>
-                    </div>
+                <div class="mt-4">
+                    <Pagination :data="products" />
                 </div>
             </div>
         </div>
@@ -265,7 +363,7 @@ function handleAddProduct() {
                         Are you sure you want to delete "{{ productToDelete?.name }}"? This action cannot be undone.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter>
+                <DialogFooter class="gap-2 sm:gap-0">
                     <Button variant="outline" @click="deleteDialog = false">Cancel</Button>
                     <Button variant="destructive" @click="deleteProduct" :disabled="deleting">
                         {{ deleting ? 'Deleting...' : 'Delete' }}

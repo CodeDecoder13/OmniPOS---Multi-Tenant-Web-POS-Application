@@ -31,10 +31,29 @@ export interface ReceiptData {
     orderType?: string;
 }
 
-const props = defineProps<{
+withDefaults(defineProps<{
     data: ReceiptData;
     showPaymentDetails: boolean;
-}>();
+    logoUrl?: string | null;
+    showAddress?: boolean;
+    showPhone?: boolean;
+    showCustomer?: boolean;
+    showTable?: boolean;
+    showOrderType?: boolean;
+    showTaxBreakdown?: boolean;
+    thankYouMessage?: string;
+    width?: '58mm' | '80mm';
+}>(), {
+    logoUrl: null,
+    showAddress: true,
+    showPhone: true,
+    showCustomer: true,
+    showTable: true,
+    showOrderType: true,
+    showTaxBreakdown: true,
+    thankYouMessage: '',
+    width: '80mm',
+});
 
 function formatCurrency(amount: number | string) {
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(amount));
@@ -47,12 +66,21 @@ function formatPaymentMethod(method: string) {
 </script>
 
 <template>
-    <div class="mx-auto max-w-[302px] font-mono text-xs leading-relaxed text-black">
+    <div
+        class="mx-auto font-mono text-xs leading-relaxed text-black"
+        :class="width === '58mm' ? 'max-w-[219px]' : 'max-w-[302px]'"
+    >
         <!-- Store Header -->
         <div class="text-center mb-2">
+            <img
+                v-if="logoUrl"
+                :src="logoUrl"
+                alt="Store logo"
+                class="mx-auto mb-1 max-h-12 max-w-[80%] object-contain"
+            />
             <p class="text-sm font-bold">{{ data.storeName }}</p>
-            <p v-if="data.storeAddress" class="text-[10px] text-gray-600">{{ data.storeAddress }}</p>
-            <p v-if="data.storePhone" class="text-[10px] text-gray-600">{{ data.storePhone }}</p>
+            <p v-if="showAddress && data.storeAddress" class="text-[10px] text-gray-600">{{ data.storeAddress }}</p>
+            <p v-if="showPhone && data.storePhone" class="text-[10px] text-gray-600">{{ data.storePhone }}</p>
             <p v-if="data.receiptHeader" class="mt-1 text-[10px] text-gray-600 whitespace-pre-line">{{ data.receiptHeader }}</p>
         </div>
 
@@ -63,9 +91,9 @@ function formatPaymentMethod(method: string) {
             <p v-if="data.orderNumber">Order: {{ data.orderNumber }}</p>
             <p>Date: {{ data.dateTime }}</p>
             <p>Cashier: {{ data.cashier }}</p>
-            <p v-if="data.customer">Customer: {{ data.customer }}</p>
-            <p v-if="data.tableName">Table: {{ data.tableName }}</p>
-            <p v-if="data.orderType" class="font-bold">** {{ data.orderType }} **</p>
+            <p v-if="showCustomer && data.customer">Customer: {{ data.customer }}</p>
+            <p v-if="showTable && data.tableName">Table: {{ data.tableName }}</p>
+            <p v-if="showOrderType && data.orderType" class="font-bold">** {{ data.orderType }} **</p>
         </div>
 
         <div class="border-t border-dashed border-gray-400 my-2" />
@@ -99,7 +127,7 @@ function formatPaymentMethod(method: string) {
                 <span>Promo{{ data.promotionCode ? ` (${data.promotionCode})` : '' }}</span>
                 <span>-{{ formatCurrency(data.promotionDiscount) }}</span>
             </div>
-            <div v-if="data.tax && data.tax > 0" class="flex justify-between">
+            <div v-if="showTaxBreakdown && data.tax && data.tax > 0" class="flex justify-between">
                 <span>{{ data.taxLabel || 'Tax' }}</span>
                 <span>{{ formatCurrency(data.tax) }}</span>
             </div>
@@ -136,8 +164,9 @@ function formatPaymentMethod(method: string) {
 
         <!-- Footer -->
         <div class="text-center text-[10px] text-gray-500">
+            <p v-if="thankYouMessage" class="whitespace-pre-line">{{ thankYouMessage }}</p>
             <p v-if="data.receiptFooter" class="whitespace-pre-line">{{ data.receiptFooter }}</p>
-            <p v-else>Thank you for your purchase!</p>
+            <p v-if="!thankYouMessage && !data.receiptFooter">Thank you for your purchase!</p>
         </div>
     </div>
 </template>

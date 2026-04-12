@@ -27,6 +27,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrders' => $this->purchaseOrderService->list($tenant, $request),
             'suppliers' => Supplier::forTenant($tenant)->where('is_active', true)->get(['id', 'name']),
             'branches' => Branch::where('tenant_id', $tenant->id)->where('is_active', true)->get(['id', 'name']),
+            'products' => Product::forTenant($tenant)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'sku', 'cost_price']),
             'filters' => $request->only(['search', 'status', 'supplier_id', 'branch_id']),
         ]);
     }

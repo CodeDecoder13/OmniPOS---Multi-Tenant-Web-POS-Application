@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Enums\PromotionType;
 use App\Models\Tenant;
 use App\Models\Tenant\Promotion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -101,5 +102,63 @@ class PromotionService
             ],
             'discount' => $discount,
         ];
+    }
+
+    public function getPresetDiscounts(Tenant $tenant): array
+    {
+        return Promotion::forTenant($tenant)
+            ->where('is_preset', true)
+            ->where('is_active', true)
+            ->get()
+            ->map(fn (Promotion $p) => [
+                'id' => $p->id,
+                'code' => $p->code,
+                'name' => $p->name,
+                'type' => $p->type->value,
+                'value' => $p->value,
+            ])
+            ->toArray();
+    }
+
+    public function seedPresetDiscounts(Tenant $tenant): void
+    {
+        $presets = [
+            [
+                'code' => 'STUDENT20',
+                'name' => 'Student Discount',
+                'type' => PromotionType::Student,
+                'value' => 20.00,
+                'description' => 'Student discount - 20% off with valid student ID',
+            ],
+            [
+                'code' => 'PWD20',
+                'name' => 'PWD Discount',
+                'type' => PromotionType::PWD,
+                'value' => 20.00,
+                'description' => 'Person with Disability discount - 20% off with valid PWD ID',
+            ],
+            [
+                'code' => 'SENIOR20',
+                'name' => 'Senior Citizen Discount',
+                'type' => PromotionType::SeniorCitizen,
+                'value' => 20.00,
+                'description' => 'Senior Citizen discount - 20% off with valid Senior Citizen ID',
+            ],
+        ];
+
+        foreach ($presets as $preset) {
+            $exists = Promotion::forTenant($tenant)
+                ->where('code', $preset['code'])
+                ->exists();
+
+            if (! $exists) {
+                Promotion::create([
+                    ...$preset,
+                    'tenant_id' => $tenant->id,
+                    'is_active' => true,
+                    'is_preset' => true,
+                ]);
+            }
+        }
     }
 }

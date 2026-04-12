@@ -10,6 +10,7 @@ use App\Models\TenantSubscription;
 use App\Models\TenantUser;
 use App\Models\User;
 use App\Services\Tenant\CategoryService;
+use App\Services\Tenant\PromotionService;
 use App\Services\Tenant\RoleService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,6 +20,7 @@ class RegisterService
     public function __construct(
         private RoleService $roleService,
         private CategoryService $categoryService,
+        private PromotionService $promotionService,
     ) {}
 
     public function createTenantForUser(User $user, string $storeName, string $planSlug, BusinessType $businessType, ?string $promoCode = null): Tenant
@@ -60,6 +62,7 @@ class RegisterService
             ]);
 
             $this->categoryService->seedDefaults($tenant, $businessType);
+            $this->promotionService->seedPresetDiscounts($tenant);
 
             return $tenant;
         });

@@ -23,6 +23,7 @@ class Order extends Model
         'kitchen_status', 'kitchen_sent_at', 'kitchen_completed_at', 'kitchen_notes',
         'voided_by', 'void_reason', 'voided_at',
         'held_at', 'receipt_token',
+        'discount_customer_name', 'discount_customer_id_number', 'discount_customer_birthday',
     ];
 
     protected function casts(): array
@@ -42,6 +43,7 @@ class Order extends Model
             'kitchen_completed_at' => 'datetime',
             'voided_at' => 'datetime',
             'held_at' => 'datetime',
+            'discount_customer_birthday' => 'date',
         ];
     }
 

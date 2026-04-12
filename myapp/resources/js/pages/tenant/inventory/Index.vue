@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { History, Package, Search, SlidersHorizontal, Warehouse } from 'lucide-vue-next';
+import { Head, router } from '@inertiajs/vue3';
+import { AlertTriangle, Building, CheckCircle, History, Package, Search, SlidersHorizontal, Warehouse } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import Pagination from '@/components/Pagination.vue';
 import type { Branch, BreadcrumbItem, Inventory, InventoryAdjustment, PaginatedData } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
@@ -44,6 +45,18 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
     { title: 'Inventory', href: tenantUrl('inventory') },
 ];
+
+// Stats
+const stats = computed(() => {
+    const data = props.inventory.data;
+    const lowStock = data.filter(item => isLowStock(item)).length;
+    return {
+        total: props.inventory.total,
+        lowStock,
+        inStock: data.length - lowStock,
+        branches: props.branches.length,
+    };
+});
 
 // Filters
 const search = ref(props.filters.search ?? '');
@@ -196,49 +209,101 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
     <Head title="Inventory" />
 
     <TenantLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6">
-            <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold">Inventory</h1>
-            </div>
-
-            <!-- Filters -->
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="relative flex-1 min-w-[200px] max-w-sm">
-                    <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        v-model="search"
-                        placeholder="Search by product name or SKU..."
-                        class="pl-9"
-                    />
+        <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+            <!-- Page Header -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
+                        <Warehouse class="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Inventory</h1>
+                        <p class="text-sm text-muted-foreground">Track and manage your stock levels</p>
+                    </div>
                 </div>
-                <Select v-model="branchFilter">
-                    <SelectTrigger class="w-[180px]">
-                        <SelectValue placeholder="All Branches" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Branches</SelectItem>
-                        <SelectItem v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
-                            {{ branch.name }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <Button
-                    :variant="lowStockFilter ? 'default' : 'outline'"
-                    size="sm"
-                    @click="toggleLowStock"
-                >
-                    <SlidersHorizontal class="mr-2 h-4 w-4" />
-                    Low Stock Only
-                </Button>
             </div>
 
-            <!-- Empty state -->
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+                        <Warehouse class="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.total }}</p>
+                        <p class="text-xs text-muted-foreground">Total Items</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/40">
+                        <AlertTriangle class="h-4.5 w-4.5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.lowStock }}</p>
+                        <p class="text-xs text-muted-foreground">Low Stock</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                        <CheckCircle class="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.inStock }}</p>
+                        <p class="text-xs text-muted-foreground">In Stock</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/40">
+                        <Building class="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">{{ stats.branches }}</p>
+                        <p class="text-xs text-muted-foreground">Branches</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="rounded-xl border bg-card p-3 sm:p-4">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div class="relative flex-1 min-w-[200px] max-w-sm">
+                        <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            v-model="search"
+                            placeholder="Search by product name or SKU..."
+                            class="pl-9"
+                        />
+                    </div>
+                    <Select v-model="branchFilter">
+                        <SelectTrigger class="w-full sm:w-[180px]">
+                            <SelectValue placeholder="All Branches" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Branches</SelectItem>
+                            <SelectItem v-for="branch in branches" :key="branch.id" :value="String(branch.id)">
+                                {{ branch.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        :variant="lowStockFilter ? 'default' : 'outline'"
+                        size="sm"
+                        class="w-full sm:w-auto"
+                        @click="toggleLowStock"
+                    >
+                        <SlidersHorizontal class="mr-2 h-4 w-4" />
+                        Low Stock Only
+                    </Button>
+                </div>
+            </div>
+
+            <!-- Empty State -->
             <div
                 v-if="inventory.data.length === 0"
-                class="flex flex-col items-center justify-center rounded-xl border bg-white py-16 dark:border-gray-800 dark:bg-gray-900"
+                class="flex flex-col items-center justify-center rounded-xl border bg-card py-16"
             >
-                <div class="rounded-full bg-gray-100 p-4 dark:bg-gray-800">
-                    <Warehouse class="h-8 w-8 text-gray-400" />
+                <div class="rounded-full bg-muted p-4">
+                    <Warehouse class="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 class="mt-4 text-lg font-semibold">No inventory records found</h3>
                 <p class="mt-1 text-sm text-muted-foreground">
@@ -247,42 +312,53 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
             </div>
 
             <!-- Table -->
-            <div v-else class="overflow-hidden rounded-xl border bg-white dark:border-gray-800 dark:bg-gray-900">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
-                            <th class="px-4 py-3 text-left font-medium">Product</th>
-                            <th class="hidden px-4 py-3 text-left font-medium md:table-cell">Branch</th>
-                            <th class="px-4 py-3 text-right font-medium">Stock</th>
-                            <th class="hidden px-4 py-3 text-right font-medium lg:table-cell">Low Stock Threshold</th>
-                            <th class="hidden px-4 py-3 text-left font-medium lg:table-cell">Last Updated</th>
-                            <th class="px-4 py-3 text-right font-medium">Actions</th>
+            <div v-else class="overflow-x-auto rounded-xl border bg-card">
+                <table class="w-full min-w-[600px] text-sm">
+                    <thead class="border-b bg-muted/50">
+                        <tr>
+                            <th class="px-3 py-3 text-left font-medium sm:px-4">Product</th>
+                            <th class="hidden px-3 py-3 text-left font-medium md:table-cell sm:px-4">Branch</th>
+                            <th class="px-3 py-3 text-right font-medium sm:px-4">Stock</th>
+                            <th class="hidden px-3 py-3 text-right font-medium lg:table-cell sm:px-4">Low Stock Threshold</th>
+                            <th class="hidden px-3 py-3 text-left font-medium lg:table-cell sm:px-4">Last Updated</th>
+                            <th class="px-3 py-3 text-right font-medium sm:px-4">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr
                             v-for="item in inventory.data"
                             :key="item.id"
-                            class="border-b last:border-0 dark:border-gray-800"
+                            class="border-b transition-colors hover:bg-muted/30"
                         >
-                            <td class="px-4 py-3">
-                                <div>
-                                    <span class="font-medium">{{ item.product?.name ?? '—' }}</span>
-                                    <span v-if="item.product?.sku" class="ml-2 font-mono text-xs text-muted-foreground">{{ item.product.sku }}</span>
+                            <td class="px-3 py-3 sm:px-4">
+                                <div class="flex items-center gap-3">
+                                    <img
+                                        v-if="item.product?.image_url"
+                                        :src="item.product.image_url"
+                                        :alt="item.product.name"
+                                        class="h-8 w-8 shrink-0 rounded-md object-cover"
+                                    />
+                                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted" v-else>
+                                        <Package class="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <span class="font-medium">{{ item.product?.name ?? '—' }}</span>
+                                        <span v-if="item.product?.sku" class="ml-2 font-mono text-xs text-muted-foreground">{{ item.product.sku }}</span>
+                                        <p class="text-xs text-muted-foreground md:hidden">{{ item.branch?.name }}</p>
+                                    </div>
                                 </div>
-                                <span class="text-xs text-muted-foreground md:hidden">{{ item.branch?.name }}</span>
                             </td>
-                            <td class="hidden px-4 py-3 md:table-cell">{{ item.branch?.name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-right font-mono font-semibold" :class="isLowStock(item) ? 'text-red-600' : 'text-green-600'">
+                            <td class="hidden px-3 py-3 md:table-cell sm:px-4">{{ item.branch?.name ?? '—' }}</td>
+                            <td class="px-3 py-3 text-right font-mono font-semibold tabular-nums sm:px-4" :class="isLowStock(item) ? 'text-red-600' : 'text-green-600'">
                                 {{ item.quantity_on_hand }}
                             </td>
-                            <td class="hidden px-4 py-3 text-right font-mono lg:table-cell">
+                            <td class="hidden px-3 py-3 text-right font-mono tabular-nums lg:table-cell sm:px-4">
                                 {{ item.low_stock_threshold > 0 ? item.low_stock_threshold : '—' }}
                             </td>
-                            <td class="hidden px-4 py-3 text-muted-foreground lg:table-cell">
+                            <td class="hidden px-3 py-3 text-muted-foreground lg:table-cell sm:px-4">
                                 {{ new Date(item.updated_at).toLocaleDateString() }}
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-3 py-3 text-right sm:px-4">
                                 <div class="flex items-center justify-end gap-1">
                                     <Button
                                         v-if="can('inventory.manage')"
@@ -305,26 +381,10 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                         </tr>
                     </tbody>
                 </table>
-
-                <!-- Pagination -->
-                <div v-if="inventory.last_page > 1" class="flex items-center justify-between border-t px-4 py-3 dark:border-gray-800">
-                    <p class="text-sm text-muted-foreground">
-                        Showing {{ inventory.from }} to {{ inventory.to }} of {{ inventory.total }}
-                    </p>
-                    <div class="flex gap-1">
-                        <template v-for="link in inventory.links" :key="link.label">
-                            <Link
-                                v-if="link.url"
-                                :href="link.url"
-                                class="rounded-md px-3 py-1 text-sm"
-                                :class="link.active ? 'bg-primary text-primary-foreground' : 'hover:bg-gray-100 dark:hover:bg-gray-800'"
-                                v-html="link.label"
-                            />
-                            <span v-else class="px-3 py-1 text-sm text-muted-foreground" v-html="link.label" />
-                        </template>
-                    </div>
-                </div>
             </div>
+
+            <!-- Pagination -->
+            <Pagination :data="inventory" />
         </div>
 
         <!-- Adjust Dialog -->
@@ -367,7 +427,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                         <p class="text-xs text-muted-foreground">Use negative numbers to decrease stock.</p>
                     </div>
 
-                    <div class="rounded-md bg-gray-50 px-3 py-2 dark:bg-gray-800">
+                    <div class="rounded-md bg-muted px-3 py-2">
                         <span class="text-sm text-muted-foreground">Resulting stock: </span>
                         <span class="font-mono font-semibold" :class="resultingStock < 0 ? 'text-red-600' : 'text-green-600'">
                             {{ resultingStock }}
@@ -417,7 +477,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                     <p class="text-xs text-muted-foreground -mt-1">Auto-create a purchase order when stock falls to reorder point.</p>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter class="gap-2 sm:gap-0">
                     <Button variant="outline" @click="adjustDialog = false">Cancel</Button>
                     <Button @click="submitAdjust" :disabled="adjusting || adjustForm.quantity_change === 0">
                         {{ adjusting ? 'Saving...' : 'Apply Adjustment' }}
@@ -445,7 +505,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                         <div
                             v-for="adj in historyData"
                             :key="adj.id"
-                            class="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm dark:border-gray-800"
+                            class="flex items-start gap-3 rounded-lg border px-3 py-2.5 text-sm"
                         >
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
@@ -477,7 +537,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                     </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter class="gap-2 sm:gap-0">
                     <Button variant="outline" @click="historyDialog = false">Close</Button>
                 </DialogFooter>
             </DialogContent>

@@ -72,10 +72,10 @@ const breadcrumbs = [{ title: 'Reports', href: tenantUrl('reports') }];
 
 <template>
     <TenantLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
-            <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-lg shadow-teal-500/20">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md">
                         <BarChart3 class="h-5 w-5" />
                     </div>
                     <div>
@@ -83,7 +83,7 @@ const breadcrumbs = [{ title: 'Reports', href: tenantUrl('reports') }];
                         <p class="text-sm text-muted-foreground">Analytics and insights for your business</p>
                     </div>
                 </div>
-                <ExportButton :type="exportTypeMap[activeTab] ?? 'sales_summary'" :filters="filters" />
+                <ExportButton :type="exportTypeMap[activeTab] ?? 'sales_summary'" :filters="filters" class="w-full sm:w-auto" />
             </div>
 
             <ReportFilterBar :filters="filters" :branches="branches" @apply="applyFilters" />
@@ -91,7 +91,8 @@ const breadcrumbs = [{ title: 'Reports', href: tenantUrl('reports') }];
             <SummaryCards :summary="summary" />
 
             <Tabs v-model="activeTab" default-value="overview">
-                <TabsList class="h-auto flex-wrap gap-1 rounded-xl bg-muted/60 p-1 backdrop-blur">
+                <div class="overflow-x-auto">
+                <TabsList class="h-auto w-full flex-wrap gap-1 rounded-xl bg-muted/60 p-1 backdrop-blur">
                     <TabsTrigger value="overview" class="gap-2 rounded-lg px-4 py-2.5 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
                         <BarChart3 class="h-4 w-4" />
                         Overview
@@ -125,36 +126,37 @@ const breadcrumbs = [{ title: 'Reports', href: tenantUrl('reports') }];
                         Forecast
                     </TabsTrigger>
                 </TabsList>
+                </div>
 
-                <TabsContent value="overview" class="mt-4">
+                <TabsContent value="overview" class="mt-4 sm:mt-6">
                     <SalesTrendChart :data="salesTrend" />
                 </TabsContent>
 
-                <TabsContent value="products" class="mt-4">
+                <TabsContent value="products" class="mt-4 sm:mt-6">
                     <TopProductsChart :data="topProducts" />
                 </TabsContent>
 
-                <TabsContent value="payments" class="mt-4">
+                <TabsContent value="payments" class="mt-4 sm:mt-6">
                     <PaymentBreakdownChart :data="paymentBreakdown" />
                 </TabsContent>
 
-                <TabsContent value="team" class="mt-4">
+                <TabsContent value="team" class="mt-4 sm:mt-6">
                     <OperatorTable :data="operatorPerformance" />
                 </TabsContent>
 
-                <TabsContent v-if="branches.length > 1" value="branches" class="mt-4">
+                <TabsContent v-if="branches.length > 1" value="branches" class="mt-4 sm:mt-6">
                     <BranchComparisonChart :data="branchComparison" />
                 </TabsContent>
 
-                <TabsContent value="inventory" class="mt-4">
+                <TabsContent value="inventory" class="mt-4 sm:mt-6">
                     <InventoryReportChart :data="inventoryReport" />
                 </TabsContent>
 
-                <TabsContent value="tax" class="mt-4">
+                <TabsContent value="tax" class="mt-4 sm:mt-6">
                     <TaxReportChart :data="taxReport" />
                 </TabsContent>
 
-                <TabsContent value="forecast" class="mt-4">
+                <TabsContent value="forecast" class="mt-4 sm:mt-6">
                     <ForecastChart :data="forecast" />
                 </TabsContent>
             </Tabs>

@@ -25,6 +25,7 @@ class StockTransferController extends Controller
         return Inertia::render('tenant/stock-transfers/Index', [
             'transfers' => $this->stockTransferService->list($tenant, $request),
             'branches' => Branch::where('tenant_id', $tenant->id)->where('is_active', true)->get(['id', 'name']),
+            'products' => Product::forTenant($tenant)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'sku']),
             'filters' => $request->only(['search', 'status', 'branch_id']),
         ]);
     }

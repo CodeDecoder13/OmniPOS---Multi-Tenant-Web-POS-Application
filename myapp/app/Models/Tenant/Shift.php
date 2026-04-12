@@ -16,7 +16,7 @@ class Shift extends Model
         'tenant_id', 'branch_id', 'user_id',
         'starting_cash', 'ending_cash', 'expected_cash', 'cash_difference',
         'total_sales', 'total_orders', 'status', 'notes',
-        'opened_at', 'closed_at',
+        'opened_at', 'closed_at', 'hours_rendered',
     ];
 
     protected function casts(): array
@@ -29,6 +29,7 @@ class Shift extends Model
             'cash_difference' => 'decimal:2',
             'total_sales' => 'decimal:2',
             'total_orders' => 'integer',
+            'hours_rendered' => 'decimal:2',
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
         ];

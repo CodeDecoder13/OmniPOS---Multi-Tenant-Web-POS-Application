@@ -110,7 +110,17 @@ function printReceipt() {
         referenceNumber: payment?.reference_number ?? null,
         orderType: o.order_type === 'take_out' ? 'TAKE OUT' : 'DINE IN',
     };
-    doPrintReceipt(receiptData, true);
+    doPrintReceipt(receiptData, true, {
+        logoUrl: tenant?.settings?.receipt_logo_url ?? null,
+        showAddress: tenant?.settings?.receipt_show_address !== false,
+        showPhone: tenant?.settings?.receipt_show_phone !== false,
+        showCustomer: tenant?.settings?.receipt_show_customer !== false,
+        showTable: tenant?.settings?.receipt_show_table !== false,
+        showOrderType: tenant?.settings?.receipt_show_order_type !== false,
+        showTaxBreakdown: tenant?.settings?.receipt_show_tax_breakdown !== false,
+        thankYouMessage: (tenant?.settings?.receipt_thank_you_message as string) ?? '',
+        width: (tenant?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm',
+    });
 }
 
 function formatDate(date: string) {

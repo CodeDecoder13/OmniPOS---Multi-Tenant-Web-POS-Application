@@ -55,7 +55,7 @@ function handleLogout() {
                     <Clock class="h-3.5 w-3.5 text-green-600" />
                     <span class="text-xs font-medium text-green-600">{{ shiftDuration }}</span>
                     <div class="h-3 w-px bg-border" />
-                    <span class="text-xs text-muted-foreground">{{ shiftSummary?.total_orders ?? 0 }} orders</span>
+                    <span class="text-xs text-muted-foreground">{{ shiftSummary?.total_orders ?? 0 }} orders | ₱{{ (shiftSummary?.total_sales ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</span>
                 </div>
                 <Button v-if="hasActiveShift" variant="outline" size="sm" @click="handleEndShift" class="text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950">
                     <Square class="mr-1.5 h-3.5 w-3.5" />

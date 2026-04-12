@@ -81,6 +81,29 @@ class PromotionController extends Controller
             ->with('success', 'Promotion deleted successfully.');
     }
 
+    public function usage(Request $request, string $tenantSlug, int $promotion): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $promotion = $this->promotionService->findForTenant($tenant, $promotion);
+
+        $orders = $promotion->orders()
+            ->with('customer:id,name')
+            ->select('id', 'promotion_id', 'order_number', 'customer_id', 'discount_customer_name', 'promotion_discount', 'total', 'created_at')
+            ->latest()
+            ->limit(50)
+            ->get()
+            ->map(fn ($order) => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'customer_name' => $order->customer?->name ?? $order->discount_customer_name ?? 'Walk-in',
+                'promotion_discount' => $order->promotion_discount,
+                'total' => $order->total,
+                'created_at' => $order->created_at->toDateTimeString(),
+            ]);
+
+        return response()->json($orders);
+    }
+
     public function applyCode(Request $request, string $tenantSlug): JsonResponse
     {
         $tenant = $request->attributes->get('current_tenant');

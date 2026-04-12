@@ -15,6 +15,7 @@ class Promotion extends Model
         'tenant_id', 'code', 'name', 'type', 'value',
         'min_order_amount', 'max_discount', 'start_date', 'end_date',
         'is_active', 'usage_limit', 'used_count', 'description',
+        'is_preset',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class Promotion extends Model
             'min_order_amount' => 'decimal:2',
             'max_discount' => 'decimal:2',
             'is_active' => 'boolean',
+            'is_preset' => 'boolean',
             'usage_limit' => 'integer',
             'used_count' => 'integer',
             'start_date' => 'date',
