@@ -10,6 +10,7 @@ use App\Models\Tenant\Order;
 use App\Models\Tenant\OrderItem;
 use App\Models\Tenant\Payment;
 use App\Models\TenantUser;
+use App\Services\Tenant\AIInsightsService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly AIInsightsService $aiInsightsService) {}
     public function markReleaseNotesSeen(Request $request): RedirectResponse
     {
         $latestId = ReleaseNote::published()->max('id');
@@ -185,6 +187,7 @@ class DashboardController extends Controller
             'topProducts' => $topProducts,
             'recentOrders' => $recentOrders,
             'needsPinSetup' => $needsPinSetup,
+            'aiInsights' => $this->aiInsightsService->getSummary($tenant),
         ]);
     }
 }

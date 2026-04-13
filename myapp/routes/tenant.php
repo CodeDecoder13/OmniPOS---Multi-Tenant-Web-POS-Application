@@ -18,6 +18,7 @@ use App\Http\Controllers\Tenant\PosController;
 use App\Http\Controllers\Tenant\ProductController;
 use App\Http\Controllers\Tenant\ProductImageController;
 use App\Http\Controllers\Tenant\PurchaseOrderController;
+use App\Http\Controllers\Tenant\AIInsightsController;
 use App\Http\Controllers\Tenant\ReportController;
 use App\Http\Controllers\Tenant\RoleController;
 use App\Http\Controllers\Tenant\ReceiptCustomizationController;
@@ -195,6 +196,11 @@ Route::prefix('{tenant}')
         Route::middleware('can-do:reports.view')->group(function () {
             Route::get('reports', [ReportController::class, 'index'])->name('tenant.reports.index');
             Route::get('reports/export', [ReportController::class, 'export'])->name('tenant.reports.export');
+        });
+
+        // AI Insights
+        Route::middleware('can-do:reports.view')->group(function () {
+            Route::get('ai-insights', [AIInsightsController::class, 'index'])->name('tenant.ai-insights.index');
         });
 
         // Customers

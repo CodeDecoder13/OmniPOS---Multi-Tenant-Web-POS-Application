@@ -856,3 +856,35 @@ export interface ForecastData {
     projected_revenue_30d: number;
     day_of_week_pattern: { day: string; avg_revenue: number }[];
 }
+
+// AI Insights Types
+
+export interface AIInsightsSummary {
+    revenue_change: number;
+    order_change: number;
+    avg_order_change: number;
+    top_insight: string;
+    secondary_insight: string;
+    projected_revenue_7d: number;
+}
+
+export interface AIInsight {
+    type: 'positive' | 'negative' | 'neutral';
+    title: string;
+    description: string;
+    metric?: string;
+}
+
+export interface ProductTrend {
+    name: string;
+    current_revenue: number;
+    previous_revenue: number;
+    change_percent: number;
+}
+
+export interface PeakHour {
+    hour: number;
+    label: string;
+    avg_orders: number;
+    avg_revenue: number;
+}

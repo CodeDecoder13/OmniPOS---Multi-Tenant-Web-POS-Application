@@ -4,7 +4,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import {
     ArrowLeftRight, BarChart3, Building2, CalendarDays, ChefHat, ChevronRight, ClipboardList,
     Clock, Crown, FileText, FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle,
-    ReceiptText, Settings2, Shield, ShoppingCart, Store, Tag, Truck, UserRound, Users, Warehouse,
+    ReceiptText, Settings2, Shield, ShoppingCart, Sparkles, Store, Tag, Truck, UserRound, Users, Warehouse,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import NavUser from '@/components/NavUser.vue';
@@ -67,6 +67,7 @@ const operationsGroups: NavGroup[] = [
             { title: 'Customers', path: 'customers', icon: UserRound, permission: 'orders.view' },
             { title: 'Shifts', path: 'shifts', icon: Clock, permission: 'shifts.view' },
             { title: 'Reports', path: 'reports', icon: BarChart3, permission: 'reports.view' },
+            { title: 'AI Insights', path: 'ai-insights', icon: Sparkles, permission: 'reports.view' },
         ],
     },
     {
@@ -168,7 +169,7 @@ const filteredStoreGroups = computed(() =>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
                         <Link :href="tenantUrl('dashboard')">
-                            <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-teal-600 text-white">
+                            <div class="flex aspect-square size-8 items-center justify-center rounded-md bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-lg shadow-teal-500/25">
                                 <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
