@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\CheckoutRequest;
 use App\Http\Requests\Tenant\HoldOrderRequest;
@@ -181,5 +182,35 @@ class PosController extends Controller
         $heldOrderService->delete($orderModel);
 
         return response()->json(['success' => true]);
+    }
+
+    public function billingHistory(Request $request, string $tenantSlug): JsonResponse
+    {
+        $tenant = $request->attributes->get('current_tenant');
+        $tenantUser = $request->attributes->get('current_tenant_user');
+        $branchId = $tenantUser->branch_id ?? null;
+
+        $query = Order::forTenant($tenant)
+            ->where('status', OrderStatus::Completed)
+            ->whereNull('held_at')
+            ->whereDate('created_at', now()->toDateString())
+            ->with('customer:id,name')
+            ->withCount('items')
+            ->select(['id', 'order_number', 'customer_id', 'total', 'created_at'])
+            ->orderByDesc('created_at')
+            ->limit(10);
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        return response()->json($query->get()->map(fn ($order) => [
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'customer_name' => $order->customer?->name ?? 'Walk-in',
+            'items_count' => $order->items_count,
+            'total' => $order->total,
+            'time' => $order->created_at->format('g:i A'),
+        ]));
     }
 }

@@ -27,7 +27,7 @@ class SendReceiptEmail implements ShouldQueue
 
     public function handle(): void
     {
-        $this->order->load(['items', 'payments', 'customer']);
+        $this->order->load(['items.variations', 'items.itemAddons', 'payments', 'customer', 'table:id,name', 'promotion:id,code,name']);
 
         Mail::to($this->email)->send(new ReceiptMail($this->order, $this->tenant, $this->receiptUrl));
     }

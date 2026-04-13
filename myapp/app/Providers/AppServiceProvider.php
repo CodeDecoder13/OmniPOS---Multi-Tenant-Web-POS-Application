@@ -8,6 +8,7 @@ use App\Events\OrderRefunded;
 use App\Events\OrderVoided;
 use App\Listeners\CreateAutoReorderPurchaseOrder;
 use App\Listeners\LogOrderActivity;
+use App\Listeners\SendAutoReceiptEmail;
 use App\Listeners\SendLowStockDatabaseNotification;
 use App\Listeners\SendLowStockEmailNotification;
 use Carbon\CarbonImmutable;
@@ -42,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(LowStockReached::class, SendLowStockEmailNotification::class);
         Event::listen(LowStockReached::class, CreateAutoReorderPurchaseOrder::class);
         Event::listen(OrderCompleted::class, LogOrderActivity::class);
+        Event::listen(OrderCompleted::class, SendAutoReceiptEmail::class);
         Event::listen(OrderVoided::class, LogOrderActivity::class);
         Event::listen(OrderRefunded::class, LogOrderActivity::class);
     }
