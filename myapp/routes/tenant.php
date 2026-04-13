@@ -165,6 +165,7 @@ Route::prefix('{tenant}')
             Route::get('pos/held-orders', [PosController::class, 'heldOrders'])->name('tenant.pos.held-orders');
             Route::get('pos/held-orders/{order}', [PosController::class, 'recallOrder'])->name('tenant.pos.held-orders.recall');
             Route::delete('pos/held-orders/{order}', [PosController::class, 'deleteHeldOrder'])->name('tenant.pos.held-orders.delete');
+            Route::get('pos/billing-history', [PosController::class, 'billingHistory'])->name('tenant.pos.billing-history');
             Route::post('pos/shifts/open', [ShiftController::class, 'open'])->name('tenant.pos.shifts.open');
             Route::post('pos/shifts/close', [ShiftController::class, 'close'])->name('tenant.pos.shifts.close');
             Route::get('pos/shifts/status', [ShiftController::class, 'status'])->name('tenant.pos.shifts.status');
@@ -199,7 +200,7 @@ Route::prefix('{tenant}')
         });
 
         // AI Insights
-        Route::middleware('can-do:reports.view')->group(function () {
+        Route::middleware(['can-do:reports.view', 'check-plan:pro,enterprise'])->group(function () {
             Route::get('ai-insights', [AIInsightsController::class, 'index'])->name('tenant.ai-insights.index');
         });
 

@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { Minus, Plus, Search, ShoppingCart, Trash2, User, UserPlus, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play, Tag } from 'lucide-vue-next';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { Minus, Plus, Search, ShoppingCart, Trash2, User, UserPlus, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play, Tag, ScanBarcode, History, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import PosLayout from '@/layouts/PosLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import PosLoginModal from '@/components/PosLoginModal.vue';
 import StartShiftDialog from '@/components/StartShiftDialog.vue';
 import ReceiptTemplate from '@/components/ReceiptTemplate.vue';
@@ -111,6 +115,34 @@ watch(hasActiveShift, (active, wasActive) => {
 });
 
 // Product grid state
+const showImages = ref(localStorage.getItem('pos-show-images') !== 'false');
+
+watch(showImages, (val) => {
+    localStorage.setItem('pos-show-images', String(val));
+});
+
+// Category scroll navigation
+const categoryScrollRef = ref<HTMLElement | null>(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+
+function updateCategoryScroll() {
+    const el = categoryScrollRef.value;
+    if (!el) return;
+    canScrollLeft.value = el.scrollLeft > 0;
+    canScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+}
+
+function scrollCategories(direction: 'left' | 'right') {
+    const el = categoryScrollRef.value;
+    if (!el) return;
+    el.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+}
+
+watch(categoryScrollRef, (el) => {
+    if (el) nextTick(() => updateCategoryScroll());
+});
+
 const products = ref<Product[]>([]);
 const productSearch = ref('');
 const selectedCategory = ref<number | null>(null);
@@ -166,6 +198,7 @@ async function applyPromoCode() {
             appliedPromo.value = data.promotion;
             promoDiscount.value = data.discount;
             promoCode.value = '';
+            showDiscountModal.value = false;
         } else {
             promoError.value = data.message;
         }
@@ -178,6 +211,7 @@ async function applyPromoCode() {
 
 // Discount panel state
 const showDiscountPanel = ref(false);
+const showDiscountModal = ref(false);
 const appliedPresetDiscount = ref<{ id: number; code: string; name: string; type: string; value: string } | null>(null);
 const discountCustomer = ref<{ name: string; id_number: string; birthday: string } | null>(null);
 
@@ -189,6 +223,7 @@ function applyPresetDiscount(discount: { id: number; code: string; name: string;
     discountCustomer.value = customer;
     promoCode.value = '';
     promoError.value = '';
+    showDiscountModal.value = false;
 }
 
 function removePresetDiscount() {
@@ -426,6 +461,10 @@ const discountValue = computed(() => {
 
 const afterDiscount = computed(() => Math.max(0, subtotal.value - discountValue.value));
 const afterPromo = computed(() => Math.max(0, afterDiscount.value - promoDiscount.value));
+
+const hasActiveDiscount = computed(() =>
+    discountAmount.value > 0 || appliedPromo.value !== null || appliedPresetDiscount.value !== null
+);
 
 const taxRate = computed(() => Number(tenant.value?.settings?.tax_rate) || 0);
 const taxInclusive = computed(() => tenant.value?.settings?.tax_inclusive ?? false);
@@ -676,6 +715,7 @@ async function processCheckout() {
         showReceiptDialog.value = true;
         clearCart();
         refreshSummary();
+        fetchBillingHistory();
 
         // Auto-print receipt if branch setting is enabled
         nextTick(() => {
@@ -964,12 +1004,72 @@ function removeCustomer() {
     selectedCustomer.value = null;
 }
 
+// Barcode input ref for programmatic focus
+const barcodeInputRef = ref<InstanceType<typeof Input> | null>(null);
+
+function focusBarcodeInput() {
+    nextTick(() => {
+        const el = barcodeInputRef.value?.$el?.querySelector('input') ?? barcodeInputRef.value?.$el;
+        el?.focus();
+    });
+}
+
+// Billing History state
+interface BillingHistoryItem {
+    id: number;
+    order_number: string;
+    customer_name: string;
+    items_count: number;
+    total: string;
+    time: string;
+}
+
+const billingHistory = ref<BillingHistoryItem[]>([]);
+const loadingBillingHistory = ref(false);
+
+async function fetchBillingHistory() {
+    loadingBillingHistory.value = true;
+    try {
+        const res = await fetch(tenantUrl('pos/billing-history'), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (res.ok) {
+            billingHistory.value = await res.json();
+        }
+    } catch {
+        // silently fail
+    } finally {
+        loadingBillingHistory.value = false;
+    }
+}
+
+// Mobile responsiveness
+const isMobile = ref(false);
+const showMobileCart = ref(false);
+const showBillingHistorySheet = ref(false);
+
+function checkMobile() {
+    isMobile.value = window.innerWidth < 768;
+}
+
+function openReceiptPreviewMobile() {
+    showMobileCart.value = false;
+    nextTick(() => openReceiptPreview());
+}
+
 onMounted(() => {
     fetchProducts(true);
+    fetchBillingHistory();
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
     // If already authenticated (module-level state persists across navigations), check shift
     if (isAuthenticated.value) {
         checkAndPromptShift();
     }
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', checkMobile);
 });
 </script>
 
@@ -977,103 +1077,215 @@ onMounted(() => {
     <PosLayout>
         <PosLoginModal v-if="!isAuthenticated" />
         <StartShiftDialog v-model:open="showStartShift" @shift-started="onShiftStarted" />
-        <div class="flex h-full">
-            <!-- Left Panel: Products -->
-            <div class="flex flex-1 flex-col border-r">
-                <!-- Search bar + Barcode scanner -->
-                <div class="flex items-center gap-2 border-b p-3">
-                    <div class="relative flex-1">
-                        <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input v-model="productSearch" placeholder="Search..." class="pl-9" />
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <span
-                            :class="[
-                                'h-2.5 w-2.5 shrink-0 rounded-full transition-colors',
-                                scanStatus === 'scanned' ? 'bg-green-500' : scanStatus === 'not_found' ? 'bg-red-500' : 'bg-gray-400',
-                            ]"
-                            :title="scanStatus === 'scanned' ? 'Product found' : scanStatus === 'not_found' ? 'Not found' : 'Scanner ready'"
-                        />
+        <div class="flex h-full gap-2 p-2 md:gap-3 md:p-3 lg:gap-4 lg:p-4 overflow-hidden">
+            <!-- Left Panel: Products + Billing History -->
+            <div class="flex flex-1 flex-col gap-4 min-h-0">
+                <Card class="flex flex-1 flex-col min-h-0 overflow-hidden py-0 gap-0">
+                    <!-- Search bar + Barcode scanner -->
+                    <div class="flex flex-col gap-2 border-b px-3 py-2.5 md:flex-row md:items-center md:gap-2 md:px-4 md:py-3">
+                        <div class="relative flex-1">
+                            <Search class="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input v-model="productSearch" placeholder="Search products..." class="h-11 rounded-full bg-muted/50 border-none pl-10 text-sm" />
+                        </div>
+                        <div class="flex items-center gap-1.5 md:gap-2">
+                            <button
+                                @click="showImages = !showImages"
+                                class="flex items-center gap-2 rounded-full border px-2.5 py-2 lg:px-4 lg:py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                                :title="showImages ? 'Switch to compact list' : 'Switch to image grid'"
+                            >
+                                <List v-if="showImages" class="h-4 w-4" />
+                                <LayoutGrid v-else class="h-4 w-4" />
+                                <span class="hidden lg:inline">{{ showImages ? 'Compact' : 'Grid' }}</span>
+                            </button>
+                            <button
+                                @click="showBillingHistorySheet = true"
+                                class="flex md:hidden items-center gap-2 rounded-full border px-2.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                            >
+                                <History class="h-4 w-4" />
+                            </button>
+                            <button
+                                @click="focusBarcodeInput"
+                                :class="[
+                                    'flex items-center gap-2 rounded-full border px-2.5 py-2 lg:px-4 lg:py-2.5 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary',
+                                    scanStatus === 'scanned' ? 'border-green-300 text-green-600 bg-green-50 dark:bg-green-950' : scanStatus === 'not_found' ? 'border-red-300 text-red-600 bg-red-50 dark:bg-red-950' : 'text-muted-foreground',
+                                ]"
+                            >
+                                <ScanBarcode class="h-4 w-4" />
+                                <span class="hidden lg:inline">Scan Barcode</span>
+                            </button>
+                            <button
+                                @click="showDiscountModal = true"
+                                :class="[
+                                    'flex items-center gap-2 rounded-full border px-2.5 py-2 lg:px-4 lg:py-2.5 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary',
+                                    hasActiveDiscount ? 'border-green-300 text-green-600 bg-green-50 dark:bg-green-950' : 'text-muted-foreground',
+                                ]"
+                            >
+                                <Tag class="h-4 w-4" />
+                                <span class="hidden lg:inline">Discounts</span>
+                            </button>
+                            <button
+                                v-if="presetDiscounts && presetDiscounts.length > 0"
+                                @click="showDiscountPanel = true"
+                                :class="[
+                                    'flex items-center gap-2 rounded-full border px-2.5 py-2 lg:px-4 lg:py-2.5 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary',
+                                    appliedPresetDiscount ? 'border-green-300 text-green-600 bg-green-50 dark:bg-green-950' : 'text-muted-foreground',
+                                ]"
+                            >
+                                <Tag class="h-4 w-4" />
+                                <span class="hidden lg:inline">ID Discount</span>
+                            </button>
+                        </div>
                         <Input
+                            ref="barcodeInputRef"
                             v-model="barcodeInput"
-                            placeholder="Scan barcode..."
-                            class="w-40"
+                            class="sr-only"
+                            tabindex="-1"
                             @keydown.enter="handleBarcodeScan"
                         />
                     </div>
-                </div>
 
-                <!-- Category pills -->
-                <div class="flex gap-2 overflow-x-auto border-b px-3 py-2 scrollbar-none">
-                    <button
-                        @click="selectCategory(null)"
-                        :class="[
-                            'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                            !selectedCategory ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
-                        ]"
-                    >
-                        All
-                    </button>
-                    <button
-                        v-for="cat in categories"
-                        :key="cat.id"
-                        @click="selectCategory(cat.id)"
-                        :class="[
-                            'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                            selectedCategory === cat.id ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
-                        ]"
-                    >
-                        {{ cat.name }}
-                    </button>
-                </div>
-
-                <!-- Product grid -->
-                <div class="flex-1 overflow-y-auto p-3">
-                    <div v-if="loadingProducts && products.length === 0" class="flex h-full items-center justify-center">
-                        <p class="text-muted-foreground">Loading products...</p>
-                    </div>
-                    <div v-else-if="products.length === 0" class="flex h-full items-center justify-center">
-                        <p class="text-muted-foreground">No products found</p>
-                    </div>
-                    <div v-else>
-                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    <!-- Category pills -->
+                    <div class="relative flex items-center border-b">
+                        <button
+                            v-show="canScrollLeft"
+                            @click="scrollCategories('left')"
+                            class="absolute left-0 z-10 flex h-full w-8 items-center justify-center bg-gradient-to-r from-card via-card/90 to-transparent"
+                        >
+                            <ChevronLeft class="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        <div
+                            ref="categoryScrollRef"
+                            class="flex gap-2 overflow-x-auto scrollbar-none px-4 py-2.5"
+                            @scroll="updateCategoryScroll"
+                        >
                             <button
-                                v-for="product in products"
-                                :key="product.id"
-                                @click="handleProductClick(product)"
-                                class="flex flex-col rounded-lg border bg-card p-2 text-left transition-all hover:shadow-md hover:border-primary/50 active:scale-[0.98]"
+                                @click="selectCategory(null)"
+                                :class="[
+                                    'shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all',
+                                    !selectedCategory ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card border hover:border-primary/40 hover:text-primary',
+                                ]"
                             >
-                                <div class="aspect-square w-full overflow-hidden rounded-md bg-muted mb-2">
-                                    <img
-                                        v-if="product.image_url"
-                                        :src="product.image_url"
-                                        :alt="product.name"
-                                        class="h-full w-full object-cover"
-                                    />
-                                    <div v-else class="flex h-full items-center justify-center text-muted-foreground">
-                                        <ShoppingCart class="h-8 w-8 opacity-30" />
-                                    </div>
-                                </div>
-                                <p class="text-xs font-medium leading-tight line-clamp-2">{{ product.name }}</p>
-                                <p class="mt-auto pt-1 text-sm font-bold text-primary">{{ formatCurrency(product.price) }}</p>
+                                All Products
+                            </button>
+                            <button
+                                v-for="cat in categories"
+                                :key="cat.id"
+                                @click="selectCategory(cat.id)"
+                                :class="[
+                                    'shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all',
+                                    selectedCategory === cat.id ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card border hover:border-primary/40 hover:text-primary',
+                                ]"
+                            >
+                                {{ cat.name }}
                             </button>
                         </div>
-                        <div v-if="hasMoreProducts" class="mt-4 flex justify-center">
-                            <Button variant="outline" size="sm" @click="loadMore" :disabled="loadingProducts">
-                                {{ loadingProducts ? 'Loading...' : 'Load More' }}
-                            </Button>
+                        <button
+                            v-show="canScrollRight"
+                            @click="scrollCategories('right')"
+                            class="absolute right-0 z-10 flex h-full w-8 items-center justify-center bg-gradient-to-l from-card via-card/90 to-transparent"
+                        >
+                            <ChevronRight class="h-4 w-4 text-muted-foreground" />
+                        </button>
+                    </div>
+
+                    <!-- Product grid -->
+                    <div class="flex-1 overflow-y-auto scrollbar-none p-3">
+                        <div v-if="loadingProducts && products.length === 0" class="flex h-full items-center justify-center">
+                            <p class="text-muted-foreground">Loading products...</p>
+                        </div>
+                        <div v-else-if="products.length === 0" class="flex h-full items-center justify-center">
+                            <p class="text-muted-foreground">No products found</p>
+                        </div>
+                        <div v-else>
+                            <div :class="[
+                                'grid',
+                                showImages
+                                    ? 'grid-cols-3 gap-2 md:grid-cols-2 md:gap-2.5 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                                    : 'grid-cols-2 gap-1.5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+                            ]">
+                                <button
+                                    v-for="product in products"
+                                    :key="product.id"
+                                    @click="handleProductClick(product)"
+                                    :class="[
+                                        'text-left transition-all hover:ring-1 hover:ring-primary/20 active:scale-[0.98]',
+                                        showImages
+                                            ? 'flex flex-col rounded-xl bg-card p-2.5 shadow-sm hover:shadow-md'
+                                            : 'flex flex-col justify-between rounded-lg bg-card px-2.5 py-2 shadow-sm hover:shadow-md'
+                                    ]"
+                                >
+                                    <template v-if="showImages">
+                                        <div class="aspect-square w-full overflow-hidden rounded-lg bg-muted mb-1.5">
+                                            <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="h-full w-full object-cover" />
+                                            <div v-else class="flex h-full items-center justify-center text-muted-foreground">
+                                                <ShoppingCart class="h-6 w-6 opacity-30" />
+                                            </div>
+                                        </div>
+                                        <p class="text-xs font-medium leading-tight line-clamp-2">{{ product.name }}</p>
+                                        <div class="mt-auto pt-1.5">
+                                            <span class="inline-block rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-bold">{{ formatCurrency(product.price) }}</span>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <p class="text-xs font-medium leading-tight line-clamp-2">{{ product.name }}</p>
+                                        <span class="mt-1 inline-block rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-bold">{{ formatCurrency(product.price) }}</span>
+                                    </template>
+                                </button>
+                            </div>
+                            <div v-if="hasMoreProducts" class="mt-4 flex justify-center">
+                                <Button variant="outline" size="sm" @click="loadMore" :disabled="loadingProducts">
+                                    {{ loadingProducts ? 'Loading...' : 'Load More' }}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </Card>
+
+                <!-- Billing History Card -->
+                <Card class="hidden md:block shrink-0 py-0 gap-0 overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 border-b">
+                        <div class="flex items-center gap-2">
+                            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                                <History class="h-3.5 w-3.5 text-primary" />
+                            </div>
+                            <h3 class="text-sm font-semibold">Billing History</h3>
+                            <Badge variant="secondary" class="text-[10px]">Today</Badge>
+                        </div>
+                    </div>
+                    <div class="max-h-[120px] lg:max-h-[180px] overflow-y-auto">
+                        <div v-if="loadingBillingHistory" class="py-4 text-center text-xs text-muted-foreground">Loading...</div>
+                        <div v-else-if="billingHistory.length === 0" class="py-4 text-center text-xs text-muted-foreground">No orders today</div>
+                        <div v-else class="divide-y">
+                            <div v-for="order in billingHistory" :key="order.id" class="flex items-center gap-3 px-4 py-2">
+                                <Avatar class="h-8 w-8 shrink-0">
+                                    <AvatarFallback class="bg-muted text-[10px] font-semibold">{{ order.customer_name.charAt(0).toUpperCase() }}</AvatarFallback>
+                                </Avatar>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-xs font-medium truncate">{{ order.customer_name }}</p>
+                                        <span class="text-[10px] text-muted-foreground">#{{ order.order_number }}</span>
+                                    </div>
+                                    <p class="text-[10px] text-muted-foreground">{{ order.items_count }} item{{ order.items_count !== 1 ? 's' : '' }}</p>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <p class="text-xs font-semibold text-primary">{{ formatCurrency(order.total) }}</p>
+                                    <p class="text-[10px] text-muted-foreground">{{ order.time }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
             </div>
 
             <!-- Right Panel: Cart -->
-            <div class="flex w-[380px] flex-col bg-card">
+            <Card class="hidden md:flex w-[280px] lg:w-[340px] xl:w-[400px] shrink-0 flex-col overflow-hidden py-0 gap-0">
                 <!-- Cart header -->
-                <div class="flex items-center justify-between border-b px-4 py-3">
-                    <div class="flex items-center gap-2">
-                        <ShoppingCart class="h-4 w-4" />
-                        <h2 class="font-semibold text-sm">Cart</h2>
+                <div class="flex items-center justify-between border-b px-5 py-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                            <ShoppingCart class="h-4 w-4 text-primary" />
+                        </div>
+                        <h2 class="font-bold text-base">Cart</h2>
                         <Badge v-if="cartItemCount > 0" variant="secondary" class="text-xs">{{ cartItemCount }}</Badge>
                     </div>
                     <div class="flex items-center gap-1">
@@ -1088,7 +1300,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Customer section -->
-                <div class="border-b px-4 py-2">
+                <div class="border-b px-5 py-2">
                     <div v-if="selectedCustomer" class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <User class="h-4 w-4 text-muted-foreground" />
@@ -1147,13 +1359,13 @@ onMounted(() => {
                 </div>
 
                 <!-- Order type toggle -->
-                <div v-if="cart.length > 0 && availableOrderTypes.length > 1" class="border-b px-4 py-2">
-                    <div class="flex rounded-lg border p-0.5 gap-0.5">
+                <div v-if="cart.length > 0 && availableOrderTypes.length > 1" class="border-b px-5 py-2">
+                    <div class="flex rounded-xl border p-0.5 gap-0.5">
                         <button
                             v-if="isEnabled('dine_in')"
                             @click="orderType = 'dine_in'"
                             :class="[
-                                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
                                 orderType === 'dine_in' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
                             ]"
                         >
@@ -1164,7 +1376,7 @@ onMounted(() => {
                             v-if="isEnabled('takeout')"
                             @click="orderType = 'take_out'"
                             :class="[
-                                'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                                'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
                                 orderType === 'take_out' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
                             ]"
                         >
@@ -1175,7 +1387,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Table selection (dine-in only) -->
-                <div v-if="cart.length > 0 && orderType === 'dine_in' && tables.length > 0" class="border-b px-4 py-2">
+                <div v-if="cart.length > 0 && orderType === 'dine_in' && tables.length > 0" class="border-b px-5 py-2">
                     <p class="text-xs font-medium text-muted-foreground mb-1.5">Select Table</p>
                     <div class="grid grid-cols-4 gap-1.5">
                         <button
@@ -1185,7 +1397,7 @@ onMounted(() => {
                             :class="[
                                 'rounded-md border px-2 py-1.5 text-xs font-medium transition-colors',
                                 selectedTable === table.id
-                                    ? 'border-primary bg-primary/10 text-primary'
+                                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
                                     : 'hover:border-primary/50',
                             ]"
                         >
@@ -1195,30 +1407,38 @@ onMounted(() => {
                 </div>
 
                 <!-- Cart items -->
-                <div class="flex-1 overflow-y-auto">
+                <div class="flex-1 overflow-y-auto scrollbar-none">
                     <div v-if="cart.length === 0" class="flex h-full flex-col items-center justify-center text-muted-foreground">
-                        <ShoppingCart class="h-12 w-12 opacity-20 mb-2" />
-                        <p class="text-sm">Cart is empty</p>
-                        <p class="text-xs">Click products to add them</p>
+                        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/5 mb-3">
+                            <ShoppingCart class="h-8 w-8 text-primary/30" />
+                        </div>
+                        <p class="text-sm font-medium">Cart is empty</p>
+                        <p class="text-xs mt-0.5">Click products to add them</p>
                     </div>
                     <div v-else class="divide-y">
-                        <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2">
+                        <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2.5">
                             <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
+                                    <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="h-full w-full object-cover" />
+                                    <div v-else class="flex h-full w-full items-center justify-center">
+                                        <ShoppingCart class="h-4 w-4 opacity-30" />
+                                    </div>
+                                </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium leading-tight truncate">{{ item.name }}</p>
                                     <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }}</p>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <Button variant="outline" size="icon" class="h-7 w-7" @click="updateQuantity(index, -1)">
+                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, -1)">
                                         <Minus class="h-3 w-3" />
                                     </Button>
-                                    <span class="w-8 text-center text-sm font-medium">{{ item.quantity }}</span>
-                                    <Button variant="outline" size="icon" class="h-7 w-7" @click="updateQuantity(index, 1)">
+                                    <span class="w-8 text-center text-sm font-semibold">{{ item.quantity }}</span>
+                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, 1)">
                                         <Plus class="h-3 w-3" />
                                     </Button>
                                 </div>
-                                <p class="w-20 text-right text-sm font-medium">{{ formatCurrency(item.price * item.quantity) }}</p>
-                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0" @click="removeFromCart(index)">
+                                <p class="w-20 text-right text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
+                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)">
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>
@@ -1231,95 +1451,58 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Discount & Promo section -->
-                <div v-if="cart.length > 0" class="border-t px-4 py-2 space-y-2">
-                    <!-- Applied preset discount badge -->
-                    <div v-if="appliedPresetDiscount" class="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950 px-3 py-2.5 border border-green-200 dark:border-green-800">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <Tag class="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold text-green-700 dark:text-green-300">{{ appliedPresetDiscount.name }}</p>
-                                <p class="text-[10px] text-green-600 dark:text-green-400 truncate">
-                                    {{ discountCustomer?.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
-                                </p>
-                            </div>
+                <!-- Applied discount/promo/notes badges -->
+                <div v-if="cart.length > 0 && (hasActiveDiscount || orderNotes)" class="border-t px-5 py-2 space-y-1.5">
+                    <!-- Manual discount badge -->
+                    <div v-if="discountAmount > 0 && !appliedPresetDiscount && !appliedPromo" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-2.5 py-1.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <Percent class="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 truncate">
+                                Manual Discount: {{ discountType === 'percentage' ? `${discountAmount}% off` : formatCurrency(discountAmount) + ' off' }}
+                            </span>
                         </div>
-                        <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0 hover:bg-green-100 dark:hover:bg-green-900" @click="removePresetDiscount">
+                        <button class="ml-1 shrink-0 rounded p-0.5 hover:bg-green-100 dark:hover:bg-green-900" @click="discountAmount = 0">
                             <X class="h-3 w-3 text-green-600" />
-                        </Button>
+                        </button>
                     </div>
 
-                    <!-- Applied promo code badge (non-preset) -->
-                    <div v-else-if="appliedPromo" class="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950 px-3 py-2.5 border border-green-200 dark:border-green-800">
-                        <div class="min-w-0">
-                            <p class="text-xs font-semibold text-green-700 dark:text-green-300">{{ appliedPromo.code }}</p>
-                            <p class="text-[10px] text-green-600 dark:text-green-400">{{ appliedPromo.name }} &mdash; -{{ formatCurrency(promoDiscount) }}</p>
+                    <!-- Preset discount badge -->
+                    <div v-if="appliedPresetDiscount" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-2.5 py-1.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <Tag class="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 truncate">
+                                {{ appliedPresetDiscount.name }} &mdash; {{ discountCustomer?.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
+                            </span>
                         </div>
-                        <Button variant="ghost" size="icon" class="h-6 w-6 shrink-0" @click="removePromo">
-                            <X class="h-3 w-3" />
-                        </Button>
+                        <button class="ml-1 shrink-0 rounded p-0.5 hover:bg-green-100 dark:hover:bg-green-900" @click="removePresetDiscount">
+                            <X class="h-3 w-3 text-green-600" />
+                        </button>
                     </div>
 
-                    <!-- Discount & promo buttons (when nothing applied) -->
-                    <div v-else class="space-y-2">
-                        <!-- Manual discount row -->
-                        <div v-if="operatorCan('pos.discount') && isEnabled('discounts_enabled')" class="flex items-center gap-2">
-                            <Select v-model="discountType">
-                                <SelectTrigger class="w-[100px] h-8 text-xs">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="percentage">
-                                        <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> Percent</span>
-                                    </SelectItem>
-                                    <SelectItem value="fixed">
-                                        <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> Fixed</span>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Input
-                                v-model.number="discountAmount"
-                                type="number"
-                                min="0"
-                                :max="discountType === 'percentage' ? 100 : subtotal"
-                                placeholder="0"
-                                class="h-8 text-sm"
-                            />
+                    <!-- Promo code badge (non-preset) -->
+                    <div v-else-if="appliedPromo" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-2.5 py-1.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <Tag class="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 truncate">
+                                {{ appliedPromo.code }} &mdash; {{ appliedPromo.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
+                            </span>
                         </div>
-
-                        <!-- Promo code + preset discount row -->
-                        <div class="flex items-center gap-2">
-                            <Input
-                                v-model="promoCode"
-                                placeholder="Promo code"
-                                class="h-8 text-xs uppercase flex-1"
-                                @keydown.enter="applyPromoCode"
-                            />
-                            <Button variant="outline" size="sm" class="h-8 shrink-0 text-xs" :disabled="promoLoading || !promoCode.trim()" @click="applyPromoCode">
-                                {{ promoLoading ? '...' : 'Apply' }}
-                            </Button>
-                            <Button
-                                v-if="presetDiscounts && presetDiscounts.length > 0"
-                                variant="outline"
-                                size="sm"
-                                class="h-8 shrink-0 text-xs gap-1"
-                                @click="showDiscountPanel = true"
-                            >
-                                <Tag class="h-3 w-3" />
-                                ID Discount
-                            </Button>
-                        </div>
-                        <p v-if="promoError" class="text-xs text-destructive">{{ promoError }}</p>
+                        <button class="ml-1 shrink-0 rounded p-0.5 hover:bg-green-100 dark:hover:bg-green-900" @click="removePromo">
+                            <X class="h-3 w-3 text-green-600" />
+                        </button>
                     </div>
-                </div>
 
-                <!-- Notes -->
-                <div v-if="cart.length > 0" class="border-t px-4 py-2">
-                    <Textarea v-model="orderNotes" placeholder="Order notes (optional)" rows="1" class="resize-none text-xs" />
+                    <!-- Order notes indicator -->
+                    <div v-if="orderNotes" class="flex items-center justify-between rounded-md bg-muted/50 px-2.5 py-1.5 border">
+                        <p class="text-xs text-muted-foreground truncate mr-2">Note: {{ orderNotes }}</p>
+                        <button class="shrink-0 rounded p-0.5 hover:bg-muted" @click="orderNotes = ''">
+                            <X class="h-3 w-3 text-muted-foreground" />
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Totals -->
-                <div v-if="cart.length > 0" class="border-t px-4 py-2 space-y-1 text-sm">
+                <div v-if="cart.length > 0" class="border-t px-5 py-3 space-y-1 text-sm">
                     <div class="flex justify-between">
                         <span class="text-muted-foreground">Subtotal</span>
                         <span>{{ formatCurrency(subtotal) }}</span>
@@ -1336,9 +1519,10 @@ onMounted(() => {
                         <span>{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
                         <span>{{ formatCurrency(taxAmount) }}</span>
                     </div>
-                    <div class="flex justify-between border-t pt-1 text-lg font-bold">
-                        <span>Total</span>
-                        <span>{{ formatCurrency(total) }}</span>
+                    <Separator class="my-2" />
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold">Grand Total</span>
+                        <span class="text-xl font-bold text-primary">{{ formatCurrency(total) }}</span>
                     </div>
                 </div>
 
@@ -1356,16 +1540,293 @@ onMounted(() => {
                         </Button>
                     </div>
                     <Button
-                        class="w-full h-12 text-lg font-bold"
+                        class="w-full h-14 text-lg font-bold rounded-xl shadow-md"
                         :disabled="cart.length === 0"
                         @click="openReceiptPreview"
                     >
                         <ShoppingCart class="mr-2 h-5 w-5" />
-                        Charge {{ cart.length > 0 ? formatCurrency(total) : '' }}
+                        Complete Purchase {{ cart.length > 0 ? formatCurrency(total) : '' }}
                     </Button>
                 </div>
-            </div>
+            </Card>
+
+            <!-- Mobile floating cart button -->
+            <button
+                v-if="isMobile && cart.length > 0"
+                @click="showMobileCart = true"
+                class="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-primary-foreground shadow-lg active:scale-95 transition-transform md:hidden"
+            >
+                <ShoppingCart class="h-5 w-5" />
+                <span class="font-bold text-sm">{{ formatCurrency(total) }}</span>
+                <span v-if="cartItemCount > 0" class="flex h-5 w-5 items-center justify-center rounded-full bg-white text-primary text-xs font-bold">{{ cartItemCount }}</span>
+            </button>
         </div>
+
+        <!-- Mobile Cart Sheet -->
+        <Sheet v-model:open="showMobileCart">
+            <SheetContent side="bottom" class="h-[85vh] p-0 flex flex-col rounded-t-2xl md:hidden">
+                <SheetHeader class="px-5 pt-4 pb-2 border-b">
+                    <SheetTitle class="flex items-center gap-2.5">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                            <ShoppingCart class="h-4 w-4 text-primary" />
+                        </div>
+                        <span class="font-bold text-base">Cart</span>
+                        <Badge v-if="cartItemCount > 0" variant="secondary" class="text-xs">{{ cartItemCount }}</Badge>
+                    </SheetTitle>
+                </SheetHeader>
+
+                <!-- Customer section -->
+                <div class="border-b px-5 py-2">
+                    <div v-if="selectedCustomer" class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <User class="h-4 w-4 text-muted-foreground" />
+                            <div>
+                                <p class="text-sm font-medium">{{ selectedCustomer.name }}</p>
+                                <p v-if="selectedCustomer.phone" class="text-xs text-muted-foreground">{{ selectedCustomer.phone }}</p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="icon" class="h-6 w-6" @click="removeCustomer">
+                            <X class="h-3 w-3" />
+                        </Button>
+                    </div>
+                    <div v-else class="flex items-center justify-between">
+                        <button
+                            @click="showCustomerSearch = !showCustomerSearch"
+                            class="flex items-center gap-2 rounded-md py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <User class="h-4 w-4" />
+                            <span>Add customer (optional)</span>
+                        </button>
+                        <button
+                            @click="openAddCustomer"
+                            class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                            title="Create new customer"
+                        >
+                            <UserPlus class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Order type toggle -->
+                <div v-if="cart.length > 0 && availableOrderTypes.length > 1" class="border-b px-5 py-2">
+                    <div class="flex rounded-xl border p-0.5 gap-0.5">
+                        <button
+                            v-if="isEnabled('dine_in')"
+                            @click="orderType = 'dine_in'"
+                            :class="[
+                                'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                                orderType === 'dine_in' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+                            ]"
+                        >
+                            <UtensilsCrossed class="h-3.5 w-3.5" />
+                            Dine In
+                        </button>
+                        <button
+                            v-if="isEnabled('takeout')"
+                            @click="orderType = 'take_out'"
+                            :class="[
+                                'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors',
+                                orderType === 'take_out' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
+                            ]"
+                        >
+                            <ShoppingBag class="h-3.5 w-3.5" />
+                            Take Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table selection -->
+                <div v-if="cart.length > 0 && orderType === 'dine_in' && tables.length > 0" class="border-b px-5 py-2">
+                    <p class="text-xs font-medium text-muted-foreground mb-1.5">Select Table</p>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button
+                            v-for="table in tables"
+                            :key="table.id"
+                            @click="selectedTable = selectedTable === table.id ? null : table.id"
+                            :class="[
+                                'rounded-md border px-2 py-1.5 text-xs font-medium transition-colors',
+                                selectedTable === table.id
+                                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                                    : 'hover:border-primary/50',
+                            ]"
+                        >
+                            {{ table.name }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cart items -->
+                <div class="flex-1 overflow-y-auto scrollbar-none">
+                    <div v-if="cart.length === 0" class="flex h-full flex-col items-center justify-center text-muted-foreground">
+                        <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/5 mb-3">
+                            <ShoppingCart class="h-8 w-8 text-primary/30" />
+                        </div>
+                        <p class="text-sm font-medium">Cart is empty</p>
+                        <p class="text-xs mt-0.5">Click products to add them</p>
+                    </div>
+                    <div v-else class="divide-y">
+                        <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2.5">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
+                                    <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="h-full w-full object-cover" />
+                                    <div v-else class="flex h-full w-full items-center justify-center">
+                                        <ShoppingCart class="h-4 w-4 opacity-30" />
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium leading-tight truncate">{{ item.name }}</p>
+                                    <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }}</p>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, -1)">
+                                        <Minus class="h-3 w-3" />
+                                    </Button>
+                                    <span class="w-8 text-center text-sm font-semibold">{{ item.quantity }}</span>
+                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, 1)">
+                                        <Plus class="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                <p class="w-20 text-right text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
+                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)">
+                                    <Trash2 class="h-3 w-3 text-destructive" />
+                                </Button>
+                            </div>
+                            <Input
+                                v-model="item.notes"
+                                placeholder="Item note (optional)"
+                                class="mt-1 h-6 text-[11px] text-muted-foreground"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Applied discount/promo/notes badges -->
+                <div v-if="cart.length > 0 && (hasActiveDiscount || orderNotes)" class="border-t px-5 py-2 space-y-1.5">
+                    <div v-if="discountAmount > 0 && !appliedPresetDiscount && !appliedPromo" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-2.5 py-1.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <Percent class="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 truncate">
+                                Manual Discount: {{ discountType === 'percentage' ? `${discountAmount}% off` : formatCurrency(discountAmount) + ' off' }}
+                            </span>
+                        </div>
+                        <button class="ml-1 shrink-0 rounded p-0.5 hover:bg-green-100 dark:hover:bg-green-900" @click="discountAmount = 0">
+                            <X class="h-3 w-3 text-green-600" />
+                        </button>
+                    </div>
+                    <div v-if="appliedPresetDiscount" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-2.5 py-1.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <Tag class="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 truncate">
+                                {{ appliedPresetDiscount.name }} &mdash; {{ discountCustomer?.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
+                            </span>
+                        </div>
+                        <button class="ml-1 shrink-0 rounded p-0.5 hover:bg-green-100 dark:hover:bg-green-900" @click="removePresetDiscount">
+                            <X class="h-3 w-3 text-green-600" />
+                        </button>
+                    </div>
+                    <div v-else-if="appliedPromo" class="flex items-center justify-between rounded-md bg-green-50 dark:bg-green-950 px-2.5 py-1.5 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <Tag class="h-3 w-3 text-green-600 dark:text-green-400 shrink-0" />
+                            <span class="text-xs font-medium text-green-700 dark:text-green-300 truncate">
+                                {{ appliedPromo.code }} &mdash; {{ appliedPromo.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
+                            </span>
+                        </div>
+                        <button class="ml-1 shrink-0 rounded p-0.5 hover:bg-green-100 dark:hover:bg-green-900" @click="removePromo">
+                            <X class="h-3 w-3 text-green-600" />
+                        </button>
+                    </div>
+                    <div v-if="orderNotes" class="flex items-center justify-between rounded-md bg-muted/50 px-2.5 py-1.5 border">
+                        <p class="text-xs text-muted-foreground truncate mr-2">Note: {{ orderNotes }}</p>
+                        <button class="shrink-0 rounded p-0.5 hover:bg-muted" @click="orderNotes = ''">
+                            <X class="h-3 w-3 text-muted-foreground" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Totals -->
+                <div v-if="cart.length > 0" class="border-t px-5 py-3 space-y-1 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-muted-foreground">Subtotal</span>
+                        <span>{{ formatCurrency(subtotal) }}</span>
+                    </div>
+                    <div v-if="discountValue > 0" class="flex justify-between text-green-600">
+                        <span>Discount</span>
+                        <span>-{{ formatCurrency(discountValue) }}</span>
+                    </div>
+                    <div v-if="promoDiscount > 0" class="flex justify-between text-green-600">
+                        <span>Promo ({{ appliedPromo?.code }})</span>
+                        <span>-{{ formatCurrency(promoDiscount) }}</span>
+                    </div>
+                    <div v-if="taxAmount > 0" class="flex justify-between text-muted-foreground">
+                        <span>{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
+                        <span>{{ formatCurrency(taxAmount) }}</span>
+                    </div>
+                    <Separator class="my-2" />
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold">Grand Total</span>
+                        <span class="text-xl font-bold text-primary">{{ formatCurrency(total) }}</span>
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="border-t p-4 space-y-2">
+                    <div v-if="cart.length > 0" class="flex gap-2">
+                        <Button
+                            variant="outline"
+                            class="flex-1 h-10"
+                            :disabled="holdingOrder"
+                            @click="holdOrder"
+                        >
+                            <Pause class="mr-1.5 h-4 w-4" />
+                            {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
+                        </Button>
+                    </div>
+                    <Button
+                        class="w-full h-14 text-lg font-bold rounded-xl shadow-md"
+                        :disabled="cart.length === 0"
+                        @click="openReceiptPreviewMobile"
+                    >
+                        <ShoppingCart class="mr-2 h-5 w-5" />
+                        Complete Purchase {{ cart.length > 0 ? formatCurrency(total) : '' }}
+                    </Button>
+                </div>
+            </SheetContent>
+        </Sheet>
+
+        <!-- Mobile Billing History Sheet -->
+        <Sheet v-model:open="showBillingHistorySheet">
+            <SheetContent side="bottom" class="h-[50vh] p-0 flex flex-col rounded-t-2xl md:hidden">
+                <SheetHeader class="px-4 pt-4 pb-2 border-b">
+                    <SheetTitle class="flex items-center gap-2 text-sm">
+                        <History class="h-4 w-4" />
+                        Billing History
+                        <Badge variant="secondary" class="text-[10px]">Today</Badge>
+                    </SheetTitle>
+                </SheetHeader>
+                <div class="flex-1 overflow-y-auto">
+                    <div v-if="loadingBillingHistory" class="py-4 text-center text-xs text-muted-foreground">Loading...</div>
+                    <div v-else-if="billingHistory.length === 0" class="py-4 text-center text-xs text-muted-foreground">No orders today</div>
+                    <div v-else class="divide-y">
+                        <div v-for="order in billingHistory" :key="order.id" class="flex items-center gap-3 px-4 py-2">
+                            <Avatar class="h-8 w-8 shrink-0">
+                                <AvatarFallback class="bg-muted text-[10px] font-semibold">{{ order.customer_name.charAt(0).toUpperCase() }}</AvatarFallback>
+                            </Avatar>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-xs font-medium truncate">{{ order.customer_name }}</p>
+                                    <span class="text-[10px] text-muted-foreground">#{{ order.order_number }}</span>
+                                </div>
+                                <p class="text-[10px] text-muted-foreground">{{ order.items_count }} item{{ order.items_count !== 1 ? 's' : '' }}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="text-xs font-semibold text-primary">{{ formatCurrency(order.total) }}</p>
+                                <p class="text-[10px] text-muted-foreground">{{ order.time }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
 
         <!-- Receipt Preview Dialog -->
         <Dialog v-model:open="showReceiptPreview">
@@ -1652,6 +2113,109 @@ onMounted(() => {
             :subtotal="afterDiscount"
             @apply="applyPresetDiscount"
         />
+
+        <!-- Discount & Promo Modal -->
+        <Dialog v-model:open="showDiscountModal">
+            <DialogContent class="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle class="flex items-center gap-2">
+                        <Tag class="h-5 w-5" />
+                        Discounts & Promos
+                    </DialogTitle>
+                </DialogHeader>
+
+                <div class="space-y-4 py-2">
+                    <!-- When promo/preset already applied: show badge with remove -->
+                    <div v-if="appliedPresetDiscount" class="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950 px-3 py-3 border border-green-200 dark:border-green-800">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <Tag class="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-green-700 dark:text-green-300">{{ appliedPresetDiscount.name }}</p>
+                                <p class="text-xs text-green-600 dark:text-green-400 truncate">
+                                    {{ discountCustomer?.name }} &mdash; -{{ formatCurrency(promoDiscount) }}
+                                </p>
+                            </div>
+                        </div>
+                        <Button variant="ghost" size="sm" class="shrink-0 text-xs text-green-600 hover:bg-green-100 dark:hover:bg-green-900" @click="removePresetDiscount">
+                            Remove
+                        </Button>
+                    </div>
+
+                    <div v-else-if="appliedPromo" class="flex items-center justify-between rounded-lg bg-green-50 dark:bg-green-950 px-3 py-3 border border-green-200 dark:border-green-800">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-green-700 dark:text-green-300">{{ appliedPromo.code }}</p>
+                            <p class="text-xs text-green-600 dark:text-green-400">{{ appliedPromo.name }} &mdash; -{{ formatCurrency(promoDiscount) }}</p>
+                        </div>
+                        <Button variant="ghost" size="sm" class="shrink-0 text-xs text-green-600 hover:bg-green-100 dark:hover:bg-green-900" @click="removePromo">
+                            Remove
+                        </Button>
+                    </div>
+
+                    <!-- When nothing applied: show inputs -->
+                    <template v-else>
+                        <!-- Manual discount -->
+                        <div v-if="operatorCan('pos.discount') && isEnabled('discounts_enabled')" class="space-y-2">
+                            <Label class="text-sm font-medium">Manual Discount</Label>
+                            <div class="flex items-center gap-2">
+                                <Select v-model="discountType">
+                                    <SelectTrigger class="w-[110px] h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="percentage">
+                                            <span class="flex items-center gap-1"><Percent class="h-3 w-3" /> Percent</span>
+                                        </SelectItem>
+                                        <SelectItem value="fixed">
+                                            <span class="flex items-center gap-1"><DollarSign class="h-3 w-3" /> Fixed</span>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    v-model.number="discountAmount"
+                                    type="number"
+                                    min="0"
+                                    :max="discountType === 'percentage' ? 100 : subtotal"
+                                    placeholder="0"
+                                    class="h-9 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        <!-- Promo code -->
+                        <div class="space-y-2">
+                            <Label class="text-sm font-medium">Promo Code</Label>
+                            <div class="flex items-center gap-2">
+                                <Input
+                                    v-model="promoCode"
+                                    placeholder="Enter promo code"
+                                    class="h-9 text-sm uppercase flex-1"
+                                    @keydown.enter="applyPromoCode"
+                                />
+                                <Button variant="outline" size="sm" class="h-9 shrink-0 text-xs" :disabled="promoLoading || !promoCode.trim()" @click="applyPromoCode">
+                                    {{ promoLoading ? '...' : 'Apply' }}
+                                </Button>
+                            </div>
+                            <p v-if="promoError" class="text-xs text-destructive">{{ promoError }}</p>
+                        </div>
+
+                    </template>
+
+                    <Separator />
+
+                    <!-- Order notes (always visible) -->
+                    <div class="space-y-2">
+                        <Label class="text-sm font-medium">Order Notes</Label>
+                        <Textarea v-model="orderNotes" placeholder="Add notes for this order..." rows="2" class="resize-none text-sm" />
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button class="w-full" @click="showDiscountModal = false">Done</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <!-- Add Customer Modal -->
         <Dialog v-model:open="showAddCustomer">

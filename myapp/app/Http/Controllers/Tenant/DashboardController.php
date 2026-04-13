@@ -187,7 +187,9 @@ class DashboardController extends Controller
             'topProducts' => $topProducts,
             'recentOrders' => $recentOrders,
             'needsPinSetup' => $needsPinSetup,
-            'aiInsights' => $this->aiInsightsService->getSummary($tenant),
+            'aiInsights' => in_array($plan?->slug, ['pro', 'enterprise'])
+                ? $this->aiInsightsService->getSummary($tenant)
+                : null,
         ]);
     }
 }

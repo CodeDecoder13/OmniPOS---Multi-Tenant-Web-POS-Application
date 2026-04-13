@@ -2,9 +2,9 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import {
-    Building2, FolderOpen, Package, Plus, Shield, ShoppingCart,
-    UserPlus, Users, TrendingUp, TrendingDown, DollarSign,
-    ArrowUpRight, CreditCard, Sparkles,
+    Package, Plus, ShoppingCart, UserPlus,
+    TrendingUp, TrendingDown, DollarSign,
+    ArrowUpRight, Sparkles, Crown,
 } from 'lucide-vue-next';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import TenantLayout from '@/layouts/TenantLayout.vue';
@@ -40,7 +40,7 @@ const props = defineProps<{
     recentOrders: { id: number; order_number: string; total: number; status: string; branch: string; created_at: string }[];
     releaseNotes?: ReleaseNote[];
     needsPinSetup?: boolean;
-    aiInsights: AIInsightsSummary;
+    aiInsights: AIInsightsSummary | null;
 }>();
 
 const page = usePage();
@@ -336,8 +336,8 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                 </div>
             </div>
 
-            <!-- Row 1: Key Metric Cards -->
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Row 1: Key Metrics + Quick Actions -->
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <!-- Today Revenue -->
                 <div class="glass-card rounded-xl p-5">
                     <div class="flex items-center justify-between">
@@ -370,32 +370,104 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                     <p class="mt-1 text-xs text-muted-foreground">Completed orders</p>
                 </div>
 
-                <!-- Products -->
-                <div class="glass-card rounded-xl p-5">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">Products</p>
-                        <div class="rounded-lg bg-gradient-to-br from-amber-400/90 to-orange-600/90 p-2 shadow-md shadow-orange-500/20">
-                            <Package class="h-4 w-4 text-white" />
+                <!-- Quick Actions -->
+                <div class="glass-card rounded-xl p-5 sm:col-span-2 lg:col-span-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-sm font-medium text-muted-foreground">Quick Actions</p>
+                        <div class="rounded-lg bg-gradient-to-br from-emerald-400/90 to-teal-600/90 p-2 shadow-md shadow-teal-500/20">
+                            <Plus class="h-4 w-4 text-white" />
                         </div>
                     </div>
-                    <p class="mt-2 text-2xl font-bold">{{ stats.products_count }}</p>
-                    <p class="mt-1 text-xs text-muted-foreground">{{ stats.max_products ? `of ${stats.max_products} max` : 'Unlimited' }}</p>
-                </div>
-
-                <!-- Team -->
-                <div class="glass-card rounded-xl p-5">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">Team Members</p>
-                        <div class="rounded-lg bg-gradient-to-br from-violet-400/90 to-purple-600/90 p-2 shadow-md shadow-violet-500/20">
-                            <Users class="h-4 w-4 text-white" />
-                        </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <Link
+                            :href="tenantUrl('branches/create')"
+                            class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-teal-50/80 dark:hover:bg-teal-900/20 hover:border-teal-200/50 dark:hover:border-teal-800/30"
+                        >
+                            <Plus class="h-3.5 w-3.5 text-teal-500 shrink-0" />
+                            <span class="text-xs font-medium">Add Branch</span>
+                        </Link>
+                        <Link
+                            :href="tenantUrl('users')"
+                            class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-sky-50/80 dark:hover:bg-sky-900/20 hover:border-sky-200/50 dark:hover:border-sky-800/30"
+                        >
+                            <UserPlus class="h-3.5 w-3.5 text-sky-500 shrink-0" />
+                            <span class="text-xs font-medium">Add Employee</span>
+                        </Link>
+                        <Link
+                            :href="tenantUrl('products/create')"
+                            class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:border-amber-200/50 dark:hover:border-amber-800/30"
+                        >
+                            <Package class="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                            <span class="text-xs font-medium">Add Product</span>
+                        </Link>
+                        <a
+                            :href="tenantUrl('pos')"
+                            target="_blank"
+                            class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal-500/10 to-emerald-500/10 p-2.5 border border-teal-200/30 dark:border-teal-800/30 transition hover:from-teal-500/20 hover:to-emerald-500/20"
+                        >
+                            <ShoppingCart class="h-3.5 w-3.5 text-teal-500 shrink-0" />
+                            <span class="text-xs font-medium text-teal-700 dark:text-teal-400">Open POS</span>
+                        </a>
                     </div>
-                    <p class="mt-2 text-2xl font-bold">{{ stats.users_count }}</p>
-                    <p class="mt-1 text-xs text-muted-foreground">{{ stats.max_users ? `of ${stats.max_users} max` : 'Unlimited' }}</p>
                 </div>
             </div>
 
-            <!-- Row 2: Tabbed Chart Cards -->
+            <!-- Row 2: AI Insights -->
+            <div v-if="aiInsights" class="relative overflow-hidden glass-card rounded-xl p-5 border border-violet-200/30 dark:border-violet-500/10">
+                <div class="absolute inset-0 bg-gradient-to-r from-violet-500/[0.03] via-purple-500/[0.05] to-fuchsia-500/[0.03] dark:from-violet-500/[0.06] dark:via-purple-500/[0.08] dark:to-fuchsia-500/[0.06]"></div>
+                <div class="relative">
+                    <div class="mb-4 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 p-2 shadow-md shadow-violet-500/20">
+                                <Sparkles class="h-4 w-4 text-white" />
+                            </div>
+                            <h3 class="font-semibold">AI Insights</h3>
+                            <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">Beta</span>
+                        </div>
+                        <Link :href="tenantUrl('ai-insights')" class="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300">
+                            View all insights <ArrowUpRight class="h-3 w-3" />
+                        </Link>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        <div class="rounded-lg bg-white/60 p-4 dark:bg-white/[0.05] border border-white/30 dark:border-white/[0.08] backdrop-blur-sm">
+                            <p class="text-xs text-muted-foreground mb-1">Top Insight</p>
+                            <p class="text-sm font-medium leading-snug">{{ aiInsights.top_insight }}</p>
+                        </div>
+                        <div class="rounded-lg bg-white/60 p-4 dark:bg-white/[0.05] border border-white/30 dark:border-white/[0.08] backdrop-blur-sm">
+                            <p class="text-xs text-muted-foreground mb-1">Pattern</p>
+                            <p class="text-sm font-medium leading-snug">{{ aiInsights.secondary_insight }}</p>
+                        </div>
+                        <div class="rounded-lg bg-white/60 p-4 dark:bg-white/[0.05] border border-white/30 dark:border-white/[0.08] backdrop-blur-sm">
+                            <p class="text-xs text-muted-foreground mb-1">7-Day Forecast</p>
+                            <p class="text-lg font-bold text-violet-600 dark:text-violet-400">{{ formatCurrency(aiInsights.projected_revenue_7d) }}</p>
+                            <p class="text-xs text-muted-foreground">projected revenue</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: AI Insights Upgrade Prompt -->
+            <div v-else class="relative overflow-hidden glass-card rounded-xl p-5 border border-amber-200/30 dark:border-amber-500/10">
+                <div class="absolute inset-0 bg-gradient-to-r from-amber-500/[0.03] via-yellow-500/[0.05] to-orange-500/[0.03] dark:from-amber-500/[0.06] dark:via-yellow-500/[0.08] dark:to-orange-500/[0.06]"></div>
+                <div class="relative flex flex-col items-center justify-center py-6 text-center">
+                    <div class="rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 p-3 shadow-md shadow-amber-500/20 mb-4">
+                        <Crown class="h-6 w-6 text-white" />
+                    </div>
+                    <h3 class="text-lg font-semibold mb-1">Unlock AI Insights</h3>
+                    <p class="text-sm text-muted-foreground mb-4 max-w-md">
+                        Get AI-powered business insights, revenue forecasts, and smart recommendations. Available on Pro and Enterprise plans.
+                    </p>
+                    <Link
+                        :href="tenantUrl('settings')"
+                        class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-medium text-white shadow-md shadow-amber-500/20 transition hover:from-amber-600 hover:to-amber-700"
+                    >
+                        <Crown class="h-4 w-4" />
+                        Upgrade Plan
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Row 3: Charts -->
             <div class="grid gap-4 lg:grid-cols-3">
                 <!-- Sales Trend / Top Products (tabbed) -->
                 <div class="glass-card rounded-xl p-5 lg:col-span-2">
@@ -449,41 +521,9 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                 </div>
             </div>
 
-            <!-- Row 3: AI Insights Card -->
-            <div class="glass-card rounded-xl p-5">
-                <div class="mb-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="rounded-lg bg-gradient-to-br from-violet-400/20 to-purple-600/20 p-2 dark:from-violet-400/10 dark:to-purple-600/10">
-                            <Sparkles class="h-4 w-4 text-violet-500" />
-                        </div>
-                        <h3 class="font-semibold">AI Insights</h3>
-                        <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">Beta</span>
-                    </div>
-                    <Link :href="tenantUrl('ai-insights')" class="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300">
-                        View all insights <ArrowUpRight class="h-3 w-3" />
-                    </Link>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <div class="rounded-lg bg-white/50 p-4 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                        <p class="text-xs text-muted-foreground mb-1">Top Insight</p>
-                        <p class="text-sm font-medium leading-snug">{{ aiInsights.top_insight }}</p>
-                    </div>
-                    <div class="rounded-lg bg-white/50 p-4 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                        <p class="text-xs text-muted-foreground mb-1">Pattern</p>
-                        <p class="text-sm font-medium leading-snug">{{ aiInsights.secondary_insight }}</p>
-                    </div>
-                    <div class="rounded-lg bg-white/50 p-4 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                        <p class="text-xs text-muted-foreground mb-1">7-Day Forecast</p>
-                        <p class="text-lg font-bold text-violet-600 dark:text-violet-400">{{ formatCurrency(aiInsights.projected_revenue_7d) }}</p>
-                        <p class="text-xs text-muted-foreground">projected revenue</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Row 4: Recent Orders + Quick Info Sidebar -->
-            <div class="grid gap-4 lg:grid-cols-3">
-                <!-- Recent Orders -->
-                <div class="glass-card rounded-xl p-5 lg:col-span-2">
+            <!-- Row 4: Recent Orders -->
+            <div>
+                <div class="glass-card rounded-xl p-5">
                     <div class="mb-4 flex items-center justify-between">
                         <div>
                             <h3 class="font-semibold">Recent Orders</h3>
@@ -522,71 +562,6 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                     <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">No orders yet</div>
                 </div>
 
-                <!-- Quick Info + Actions -->
-                <div class="flex flex-col gap-4">
-                    <!-- Store Overview Mini Cards -->
-                    <div class="glass-card rounded-xl p-5">
-                        <h3 class="mb-3 font-semibold">Store Overview</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="rounded-lg bg-white/50 p-3 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                                <Building2 class="mb-1 h-4 w-4 text-teal-500" />
-                                <p class="text-lg font-bold">{{ stats.branches_count }}</p>
-                                <p class="text-xs text-muted-foreground">Branches</p>
-                            </div>
-                            <div class="rounded-lg bg-white/50 p-3 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                                <Shield class="mb-1 h-4 w-4 text-indigo-500" />
-                                <p class="text-lg font-bold">{{ stats.roles_count }}</p>
-                                <p class="text-xs text-muted-foreground">Roles</p>
-                            </div>
-                            <div class="rounded-lg bg-white/50 p-3 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                                <FolderOpen class="mb-1 h-4 w-4 text-amber-500" />
-                                <p class="text-lg font-bold">{{ stats.categories_count }}</p>
-                                <p class="text-xs text-muted-foreground">Categories</p>
-                            </div>
-                            <div class="rounded-lg bg-white/50 p-3 dark:bg-white/[0.04] border border-white/20 dark:border-white/[0.06]">
-                                <CreditCard class="mb-1 h-4 w-4 text-sky-500" />
-                                <p class="text-lg font-bold capitalize">{{ stats.subscription_status }}</p>
-                                <p class="text-xs text-muted-foreground">Status</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="glass-card rounded-xl p-5">
-                        <h3 class="mb-3 font-semibold">Quick Actions</h3>
-                        <div class="flex flex-col gap-2">
-                            <Link
-                                :href="tenantUrl('branches/create')"
-                                class="flex items-center gap-3 rounded-lg bg-white/40 p-3 transition hover:bg-teal-50/80 dark:bg-white/[0.03] dark:hover:bg-teal-900/20 border border-transparent hover:border-teal-200/50 dark:hover:border-teal-800/30"
-                            >
-                                <Plus class="h-4 w-4 text-teal-500" />
-                                <span class="text-sm font-medium">Add Branch</span>
-                            </Link>
-                            <Link
-                                :href="tenantUrl('users')"
-                                class="flex items-center gap-3 rounded-lg bg-white/40 p-3 transition hover:bg-sky-50/80 dark:bg-white/[0.03] dark:hover:bg-sky-900/20 border border-transparent hover:border-sky-200/50 dark:hover:border-sky-800/30"
-                            >
-                                <UserPlus class="h-4 w-4 text-sky-500" />
-                                <span class="text-sm font-medium">Invite User</span>
-                            </Link>
-                            <Link
-                                :href="tenantUrl('products/create')"
-                                class="flex items-center gap-3 rounded-lg bg-white/40 p-3 transition hover:bg-amber-50/80 dark:bg-white/[0.03] dark:hover:bg-amber-900/20 border border-transparent hover:border-amber-200/50 dark:hover:border-amber-800/30"
-                            >
-                                <Package class="h-4 w-4 text-amber-500" />
-                                <span class="text-sm font-medium">Add Product</span>
-                            </Link>
-                            <a
-                                :href="tenantUrl('pos')"
-                                target="_blank"
-                                class="flex items-center gap-3 rounded-lg bg-gradient-to-r from-teal-500/10 to-emerald-500/10 p-3 transition hover:from-teal-500/20 hover:to-emerald-500/20 dark:from-teal-500/10 dark:to-emerald-500/10 dark:hover:from-teal-500/15 dark:hover:to-emerald-500/15 border border-teal-200/30 dark:border-teal-800/30"
-                            >
-                                <ShoppingCart class="h-4 w-4 text-teal-500" />
-                                <span class="text-sm font-medium text-teal-700 dark:text-teal-400">Open POS</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </TenantLayout>

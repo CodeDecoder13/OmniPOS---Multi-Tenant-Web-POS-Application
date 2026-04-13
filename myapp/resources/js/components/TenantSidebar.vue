@@ -38,7 +38,7 @@ interface NavChild {
     permission: string | null;
     external?: boolean;
     feature?: keyof BranchSettings;
-    plan?: string;
+    plan?: string | string[];
 }
 
 interface NavGroup {
@@ -67,7 +67,7 @@ const operationsGroups: NavGroup[] = [
             { title: 'Customers', path: 'customers', icon: UserRound, permission: 'orders.view' },
             { title: 'Shifts', path: 'shifts', icon: Clock, permission: 'shifts.view' },
             { title: 'Reports', path: 'reports', icon: BarChart3, permission: 'reports.view' },
-            { title: 'AI Insights', path: 'ai-insights', icon: Sparkles, permission: 'reports.view' },
+            { title: 'AI Insights', path: 'ai-insights', icon: Sparkles, permission: 'reports.view', plan: ['pro', 'enterprise'] },
         ],
     },
     {
@@ -98,7 +98,7 @@ const storeGroups: NavGroup[] = [
         title: 'Team',
         icon: Users,
         children: [
-            { title: 'Users', path: 'users', icon: Users, permission: 'users.view' },
+            { title: 'Employees', path: 'users', icon: Users, permission: 'users.view' },
             { title: 'Roles', path: 'roles', icon: Shield, permission: 'roles.view' },
             { title: 'Schedules', path: 'shift-schedules', icon: CalendarDays, permission: 'users.edit-role' },
         ],
@@ -127,18 +127,23 @@ function hasActiveChild(group: NavGroup): boolean {
     return group.children.some((child) => isActive(child.path));
 }
 
+function matchesPlan(plan: string | string[], slug: string | undefined): boolean {
+    if (!slug) return false;
+    return Array.isArray(plan) ? plan.includes(slug) : slug === plan;
+}
+
 function filterByPermission(items: NavChild[]): NavChild[] {
     return items.filter((item) => {
         if (item.permission && !can(item.permission)) return false;
         if (item.feature && !isEnabled(item.feature)) return false;
-        if (item.plan && tenant.value?.subscription?.plan?.slug !== item.plan) return false;
+        if (item.plan && !matchesPlan(item.plan, tenant.value?.subscription?.plan?.slug)) return false;
         return true;
     });
 }
 
 function requiresUpgrade(item: NavChild): boolean {
     if (!item.plan) return false;
-    return tenant.value?.subscription?.plan?.slug !== item.plan;
+    return !matchesPlan(item.plan, tenant.value?.subscription?.plan?.slug);
 }
 
 const filteredTopLevel = computed(() => filterByPermission(topLevelItems));
@@ -235,6 +240,10 @@ const filteredStoreGroups = computed(() =>
                                             <SidebarMenuSubButton as-child size="sm" :is-active="isActive(child.path)">
                                                 <Link :href="tenantUrl(child.path)">
                                                     <span>{{ child.title }}</span>
+                                                    <Crown
+                                                        v-if="requiresUpgrade(child)"
+                                                        class="ml-auto h-3 w-3 shrink-0 text-amber-500"
+                                                    />
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

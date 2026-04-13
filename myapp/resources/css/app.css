@@ -185,6 +185,14 @@
     }
 }
 
+@utility scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 /* @deprecated - Legacy print styles. Printing is now handled via usePrinter() composable popup windows.
    Kept temporarily for backward compatibility. Safe to remove once all pages use usePrinter(). */
 @media print {
