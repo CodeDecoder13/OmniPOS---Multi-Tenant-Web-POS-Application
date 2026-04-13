@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeft, Clock, Lock, Square, User } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,14 @@ function handleLogout() {
     clearShift();
     logout();
 }
+
+// When ShiftSummaryDialog closes, log out operator → PIN login screen appears
+watch(showShiftSummary, (open, wasOpen) => {
+    if (wasOpen && !open) {
+        clearShift();
+        logout();
+    }
+});
 
 // Lock body scroll while POS layout is active
 onMounted(() => {

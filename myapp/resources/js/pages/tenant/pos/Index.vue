@@ -104,16 +104,6 @@ watch(isAuthenticated, (authenticated) => {
     }
 });
 
-// When shift ends (hasActiveShift goes false), prompt operator to start a new shift.
-// Also prevents focus from falling to the "Exit POS" link after ShiftSummaryDialog closes.
-watch(hasActiveShift, (active, wasActive) => {
-    if (wasActive && !active && isAuthenticated.value) {
-        nextTick(() => {
-            showStartShift.value = true;
-        });
-    }
-});
-
 // Product grid state
 const showImages = ref(localStorage.getItem('pos-show-images') !== 'false');
 
