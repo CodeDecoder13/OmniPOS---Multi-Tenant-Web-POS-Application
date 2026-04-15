@@ -10,6 +10,7 @@ use App\Models\TenantSubscription;
 use App\Models\User;
 use App\Models\UserLogin;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService
@@ -155,6 +156,22 @@ class DashboardService
         }
 
         return ['labels' => $labels, 'total' => $total, 'unique' => $unique];
+    }
+
+    public function getPublicStats(): array
+    {
+        return Cache::remember('landing_public_stats', 300, function () {
+            $now = Carbon::now();
+
+            return [
+                'total_visits' => PageVisit::count(),
+                'unique_visitors_today' => PageVisit::whereDate('visited_at', $now->toDateString())
+                    ->distinct('ip_address')->count('ip_address'),
+                'unique_visitors_month' => PageVisit::where('visited_at', '>=', $now->copy()->startOfMonth())
+                    ->distinct('ip_address')->count('ip_address'),
+                'total_businesses' => Tenant::where('is_active', true)->count(),
+            ];
+        });
     }
 
     public function getTopReferrers(int $limit = 5): array

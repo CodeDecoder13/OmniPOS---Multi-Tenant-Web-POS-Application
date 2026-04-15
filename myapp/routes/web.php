@@ -3,15 +3,19 @@
 use App\Http\Controllers\Auth\GoogleController;
 use App\Models\Plan;
 use App\Models\PromoCode;
+use App\Services\Central\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
 Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function () {
     Route::get('/', function () {
+        $publicStats = app(DashboardService::class)->getPublicStats();
+
         return inertia('Welcome', [
             'canRegister' => Features::enabled(Features::registration()),
             'plans' => Plan::active()->orderBy('price')->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
+            'siteStats' => $publicStats,
         ]);
     })->name('home');
 
