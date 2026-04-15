@@ -11,26 +11,86 @@ import {
     CreditCard, Printer, LayoutDashboard,
     Tag, Clock, Truck, CalendarDays, Zap, Globe, Boxes, ChefHat, Star, Users,
     FileSpreadsheet, Lock, QrCode, Bell, Timer, Shuffle, TableProperties, Megaphone,
-    Cookie,
+    Cookie, Eye, UsersRound, ChevronDown, ChevronUp, ArrowUp, Quote, MessageSquareQuote,
 } from 'lucide-vue-next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { Plan } from '@/types';
 
+interface SiteStats {
+    total_visits: number;
+    unique_visitors_today: number;
+    unique_visitors_month: number;
+    total_businesses: number;
+}
+
 const props = withDefaults(
     defineProps<{
         canRegister: boolean;
         plans: Plan[];
+        siteStats: SiteStats;
     }>(),
-    { canRegister: true },
+    {
+        canRegister: true,
+        siteStats: () => ({ total_visits: 0, unique_visitors_today: 0, unique_visitors_month: 0, total_businesses: 0 }),
+    },
 );
 
 const mobileMenuOpen = ref(false);
 const scrolled = ref(false);
 const activeFeatureTab = ref(0);
+const showBackToTop = ref(false);
+const openFaqIndex = ref<number | null>(null);
+
+// Count-up animation state
+const countUpValues = ref({
+    total_visits: 0,
+    unique_visitors_month: 0,
+    modules: 0,
+    total_businesses: 0,
+});
+const statsAnimated = ref(false);
+
+function animateCountUp(target: number, key: keyof typeof countUpValues.value, duration = 2000) {
+    const start = 0;
+    const startTime = performance.now();
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+        countUpValues.value[key] = target;
+        return;
+    }
+
+    function tick(now: number) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        countUpValues.value[key] = Math.round(start + (target - start) * eased);
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+function startStatsCountUp() {
+    if (statsAnimated.value) return;
+    statsAnimated.value = true;
+    animateCountUp(props.siteStats.total_visits, 'total_visits', 2200);
+    animateCountUp(props.siteStats.unique_visitors_month, 'unique_visitors_month', 2000);
+    animateCountUp(20, 'modules', 1500);
+    animateCountUp(props.siteStats.total_businesses, 'total_businesses', 1800);
+}
+
+function toggleFaq(index: number) {
+    openFaqIndex.value = openFaqIndex.value === index ? null : index;
+}
+
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 function handleScroll() {
     scrolled.value = window.scrollY > 10;
+    showBackToTop.value = window.scrollY > 400;
 }
 
 onMounted(() => {
@@ -48,6 +108,21 @@ onMounted(() => {
     );
 
     document.querySelectorAll('[data-animate]').forEach((el) => observer.observe(el));
+
+    // Stats bar count-up observer
+    const statsObserver = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    startStatsCountUp();
+                    statsObserver.disconnect();
+                }
+            });
+        },
+        { threshold: 0.3 },
+    );
+    const statsEl = document.getElementById('stats-bar');
+    if (statsEl) statsObserver.observe(statsEl);
 
     // Inject JSON-LD structured data for SEO
     const ldScripts: HTMLScriptElement[] = [];
@@ -379,9 +454,10 @@ function declineCookies() {
 
                 <!-- Desktop nav -->
                 <div class="hidden items-center gap-8 md:flex">
-                    <button @click="scrollTo('features')" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Features</button>
-                    <button @click="scrollTo('how-it-works')" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">How It Works</button>
-                    <button @click="scrollTo('pricing')" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Pricing</button>
+                    <button @click="scrollTo('features')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Features</button>
+                    <button @click="scrollTo('how-it-works')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">How It Works</button>
+                    <button @click="scrollTo('pricing')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Pricing</button>
+                    <button @click="scrollTo('faq')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">FAQ</button>
                     <Link href="/about" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">About</Link>
                 </div>
 
@@ -425,9 +501,10 @@ function declineCookies() {
             >
                 <div v-if="mobileMenuOpen" class="border-t border-gray-200 px-4 py-4 md:hidden dark:border-gray-800">
                     <div class="flex flex-col gap-3">
-                        <button @click="scrollTo('features')" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Features</button>
-                        <button @click="scrollTo('how-it-works')" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">How It Works</button>
-                        <button @click="scrollTo('pricing')" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Pricing</button>
+                        <button @click="scrollTo('features')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Features</button>
+                        <button @click="scrollTo('how-it-works')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">How It Works</button>
+                        <button @click="scrollTo('pricing')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Pricing</button>
+                        <button @click="scrollTo('faq')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">FAQ</button>
                         <Link href="/about" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">About</Link>
                         <hr class="border-gray-200 dark:border-gray-800" />
                         <Link v-if="$page.props.auth.user" href="/dashboard" class="text-sm font-medium text-teal-600">Dashboard</Link>
@@ -567,23 +644,35 @@ function declineCookies() {
         </section>
 
         <!-- ==================== 3. STATS BAR ==================== -->
-        <section class="border-y border-gray-200 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/50">
-            <div class="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-10 sm:px-6 md:grid-cols-4 lg:px-8" data-animate>
-                <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">20+</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Modules</div>
+        <section id="stats-bar" class="border-y border-gray-200 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/50">
+            <div class="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-4 py-12 sm:px-6 md:grid-cols-4 lg:px-8" data-animate>
+                <div class="group flex flex-col items-center gap-2 text-center">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-600 transition group-hover:scale-110 dark:bg-teal-900/30 dark:text-teal-400">
+                        <Eye class="h-5 w-5" />
+                    </div>
+                    <div class="text-3xl font-extrabold text-teal-600 tabular-nums sm:text-4xl">{{ countUpValues.total_visits.toLocaleString() }}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Total Page Views</div>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">50+</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Permissions</div>
+                <div class="group flex flex-col items-center gap-2 text-center">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-100 text-cyan-600 transition group-hover:scale-110 dark:bg-cyan-900/30 dark:text-cyan-400">
+                        <UsersRound class="h-5 w-5" />
+                    </div>
+                    <div class="text-3xl font-extrabold text-cyan-600 tabular-nums sm:text-4xl">{{ countUpValues.unique_visitors_month.toLocaleString() }}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Unique Visitors This Month</div>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">8</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Report Types</div>
+                <div class="group flex flex-col items-center gap-2 text-center">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 text-teal-600 transition group-hover:scale-110 dark:bg-teal-900/30 dark:text-teal-400">
+                        <Boxes class="h-5 w-5" />
+                    </div>
+                    <div class="text-3xl font-extrabold text-teal-600 tabular-nums sm:text-4xl">{{ countUpValues.modules }}+</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Modules</div>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl font-extrabold text-teal-600 sm:text-4xl">6</div>
-                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">Payment Methods</div>
+                <div class="group flex flex-col items-center gap-2 text-center">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 transition group-hover:scale-110 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        <Building2 class="h-5 w-5" />
+                    </div>
+                    <div class="text-3xl font-extrabold text-emerald-600 tabular-nums sm:text-4xl">{{ countUpValues.total_businesses.toLocaleString() }}</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Businesses Registered</div>
                 </div>
             </div>
         </section>
@@ -1047,6 +1136,82 @@ function declineCookies() {
             </div>
         </section>
 
+        <!-- ==================== TESTIMONIALS ==================== -->
+        <section id="testimonials" class="py-20 sm:py-28">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <div class="text-center" data-animate>
+                    <span class="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-4 py-1.5 text-sm font-medium text-teal-700 dark:border-teal-800 dark:bg-teal-900/30 dark:text-teal-300">
+                        <MessageSquareQuote class="h-4 w-4" />
+                        What Our Users Say
+                    </span>
+                    <h2 class="mt-4 text-3xl font-bold sm:text-4xl">Trusted by Filipino Business Owners</h2>
+                    <p class="mx-auto mt-4 max-w-2xl text-gray-600 dark:text-gray-400">
+                        Real stories from entrepreneurs who transformed their operations with OmniPOS.
+                    </p>
+                </div>
+
+                <div class="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3" data-animate>
+                    <div
+                        v-for="(testimonial, i) in [
+                            {
+                                name: 'Maria Santos',
+                                role: 'Owner',
+                                business: 'Brew & Bite Cafe',
+                                avatar: 'MS',
+                                rating: 5,
+                                quote: 'OmniPOS transformed how we run our cafe. The kitchen display system alone saved us from so many order mix-ups. Setup took less than 10 minutes!',
+                                color: 'teal',
+                            },
+                            {
+                                name: 'Juan Dela Cruz',
+                                role: 'Operations Manager',
+                                business: 'MegaMart Retail Chain',
+                                avatar: 'JD',
+                                rating: 5,
+                                quote: 'Managing 3 branches used to be a nightmare. Now I can see inventory, sales, and staff performance across all locations from one dashboard. Game changer.',
+                                color: 'cyan',
+                            },
+                            {
+                                name: 'Ana Reyes',
+                                role: 'Owner',
+                                business: 'Farmacia Reyes',
+                                avatar: 'AR',
+                                rating: 5,
+                                quote: 'The low-stock alerts and auto-reorder feature ensure we never run out of essential medicines. Our customers trust us because we are always stocked.',
+                                color: 'emerald',
+                            },
+                        ]"
+                        :key="i"
+                        class="group relative flex flex-col rounded-2xl border border-gray-200 bg-white p-6 transition hover:-translate-y-1 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900"
+                    >
+                        <Quote class="absolute right-6 top-6 h-8 w-8 text-gray-100 dark:text-gray-800" />
+                        <div class="flex items-center gap-1">
+                            <Star v-for="s in testimonial.rating" :key="s" class="h-4 w-4 fill-amber-400 text-amber-400" />
+                        </div>
+                        <p class="mt-4 flex-1 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                            "{{ testimonial.quote }}"
+                        </p>
+                        <div class="mt-6 flex items-center gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
+                            <div
+                                class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
+                                :class="{
+                                    'bg-teal-600': testimonial.color === 'teal',
+                                    'bg-cyan-600': testimonial.color === 'cyan',
+                                    'bg-emerald-600': testimonial.color === 'emerald',
+                                }"
+                            >
+                                {{ testimonial.avatar }}
+                            </div>
+                            <div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ testimonial.name }}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">{{ testimonial.role }}, {{ testimonial.business }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ==================== 8. COMPLETE FEATURE GRID ==================== -->
         <section class="relative py-20 sm:py-28 overflow-hidden">
             <!-- Subtle gradient mesh background -->
@@ -1336,44 +1501,134 @@ function declineCookies() {
             </div>
         </section>
 
-        <!-- ==================== 11. ABOUT / FINAL CTA ==================== -->
-        <section id="about" class="py-20">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" data-animate>
-                <div class="rounded-3xl bg-gradient-to-r from-teal-600 to-cyan-600 px-8 py-16 text-center text-white shadow-2xl sm:px-16">
-                    <h2 class="text-3xl font-bold sm:text-4xl">Ready to Transform Your Business?</h2>
-                    <p class="mx-auto mt-4 max-w-2xl text-lg text-teal-100">
-                        OmniPOS is designed specifically for Filipino businesses. Whether you're running a single store
-                        or managing multiple branches, our platform helps you streamline operations and grow.
+        <!-- ==================== FAQ ==================== -->
+        <section id="faq" class="border-t border-gray-200 py-20 sm:py-28 dark:border-gray-800">
+            <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <div class="text-center" data-animate>
+                    <h2 class="text-3xl font-bold sm:text-4xl">Frequently Asked Questions</h2>
+                    <p class="mx-auto mt-4 max-w-2xl text-gray-600 dark:text-gray-400">
+                        Everything you need to know about OmniPOS. Can't find the answer you're looking for? Reach out to our support team.
                     </p>
+                </div>
 
-                    <div class="mt-10 flex flex-wrap justify-center gap-6">
-                        <div class="flex items-center gap-2 text-sm font-medium">
-                            <Check class="h-5 w-5" />
-                            Free plan forever
-                        </div>
-                        <div class="flex items-center gap-2 text-sm font-medium">
-                            <Check class="h-5 w-5" />
-                            No credit card required
-                        </div>
-                        <div class="flex items-center gap-2 text-sm font-medium">
-                            <Check class="h-5 w-5" />
-                            Setup in 5 minutes
-                        </div>
-                        <div class="flex items-center gap-2 text-sm font-medium">
-                            <Check class="h-5 w-5" />
-                            Cancel anytime
-                        </div>
-                    </div>
-
-                    <div class="mt-10">
-                        <Link
-                            v-if="canRegister"
-                            href="/register"
-                            class="inline-flex items-center gap-2 rounded-lg bg-white px-8 py-4 text-base font-bold text-teal-700 shadow-lg transition hover:bg-teal-50 hover:shadow-xl"
+                <div class="mt-12 space-y-3" data-animate>
+                    <div
+                        v-for="(faq, i) in [
+                            {
+                                q: 'Is OmniPOS really free to use?',
+                                a: 'Yes! Our Free plan includes core POS features, inventory management, and up to 50 products. No credit card required — you can use it forever at no cost. Upgrade anytime for advanced features like multi-branch management and unlimited products.',
+                            },
+                            {
+                                q: 'How long does it take to set up?',
+                                a: 'Most businesses are up and running in under 10 minutes. Create your account, add your products, and start selling. We provide guided setup to help you configure branches, staff roles, and payment methods.',
+                            },
+                            {
+                                q: 'Can I manage multiple branches?',
+                                a: 'Absolutely. Our Pro and Enterprise plans support multi-branch management with centralized inventory, per-branch reporting, and cross-branch stock transfers. Switch between branches instantly from one dashboard.',
+                            },
+                            {
+                                q: 'Is my business data secure?',
+                                a: 'OmniPOS uses enterprise-grade security including two-factor authentication (2FA), role-based access control with 50+ granular permissions, shift-based PIN security for POS operators, and encrypted data transmission.',
+                            },
+                            {
+                                q: 'What payment methods are supported?',
+                                a: 'We support Cash, Credit/Debit Card, GCash, Maya (PayMaya), Bank Transfer, and custom payment methods. You can also split payments across multiple methods in a single transaction.',
+                            },
+                            {
+                                q: 'Can I try the paid plans before committing?',
+                                a: 'Yes. All paid plans come with a trial period so you can explore the full feature set risk-free. You can also start with the Free plan and upgrade at any time without losing your data.',
+                            },
+                            {
+                                q: 'Does it work offline?',
+                                a: 'OmniPOS is a cloud-based system that requires an internet connection. This ensures your data is always synced across all devices and branches in real time, with automatic backups and zero maintenance.',
+                            },
+                        ]"
+                        :key="i"
+                        class="rounded-xl border border-gray-200 bg-white transition dark:border-gray-800 dark:bg-gray-900"
+                    >
+                        <button
+                            @click="toggleFaq(i)"
+                            class="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left"
                         >
-                            Get Started for Free
-                            <ArrowRight class="h-5 w-5" />
-                        </Link>
+                            <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ faq.q }}</span>
+                            <ChevronDown
+                                class="h-5 w-5 shrink-0 text-gray-400 transition-transform duration-200"
+                                :class="openFaqIndex === i ? 'rotate-180' : ''"
+                            />
+                        </button>
+                        <Transition
+                            enter-active-class="transition-all duration-200 ease-out"
+                            enter-from-class="max-h-0 opacity-0"
+                            enter-to-class="max-h-96 opacity-100"
+                            leave-active-class="transition-all duration-150 ease-in"
+                            leave-from-class="max-h-96 opacity-100"
+                            leave-to-class="max-h-0 opacity-0"
+                        >
+                            <div v-show="openFaqIndex === i" class="overflow-hidden">
+                                <div class="border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+                                    <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{{ faq.a }}</p>
+                                </div>
+                            </div>
+                        </Transition>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 11. ABOUT / FINAL CTA ==================== -->
+        <section id="cta" class="py-20">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" data-animate>
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-600 via-teal-700 to-cyan-700 px-8 py-16 text-center text-white shadow-2xl sm:px-16">
+                    <!-- Decorative grid overlay -->
+                    <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem]"></div>
+
+                    <div class="relative">
+                        <div v-if="siteStats.total_businesses > 0" class="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur">
+                            <Users class="h-4 w-4" />
+                            Join {{ siteStats.total_businesses.toLocaleString() }} businesses already using OmniPOS
+                        </div>
+
+                        <h2 class="text-3xl font-bold sm:text-4xl">Ready to Transform Your Business?</h2>
+                        <p class="mx-auto mt-4 max-w-2xl text-lg text-teal-100">
+                            OmniPOS is designed specifically for Filipino businesses. Whether you're running a single store
+                            or managing multiple branches, our platform helps you streamline operations and grow.
+                        </p>
+
+                        <div class="mt-10 flex flex-wrap justify-center gap-6">
+                            <div class="flex items-center gap-2 text-sm font-medium">
+                                <Check class="h-5 w-5" />
+                                Free plan forever
+                            </div>
+                            <div class="flex items-center gap-2 text-sm font-medium">
+                                <Check class="h-5 w-5" />
+                                No credit card required
+                            </div>
+                            <div class="flex items-center gap-2 text-sm font-medium">
+                                <Check class="h-5 w-5" />
+                                Setup in 5 minutes
+                            </div>
+                            <div class="flex items-center gap-2 text-sm font-medium">
+                                <Check class="h-5 w-5" />
+                                Cancel anytime
+                            </div>
+                        </div>
+
+                        <div class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+                            <Link
+                                v-if="canRegister"
+                                href="/register"
+                                class="inline-flex items-center gap-2 rounded-lg bg-white px-8 py-4 text-base font-bold text-teal-700 shadow-lg transition hover:bg-teal-50 hover:shadow-xl"
+                            >
+                                Get Started for Free
+                                <ArrowRight class="h-5 w-5" />
+                            </Link>
+                            <button
+                                @click="scrollTo('pricing')"
+                                class="inline-flex items-center gap-2 rounded-lg border border-white/30 px-8 py-4 text-base font-semibold text-white transition hover:bg-white/10"
+                            >
+                                View Pricing
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1404,7 +1659,8 @@ function declineCookies() {
                         <ul class="mt-4 space-y-3">
                             <li><button @click="scrollTo('features')" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Features</button></li>
                             <li><button @click="scrollTo('pricing')" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Pricing</button></li>
-                            <li><button @click="scrollTo('how-it-works')" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">How It Works</button></li>
+                            <li><button @click="scrollTo('how-it-works')" class="cursor-pointer text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">How It Works</button></li>
+                            <li><button @click="scrollTo('faq')" class="cursor-pointer text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">FAQ</button></li>
                         </ul>
                     </div>
 
@@ -1444,6 +1700,25 @@ function declineCookies() {
             </div>
         </footer>
     </div>
+
+    <!-- ==================== BACK TO TOP ==================== -->
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+    >
+        <button
+            v-show="showBackToTop"
+            @click="scrollToTop"
+            class="fixed bottom-6 right-6 z-40 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition hover:bg-teal-700 hover:shadow-xl"
+            aria-label="Back to top"
+        >
+            <ArrowUp class="h-5 w-5" />
+        </button>
+    </Transition>
 
     <!-- ==================== COOKIE CONSENT MODAL ==================== -->
     <Dialog :open="showCookieModal" @update:open="(v: boolean) => { if (!v) declineCookies() }">
