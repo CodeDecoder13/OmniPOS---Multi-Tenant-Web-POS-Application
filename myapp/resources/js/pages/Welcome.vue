@@ -42,6 +42,12 @@ const activeFeatureTab = ref(0);
 const showBackToTop = ref(false);
 const openFaqIndex = ref<number | null>(null);
 
+const ANNUAL_DISCOUNT = 20; // percent off when billed yearly
+const billing = ref<'monthly' | 'annual'>('monthly');
+const peso = (n: number) => `₱${Math.round(n).toLocaleString('en-PH')}`;
+const monthlyPrice = (p: Plan) =>
+    billing.value === 'annual' ? Number(p.price) * (1 - ANNUAL_DISCOUNT / 100) : Number(p.price);
+
 // Count-up animation state
 const countUpValues = ref({
     total_visits: 0,
@@ -1462,7 +1468,34 @@ function declineCookies() {
                     </p>
                 </div>
 
-                <div class="mt-16 grid gap-8 md:grid-cols-3" data-animate>
+                <div class="mt-10 flex justify-center" data-animate>
+                    <div class="inline-flex items-center rounded-full border border-gray-200 bg-white p-1 text-sm font-semibold dark:border-gray-800 dark:bg-gray-900">
+                        <button
+                            type="button"
+                            class="rounded-full px-5 py-2 transition"
+                            :class="billing === 'monthly' ? 'bg-teal-600 text-white shadow' : 'text-gray-600 dark:text-gray-400'"
+                            @click="billing = 'monthly'"
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            type="button"
+                            class="flex items-center gap-2 rounded-full px-5 py-2 transition"
+                            :class="billing === 'annual' ? 'bg-teal-600 text-white shadow' : 'text-gray-600 dark:text-gray-400'"
+                            @click="billing = 'annual'"
+                        >
+                            Annual
+                            <span
+                                class="rounded-full px-2 py-0.5 text-xs"
+                                :class="billing === 'annual' ? 'bg-white/20 text-white' : 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300'"
+                            >
+                                Save {{ ANNUAL_DISCOUNT }}%
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-12 grid gap-8 md:grid-cols-3" data-animate>
                     <div
                         v-for="plan in plans"
                         :key="plan.slug"
@@ -1476,9 +1509,13 @@ function declineCookies() {
                         </div>
                         <h3 class="text-xl font-bold">{{ plan.name }}</h3>
                         <div class="mt-4">
-                            <span class="text-4xl font-extrabold">₱{{ Number(plan.price).toLocaleString('en-PH') }}</span>
+                            <span class="text-4xl font-extrabold">{{ peso(monthlyPrice(plan)) }}</span>
                             <span v-if="Number(plan.price) > 0" class="text-gray-500">/month</span>
                             <span v-else class="text-gray-500"> forever</span>
+                            <p v-if="billing === 'annual' && Number(plan.price) > 0" class="mt-1 text-sm text-gray-500">
+                                <span class="line-through">{{ peso(Number(plan.price)) }}</span>
+                                · {{ peso(monthlyPrice(plan) * 12) }} billed yearly
+                            </p>
                         </div>
                         <ul class="mt-8 flex-1 space-y-3">
                             <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-3 text-sm">
@@ -1488,7 +1525,7 @@ function declineCookies() {
                         </ul>
                         <Link
                             v-if="canRegister"
-                            :href="`/register?plan=${plan.slug}`"
+                            :href="`/register?plan=${plan.slug}&billing=${billing}`"
                             class="mt-8 block rounded-lg py-3 text-center text-sm font-semibold transition"
                             :class="plan.slug === 'pro'
                                 ? 'bg-teal-600 text-white shadow-md hover:bg-teal-700'
