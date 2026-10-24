@@ -278,8 +278,8 @@ const breadcrumbs = [{ title: 'Purchase Orders', href: tenantUrl('purchase-order
                             <td class="hidden px-4 py-3 sm:table-cell">{{ new Date(po.created_at).toLocaleDateString() }}</td>
                             <td class="px-4 py-3 text-right">
                                 <Button variant="ghost" size="icon" as-child>
-                                    <Link :href="tenantUrl(`purchase-orders/${po.id}`)">
-                                        <Eye class="h-4 w-4" />
+                                    <Link :href="tenantUrl(`purchase-orders/${po.id}`)" aria-label="View details">
+                                    <Eye class="h-4 w-4" />
                                     </Link>
                                 </Button>
                             </td>
@@ -386,7 +386,7 @@ const breadcrumbs = [{ title: 'Purchase Orders', href: tenantUrl('purchase-order
                                 <Label class="text-xs text-muted-foreground">Unit Cost</Label>
                                 <Input v-model="item.unit_cost" type="number" step="0.01" min="0" />
                             </div>
-                            <Button type="button" variant="ghost" size="icon" class="mt-6 shrink-0" @click="removeItem(index)" :disabled="form.items.length <= 1">
+                            <Button type="button" variant="ghost" size="icon" class="mt-6 shrink-0" @click="removeItem(index)" :disabled="form.items.length <= 1" aria-label="Delete">
                                 <Trash2 class="h-4 w-4 text-destructive" />
                             </Button>
                         </div>

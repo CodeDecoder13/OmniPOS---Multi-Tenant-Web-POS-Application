@@ -134,11 +134,11 @@ function handleAddBranch() {
                                         </Link>
                                     </Button>
                                     <Button variant="ghost" size="icon" as-child>
-                                        <Link :href="tenantUrl(`branches/${branch.id}/edit`)">
-                                            <Edit class="h-4 w-4" />
+                                        <Link :href="tenantUrl(`branches/${branch.id}/edit`)" aria-label="Edit">
+                                        <Edit class="h-4 w-4" />
                                         </Link>
                                     </Button>
-                                    <Button variant="ghost" size="icon" @click="confirmDelete(branch)">
+                                    <Button variant="ghost" size="icon" @click="confirmDelete(branch)" aria-label="Delete">
                                         <Trash2 class="h-4 w-4 text-red-500" />
                                     </Button>
                                 </div>

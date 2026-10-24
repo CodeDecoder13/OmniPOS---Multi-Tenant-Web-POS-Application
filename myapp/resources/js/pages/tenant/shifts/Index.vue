@@ -201,8 +201,8 @@ const breadcrumbs = [{ title: 'Shifts', href: tenantUrl('shifts') }];
                             <td class="px-4 py-3 text-right font-medium tabular-nums">{{ formatCurrency(shift.total_sales) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <Button variant="ghost" size="icon" as-child>
-                                    <Link :href="tenantUrl(`shifts/${shift.id}`)">
-                                        <Eye class="h-4 w-4" />
+                                    <Link :href="tenantUrl(`shifts/${shift.id}`)" aria-label="View details">
+                                    <Eye class="h-4 w-4" />
                                     </Link>
                                 </Button>
                             </td>

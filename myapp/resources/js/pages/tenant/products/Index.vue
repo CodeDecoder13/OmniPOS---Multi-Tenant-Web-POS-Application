@@ -328,8 +328,8 @@ function handleAddProduct() {
                                             <Barcode class="h-4 w-4" />
                                         </Button>
                                         <Button v-if="can('products.edit')" variant="ghost" size="icon" as-child>
-                                            <Link :href="tenantUrl(`products/${product.id}/edit`)">
-                                                <Edit class="h-4 w-4" />
+                                            <Link :href="tenantUrl(`products/${product.id}/edit`)" aria-label="Edit">
+                                            <Edit class="h-4 w-4" />
                                             </Link>
                                         </Button>
                                         <Button
@@ -337,7 +337,7 @@ function handleAddProduct() {
                                             variant="ghost"
                                             size="icon"
                                             @click="confirmDelete(product)"
-                                        >
+                                         aria-label="Delete">
                                             <Trash2 class="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>

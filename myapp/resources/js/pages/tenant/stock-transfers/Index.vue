@@ -286,8 +286,8 @@ const breadcrumbs = [{ title: 'Stock Transfers', href: tenantUrl('stock-transfer
                                 <td class="hidden px-3 py-3 sm:table-cell sm:px-4">{{ new Date(transfer.created_at).toLocaleDateString() }}</td>
                                 <td class="px-3 py-3 text-right sm:px-4">
                                     <Button variant="ghost" size="icon" as-child>
-                                        <Link :href="tenantUrl(`stock-transfers/${transfer.id}`)">
-                                            <Eye class="h-4 w-4" />
+                                        <Link :href="tenantUrl(`stock-transfers/${transfer.id}`)" aria-label="View details">
+                                        <Eye class="h-4 w-4" />
                                         </Link>
                                     </Button>
                                 </td>
@@ -378,7 +378,7 @@ const breadcrumbs = [{ title: 'Stock Transfers', href: tenantUrl('stock-transfer
                                 <Label class="text-xs text-muted-foreground">Quantity</Label>
                                 <Input v-model="item.quantity_requested" type="number" min="1" />
                             </div>
-                            <Button type="button" variant="ghost" size="icon" class="mt-6 shrink-0" @click="removeItem(index)" :disabled="form.items.length <= 1">
+                            <Button type="button" variant="ghost" size="icon" class="mt-6 shrink-0" @click="removeItem(index)" :disabled="form.items.length <= 1" aria-label="Delete">
                                 <Trash2 class="h-4 w-4 text-destructive" />
                             </Button>
                         </div>

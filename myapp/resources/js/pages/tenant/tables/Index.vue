@@ -266,11 +266,11 @@ const breadcrumbs = [{ title: 'Tables', href: tenantUrl('tables') }];
                                 <td class="px-3 py-3 text-right sm:px-4">
                                     <div class="flex items-center justify-end gap-1">
                                         <Button v-if="can('tables.edit')" variant="ghost" size="icon" as-child>
-                                            <Link :href="tenantUrl(`tables/${table.id}/edit`)">
-                                                <Edit class="h-4 w-4" />
+                                            <Link :href="tenantUrl(`tables/${table.id}/edit`)" aria-label="Edit">
+                                            <Edit class="h-4 w-4" />
                                             </Link>
                                         </Button>
-                                        <Button v-if="can('tables.delete')" variant="ghost" size="icon" @click="confirmDelete(table)">
+                                        <Button v-if="can('tables.delete')" variant="ghost" size="icon" @click="confirmDelete(table)" aria-label="Delete">
                                             <Trash2 class="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>

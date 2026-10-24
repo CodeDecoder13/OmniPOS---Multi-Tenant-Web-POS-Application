@@ -130,8 +130,8 @@ function deleteRole() {
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
                                     <Button v-if="can('roles.edit')" variant="ghost" size="icon" as-child>
-                                        <Link :href="tenantUrl(`roles/${role.id}/edit`)">
-                                            <Edit class="h-4 w-4" />
+                                        <Link :href="tenantUrl(`roles/${role.id}/edit`)" aria-label="Edit">
+                                        <Edit class="h-4 w-4" />
                                         </Link>
                                     </Button>
                                     <Button
@@ -139,7 +139,7 @@ function deleteRole() {
                                         variant="ghost"
                                         size="icon"
                                         @click="confirmDelete(role)"
-                                    >
+                                     aria-label="Delete">
                                         <Trash2 class="h-4 w-4 text-red-500" />
                                     </Button>
                                 </div>

@@ -204,11 +204,11 @@ const breadcrumbs = [{ title: 'Customers', href: tenantUrl('customers') }];
                             <td class="px-3 py-3 text-right sm:px-4">
                                 <div class="flex items-center justify-end gap-1">
                                     <Button v-if="can('orders.manage')" variant="ghost" size="icon" as-child>
-                                        <Link :href="tenantUrl(`customers/${customer.id}/edit`)">
-                                            <Edit class="h-4 w-4" />
+                                        <Link :href="tenantUrl(`customers/${customer.id}/edit`)" aria-label="Edit">
+                                        <Edit class="h-4 w-4" />
                                         </Link>
                                     </Button>
-                                    <Button v-if="can('orders.manage')" variant="ghost" size="icon" @click="confirmDelete(customer)">
+                                    <Button v-if="can('orders.manage')" variant="ghost" size="icon" @click="confirmDelete(customer)" aria-label="Delete">
                                         <Trash2 class="h-4 w-4 text-destructive" />
                                     </Button>
                                 </div>

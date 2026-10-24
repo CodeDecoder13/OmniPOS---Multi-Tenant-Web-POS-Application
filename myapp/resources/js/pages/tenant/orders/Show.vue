@@ -157,8 +157,8 @@ const breadcrumbs = [
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
                     <Button variant="outline" size="icon" as-child>
-                        <Link :href="tenantUrl('orders')">
-                            <ArrowLeft class="h-4 w-4" />
+                        <Link :href="tenantUrl('orders')" aria-label="Go back">
+                        <ArrowLeft class="h-4 w-4" />
                         </Link>
                     </Button>
                     <div>

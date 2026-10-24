@@ -22,7 +22,7 @@ const options: { value: Appearance; icon: typeof Sun; label: string }[] = [
 <template>
     <DropdownMenu>
         <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="h-8 w-8">
+            <Button variant="ghost" size="icon" class="h-8 w-8" aria-label="Theme">
                 <Sun v-if="appearance === 'light'" class="h-4 w-4" />
                 <Moon v-else-if="appearance === 'dark'" class="h-4 w-4" />
                 <Monitor v-else class="h-4 w-4" />

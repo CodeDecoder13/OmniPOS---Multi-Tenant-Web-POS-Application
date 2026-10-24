@@ -16,7 +16,7 @@ const { setLocale, currentLocale } = useLocale();
 <template>
     <DropdownMenu>
         <DropdownMenuTrigger as-child>
-            <Button variant="ghost" size="icon" class="h-8 w-8">
+            <Button variant="ghost" size="icon" class="h-8 w-8" aria-label="Language">
                 <Globe class="h-4 w-4" />
             </Button>
         </DropdownMenuTrigger>

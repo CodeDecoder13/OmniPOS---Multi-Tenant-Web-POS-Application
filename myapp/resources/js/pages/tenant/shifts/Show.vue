@@ -91,8 +91,8 @@ const breadcrumbs = [
         <div class="mx-auto max-w-7xl space-y-6 p-6">
             <div class="flex items-center gap-4">
                 <Button variant="ghost" size="icon" as-child>
-                    <Link :href="tenantUrl('shifts')">
-                        <ArrowLeft class="h-4 w-4" />
+                    <Link :href="tenantUrl('shifts')" aria-label="Go back">
+                    <ArrowLeft class="h-4 w-4" />
                     </Link>
                 </Button>
                 <div>
@@ -225,8 +225,8 @@ const breadcrumbs = [
                                 <td class="px-4 py-3 text-xs">{{ getOrderPaymentMethod(order) }}</td>
                                 <td class="px-4 py-3 text-right">
                                     <Button variant="ghost" size="icon" as-child>
-                                        <Link :href="tenantUrl(`orders/${order.id}`)">
-                                            <Eye class="h-4 w-4" />
+                                        <Link :href="tenantUrl(`orders/${order.id}`)" aria-label="View details">
+                                        <Eye class="h-4 w-4" />
                                         </Link>
                                     </Button>
                                 </td>

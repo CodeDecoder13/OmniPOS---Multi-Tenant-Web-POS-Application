@@ -387,7 +387,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                                         variant="ghost"
                                         size="icon"
                                         @click="openHistory(item)"
-                                    >
+                                     aria-label="View history">
                                         <History class="h-4 w-4" />
                                     </Button>
                                 </div>

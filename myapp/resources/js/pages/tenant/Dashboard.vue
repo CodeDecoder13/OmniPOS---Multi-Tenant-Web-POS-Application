@@ -15,6 +15,7 @@ import type { AIInsightsSummary, ReleaseNote } from '@/types/models';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
 import { useFlash } from '@/composables/useFlash';
+import { usePermissions } from '@/composables/usePermissions';
 
 const props = defineProps<{
     stats: {
@@ -45,6 +46,7 @@ const props = defineProps<{
 
 const page = usePage();
 const { tenantUrl } = useTenant();
+const { can } = usePermissions();
 const { formatCurrency, formatCurrencyShort } = useCurrency();
 const { flash } = useFlash();
 
@@ -380,6 +382,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <Link
+                            v-if="can('branches.create')"
                             :href="tenantUrl('branches/create')"
                             class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-teal-50/80 dark:hover:bg-teal-900/20 hover:border-teal-200/50 dark:hover:border-teal-800/30"
                         >
@@ -387,13 +390,15 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             <span class="text-xs font-medium">Add Branch</span>
                         </Link>
                         <Link
+                            v-if="can('users.invite')"
                             :href="tenantUrl('users')"
                             class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-sky-50/80 dark:hover:bg-sky-900/20 hover:border-sky-200/50 dark:hover:border-sky-800/30"
                         >
                             <UserPlus class="h-3.5 w-3.5 text-sky-500 shrink-0" />
-                            <span class="text-xs font-medium">Add Employee</span>
+                            <span class="text-xs font-medium">Add Team Member</span>
                         </Link>
                         <Link
+                            v-if="can('products.create')"
                             :href="tenantUrl('products/create')"
                             class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:border-amber-200/50 dark:hover:border-amber-800/30"
                         >
@@ -401,6 +406,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             <span class="text-xs font-medium">Add Product</span>
                         </Link>
                         <a
+                            v-if="can('pos.access')"
                             :href="tenantUrl('pos')"
                             target="_blank"
                             class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal-500/10 to-emerald-500/10 p-2.5 border border-teal-200/30 dark:border-teal-800/30 transition hover:from-teal-500/20 hover:to-emerald-500/20"
@@ -545,7 +551,12 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="order in recentOrders" :key="order.id" class="border-b last:border-0 border-white/20 dark:border-white/[0.06] transition hover:bg-white/40 dark:hover:bg-white/[0.03]">
+                                <tr
+                                    v-for="order in recentOrders"
+                                    :key="order.id"
+                                    class="cursor-pointer border-b last:border-0 border-white/20 dark:border-white/[0.06] transition hover:bg-white/40 dark:hover:bg-white/[0.03]"
+                                    @click="router.visit(tenantUrl(`orders/${order.id}`))"
+                                >
                                     <td class="py-3 font-medium">{{ order.order_number }}</td>
                                     <td class="py-3 text-muted-foreground">{{ order.branch }}</td>
                                     <td class="py-3 font-medium">{{ formatCurrency(order.total) }}</td>

@@ -133,7 +133,7 @@ const breadcrumbs = [
                             <Label>Unit Cost</Label>
                             <Input v-model="item.unit_cost" type="number" step="0.01" min="0" />
                         </div>
-                        <Button type="button" variant="ghost" size="icon" class="mt-7" @click="removeItem(index)" :disabled="form.items.length <= 1">
+                        <Button type="button" variant="ghost" size="icon" class="mt-7" @click="removeItem(index)" :disabled="form.items.length <= 1" aria-label="Delete">
                             <Trash2 class="h-4 w-4 text-destructive" />
                         </Button>
                     </div>

@@ -363,13 +363,13 @@ const breadcrumbs = [{ title: 'Promotions', href: tenantUrl('promotions') }];
                             </td>
                             <td class="px-3 py-3 text-right sm:px-4">
                                 <div class="flex items-center justify-end gap-1">
-                                    <Button v-if="can('promotions.view')" variant="ghost" size="icon" @click="openViewDialog(promo)">
+                                    <Button v-if="can('promotions.view')" variant="ghost" size="icon" @click="openViewDialog(promo)" aria-label="View details">
                                         <Eye class="h-4 w-4" />
                                     </Button>
-                                    <Button v-if="can('promotions.edit')" variant="ghost" size="icon" @click="openEditDialog(promo)">
+                                    <Button v-if="can('promotions.edit')" variant="ghost" size="icon" @click="openEditDialog(promo)" aria-label="Edit">
                                         <Pencil class="h-4 w-4" />
                                     </Button>
-                                    <Button v-if="can('promotions.delete') && !promo.is_preset" variant="ghost" size="icon" @click="confirmDelete(promo)">
+                                    <Button v-if="can('promotions.delete') && !promo.is_preset" variant="ghost" size="icon" @click="confirmDelete(promo)" aria-label="Delete">
                                         <Trash2 class="h-4 w-4 text-destructive" />
                                     </Button>
                                 </div>

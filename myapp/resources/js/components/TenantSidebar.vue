@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
-import {
-    ArrowLeftRight, BarChart3, Building2, CalendarDays, ChefHat, ChevronRight, ClipboardList,
-    Clock, Crown, FileText, FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle,
-    ReceiptText, Settings2, Shield, ShoppingCart, Sparkles, Store, Tag, Truck, UserRound, Users, Warehouse,
-} from 'lucide-vue-next';
-import type { Component } from 'vue';
+import { Link } from '@inertiajs/vue3';
+import { Crown, ExternalLink } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import NavUser from '@/components/NavUser.vue';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Sidebar,
     SidebarContent,
@@ -21,154 +25,35 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarMenuSub,
-    SidebarMenuSubButton,
-    SidebarMenuSubItem,
     SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { useTenant } from '@/composables/useTenant';
-import { usePermissions } from '@/composables/usePermissions';
-import { useBranchSettings } from '@/composables/useBranchSettings';
-import type { BranchSettings } from '@/composables/useBranchSettings';
+import { useTenantNav } from '@/composables/useTenantNav';
+import type { NavItem } from '@/composables/useTenantNav';
 
-interface NavChild {
-    title: string;
-    path: string;
-    icon: Component;
-    permission: string | null;
-    external?: boolean;
-    feature?: keyof BranchSettings;
-    plan?: string | string[];
-}
-
-interface NavGroup {
-    title: string;
-    icon: Component;
-    children: NavChild[];
-}
-
-const page = usePage();
+const { t } = useI18n();
 const { tenant, tenantUrl } = useTenant();
-const { can } = usePermissions();
-const { isEnabled } = useBranchSettings();
+const { sections, isActive } = useTenantNav();
 
-const topLevelItems: NavChild[] = [
-    { title: 'Dashboard', path: 'dashboard', icon: LayoutDashboard, permission: null },
-    { title: 'POS', path: 'pos', icon: ShoppingCart, permission: 'pos.access', external: true, feature: 'pos_enabled' },
-    { title: 'Kitchen', path: 'kitchen', icon: ChefHat, permission: 'kitchen.access', external: true, feature: 'kitchen_display' },
-];
+const planNames = (slugs: string[]) => slugs.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' / ');
 
-const operationsGroups: NavGroup[] = [
-    {
-        title: 'Sales & Orders',
-        icon: ClipboardList,
-        children: [
-            { title: 'Orders', path: 'orders', icon: ClipboardList, permission: 'orders.view' },
-            { title: 'Customers', path: 'customers', icon: UserRound, permission: 'orders.view' },
-            { title: 'Shifts', path: 'shifts', icon: Clock, permission: 'shifts.view' },
-            { title: 'Reports', path: 'reports', icon: BarChart3, permission: 'reports.view' },
-            { title: 'AI Insights', path: 'ai-insights', icon: Sparkles, permission: 'reports.view', plan: ['pro', 'enterprise'] },
-        ],
-    },
-    {
-        title: 'Products & Menu',
-        icon: Package,
-        children: [
-            { title: 'Categories', path: 'categories', icon: FolderOpen, permission: 'products.view' },
-            { title: 'Products', path: 'products', icon: Package, permission: 'products.view' },
-            { title: 'Add-ons', path: 'addons', icon: Puzzle, permission: 'products.view' },
-            { title: 'Tables', path: 'tables', icon: LayoutGrid, permission: 'tables.view', feature: 'dine_in' },
-            { title: 'Promotions', path: 'promotions', icon: Tag, permission: 'promotions.view' },
-        ],
-    },
-    {
-        title: 'Inventory & Supply',
-        icon: Warehouse,
-        children: [
-            { title: 'Inventory', path: 'inventory', icon: Warehouse, permission: 'inventory.view', feature: 'inventory_tracking' },
-            { title: 'Suppliers', path: 'suppliers', icon: Truck, permission: 'suppliers.view', feature: 'inventory_tracking' },
-            { title: 'Stock Transfers', path: 'stock-transfers', icon: ArrowLeftRight, permission: 'inventory.view', feature: 'inventory_tracking' },
-            { title: 'Purchase Orders', path: 'purchase-orders', icon: FileText, permission: 'inventory.view', feature: 'inventory_tracking' },
-        ],
-    },
-];
-
-const storeGroups: NavGroup[] = [
-    {
-        title: 'Team',
-        icon: Users,
-        children: [
-            { title: 'Employees', path: 'users', icon: Users, permission: 'users.view' },
-            { title: 'Roles', path: 'roles', icon: Shield, permission: 'roles.view' },
-            { title: 'Schedules', path: 'shift-schedules', icon: CalendarDays, permission: 'users.edit-role' },
-        ],
-    },
-    {
-        title: 'Store',
-        icon: Store,
-        children: [
-            { title: 'Branches', path: 'branches', icon: Building2, permission: 'branches.view' },
-            { title: 'Settings', path: 'settings', icon: Settings2, permission: 'settings.manage' },
-            { title: 'Receipt Design', path: 'receipt-customization', icon: ReceiptText, permission: 'settings.manage', plan: 'enterprise' },
-        ],
-    },
-];
-
-function isActive(path: string): boolean {
-    const url = page.url;
-    const href = tenantUrl(path);
-    if (path === 'dashboard') {
-        return url === href;
-    }
-    return url.startsWith(href);
+function tooltipFor(item: NavItem): string {
+    if (item.state === 'locked') return `${item.label}: ${t('nav.lockedHint', { plans: planNames(item.plans) })}`;
+    if (item.state === 'disabled') return `${item.label}: ${t('nav.disabledHint')}`;
+    return item.external ? `${item.label} (${t('nav.opensNewTab')})` : item.label;
 }
 
-function hasActiveChild(group: NavGroup): boolean {
-    return group.children.some((child) => isActive(child.path));
-}
-
-function matchesPlan(plan: string | string[], slug: string | undefined): boolean {
-    if (!slug) return false;
-    return Array.isArray(plan) ? plan.includes(slug) : slug === plan;
-}
-
-function filterByPermission(items: NavChild[]): NavChild[] {
-    return items.filter((item) => {
-        if (item.permission && !can(item.permission)) return false;
-        if (item.feature && !isEnabled(item.feature)) return false;
-        if (item.plan && !matchesPlan(item.plan, tenant.value?.subscription?.plan?.slug)) return false;
-        return true;
-    });
-}
-
-function requiresUpgrade(item: NavChild): boolean {
-    if (!item.plan) return false;
-    return !matchesPlan(item.plan, tenant.value?.subscription?.plan?.slug);
-}
-
-const filteredTopLevel = computed(() => filterByPermission(topLevelItems));
-
-const filteredOperationsGroups = computed(() =>
-    operationsGroups
-        .map((group) => ({
-            ...group,
-            children: filterByPermission(group.children),
-        }))
-        .filter((group) => group.children.length > 0),
-);
-
-const filteredStoreGroups = computed(() =>
-    storeGroups
-        .map((group) => ({
-            ...group,
-            children: filterByPermission(group.children),
-        }))
-        .filter((group) => group.children.length > 0),
-);
+// Plan-locked items open this prompt instead of navigating to a 403 page.
+const lockedItem = ref<NavItem | null>(null);
+const lockedOpen = computed({
+    get: () => lockedItem.value !== null,
+    set: (v) => { if (!v) lockedItem.value = null; },
+});
+const upgradeMailto = 'mailto:support@omnipos.shop?subject=Upgrade%20my%20OmniPOS%20plan';
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
+    <Sidebar collapsible="icon" variant="inset" :aria-label="t('nav.mainNav')">
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
@@ -193,114 +78,77 @@ const filteredStoreGroups = computed(() =>
         </SidebarHeader>
 
         <SidebarContent class="overflow-x-hidden">
-            <!-- Top-level items -->
-            <SidebarGroup>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <SidebarMenuItem v-for="item in filteredTopLevel" :key="item.title">
-                            <SidebarMenuButton as-child :is-active="isActive(item.path)">
-                                <a v-if="item.external" :href="tenantUrl(item.path)" target="_blank">
+            <template v-for="(section, i) in sections" :key="section.key">
+                <SidebarSeparator v-if="i > 0 && !section.title" />
+                <SidebarGroup>
+                    <SidebarGroupLabel v-if="section.title">{{ section.title }}</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <SidebarMenuItem v-for="item in section.items" :key="item.key">
+                                <!-- Locked by plan: dimmed, crown, opens the upgrade prompt -->
+                                <SidebarMenuButton
+                                    v-if="item.state === 'locked'"
+                                    :tooltip="tooltipFor(item)"
+                                    class="opacity-70"
+                                    @click="lockedItem = item"
+                                >
                                     <component :is="item.icon" />
-                                    <span>{{ item.title }}</span>
-                                </a>
-                                <Link v-else :href="tenantUrl(item.path)">
+                                    <span>{{ item.label }}</span>
+                                    <Crown class="ml-auto size-3.5 shrink-0 text-amber-500" aria-hidden="true" />
+                                </SidebarMenuButton>
+
+                                <!-- Turned off for this branch: dimmed, explains why on hover -->
+                                <SidebarMenuButton
+                                    v-else-if="item.state === 'disabled'"
+                                    :tooltip="tooltipFor(item)"
+                                    aria-disabled="true"
+                                    class="cursor-not-allowed opacity-50 hover:bg-transparent"
+                                >
                                     <component :is="item.icon" />
-                                    <span>{{ item.title }}</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
+                                    <span>{{ item.label }}</span>
+                                </SidebarMenuButton>
 
-            <SidebarSeparator />
-
-            <!-- Operations groups -->
-            <SidebarGroup>
-                <SidebarGroupLabel>Operations</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <Collapsible
-                            v-for="group in filteredOperationsGroups"
-                            :key="group.title"
-                            as-child
-                            :default-open="hasActiveChild(group)"
-                        >
-                            <SidebarMenuItem>
-                                <CollapsibleTrigger as-child>
-                                    <SidebarMenuButton>
-                                        <component :is="group.icon" />
-                                        <span>{{ group.title }}</span>
-                                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                    </SidebarMenuButton>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <SidebarMenuSub>
-                                        <SidebarMenuSubItem v-for="child in group.children" :key="child.title">
-                                            <SidebarMenuSubButton as-child size="sm" :is-active="isActive(child.path)">
-                                                <Link :href="tenantUrl(child.path)">
-                                                    <span>{{ child.title }}</span>
-                                                    <Crown
-                                                        v-if="requiresUpgrade(child)"
-                                                        class="ml-auto h-3 w-3 shrink-0 text-amber-500"
-                                                    />
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                    </SidebarMenuSub>
-                                </CollapsibleContent>
+                                <SidebarMenuButton v-else as-child :is-active="isActive(item.path)" :tooltip="tooltipFor(item)">
+                                    <a v-if="item.external" :href="tenantUrl(item.path)" target="_blank" rel="noopener">
+                                        <component :is="item.icon" />
+                                        <span>{{ item.label }}</span>
+                                        <ExternalLink class="ml-auto size-3 shrink-0 opacity-50" aria-hidden="true" />
+                                    </a>
+                                    <Link v-else :href="tenantUrl(item.path)">
+                                        <component :is="item.icon" />
+                                        <span>{{ item.label }}</span>
+                                    </Link>
+                                </SidebarMenuButton>
                             </SidebarMenuItem>
-                        </Collapsible>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarSeparator />
-
-            <!-- Store groups -->
-            <SidebarGroup>
-                <SidebarGroupLabel>Store</SidebarGroupLabel>
-                <SidebarGroupContent>
-                    <SidebarMenu>
-                        <Collapsible
-                            v-for="group in filteredStoreGroups"
-                            :key="group.title"
-                            as-child
-                            :default-open="hasActiveChild(group)"
-                        >
-                            <SidebarMenuItem>
-                                <CollapsibleTrigger as-child>
-                                    <SidebarMenuButton>
-                                        <component :is="group.icon" />
-                                        <span>{{ group.title }}</span>
-                                        <ChevronRight class="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                    </SidebarMenuButton>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <SidebarMenuSub>
-                                        <SidebarMenuSubItem v-for="child in group.children" :key="child.title">
-                                            <SidebarMenuSubButton as-child size="sm" :is-active="isActive(child.path)">
-                                                <Link :href="tenantUrl(child.path)">
-                                                    <span>{{ child.title }}</span>
-                                                    <Crown
-                                                        v-if="requiresUpgrade(child)"
-                                                        class="ml-auto h-3 w-3 shrink-0 text-amber-500"
-                                                    />
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-                                    </SidebarMenuSub>
-                                </CollapsibleContent>
-                            </SidebarMenuItem>
-                        </Collapsible>
-                    </SidebarMenu>
-                </SidebarGroupContent>
-            </SidebarGroup>
-
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+            </template>
         </SidebarContent>
 
         <SidebarFooter>
             <NavUser />
         </SidebarFooter>
+    
     </Sidebar>
+
+    <Dialog v-model:open="lockedOpen">
+        <DialogContent class="sm:max-w-md">
+            <DialogHeader v-if="lockedItem">
+                <DialogTitle class="flex items-center gap-2">
+                    <Crown class="size-5 text-amber-500" aria-hidden="true" />
+                    {{ t('nav.lockedTitle', { feature: lockedItem.label }) }}
+                </DialogTitle>
+                <DialogDescription>
+                    {{ t('nav.lockedBody', { plans: planNames(lockedItem.plans) }) }}
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="lockedItem = null">{{ t('nav.close') }}</Button>
+                <Button as-child class="bg-amber-500 text-white hover:bg-amber-600">
+                    <a :href="upgradeMailto">{{ t('nav.requestUpgrade') }}</a>
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

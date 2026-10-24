@@ -1429,7 +1429,7 @@ onUnmounted(() => {
                                     </Button>
                                 </div>
                                 <p class="w-20 text-right text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
-                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)">
+                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)" aria-label="Delete">
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>
@@ -1678,7 +1678,7 @@ onUnmounted(() => {
                                     </Button>
                                 </div>
                                 <p class="w-20 text-right text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
-                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)">
+                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)" aria-label="Delete">
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>

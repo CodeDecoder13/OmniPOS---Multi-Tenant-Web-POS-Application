@@ -180,7 +180,12 @@ const breadcrumbs = [{ title: 'Orders', href: tenantUrl('orders') }];
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="order in orders.data" :key="order.id" class="border-b transition-colors last:border-0 hover:bg-muted/30">
+                        <tr
+                            v-for="order in orders.data"
+                            :key="order.id"
+                            class="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/30"
+                            @click="(e: MouseEvent) => !(e.target as HTMLElement).closest('a,button') && router.visit(tenantUrl(`orders/${order.id}`))"
+                        >
                             <td class="px-4 py-3">
                                 <span class="font-mono text-xs font-medium">{{ order.order_number }}</span>
                                 <span class="block text-[11px] text-muted-foreground sm:hidden">{{ formatDate(order.created_at) }}</span>
@@ -197,8 +202,8 @@ const breadcrumbs = [{ title: 'Orders', href: tenantUrl('orders') }];
                             <td class="hidden px-4 py-3 text-xs text-muted-foreground sm:table-cell">{{ formatDate(order.created_at) }}</td>
                             <td class="px-4 py-3 text-right">
                                 <Button variant="ghost" size="icon" as-child>
-                                    <Link :href="tenantUrl(`orders/${order.id}`)">
-                                        <Eye class="h-4 w-4" />
+                                    <Link :href="tenantUrl(`orders/${order.id}`)" aria-label="View details">
+                                    <Eye class="h-4 w-4" />
                                     </Link>
                                 </Button>
                             </td>

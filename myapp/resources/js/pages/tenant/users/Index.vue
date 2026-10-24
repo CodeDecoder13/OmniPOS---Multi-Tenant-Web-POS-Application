@@ -372,13 +372,13 @@ function roleBadgeClass(slug: string): string {
                     </Button>
                     <Button @click="openAddDialog">
                         <UserPlus class="mr-2 h-4 w-4" />
-                        Add User
+                        Add Team Member
                     </Button>
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl border bg-white dark:border-gray-800 dark:bg-gray-900">
-                <table class="w-full text-sm">
+            <div class="overflow-x-auto rounded-xl border bg-white dark:border-gray-800 dark:bg-gray-900">
+                <table class="w-full min-w-[720px] text-sm">
                     <thead>
                         <tr class="border-b bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
                             <th class="px-4 py-3 text-left font-medium">Name</th>
@@ -458,7 +458,7 @@ function roleBadgeClass(slug: string): string {
                                         variant="ghost"
                                         size="icon"
                                         @click="openEditDialog(user)"
-                                    >
+                                     aria-label="Edit">
                                         <SquarePen class="h-4 w-4" />
                                     </Button>
                                     <Button
@@ -466,7 +466,7 @@ function roleBadgeClass(slug: string): string {
                                         variant="ghost"
                                         size="icon"
                                         @click="confirmRemove(user)"
-                                    >
+                                     aria-label="Delete">
                                         <Trash2 class="h-4 w-4 text-red-500" />
                                     </Button>
                                 </div>
@@ -528,7 +528,7 @@ function roleBadgeClass(slug: string): string {
         <Dialog v-model:open="addDialog">
             <DialogContent @pointer-down-outside="(e: any) => e.preventDefault()">
                 <DialogHeader>
-                    <DialogTitle>Add User</DialogTitle>
+                    <DialogTitle>Add Team Member</DialogTitle>
                     <DialogDescription>
                         Create a new user and add them to your organization.
                     </DialogDescription>

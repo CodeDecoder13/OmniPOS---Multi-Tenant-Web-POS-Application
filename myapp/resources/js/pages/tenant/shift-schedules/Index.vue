@@ -719,10 +719,10 @@ function formatTimeShort(timeStr: string): string {
                                     <td class="hidden max-w-48 truncate px-4 py-3 text-muted-foreground lg:table-cell">{{ schedule.notes ?? '-' }}</td>
                                     <td class="px-3 py-3 text-right sm:px-4">
                                         <div class="flex items-center justify-end gap-1">
-                                            <Button variant="ghost" size="icon" @click="openEditDialog(schedule)">
+                                            <Button variant="ghost" size="icon" @click="openEditDialog(schedule)" aria-label="Edit">
                                                 <Pencil class="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="icon" @click="confirmDelete(schedule)">
+                                            <Button variant="ghost" size="icon" @click="confirmDelete(schedule)" aria-label="Delete">
                                                 <Trash2 class="h-4 w-4 text-red-500" />
                                             </Button>
                                         </div>

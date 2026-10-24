@@ -217,10 +217,10 @@ const breadcrumbs = [{ title: 'Add-ons', href: tenantUrl('addons') }];
                             </td>
                             <td class="px-3 py-3 text-right sm:px-4">
                                 <div class="flex items-center justify-end gap-1">
-                                    <Button v-if="can('products.edit')" variant="ghost" size="icon" @click="openEditDialog(addon)">
+                                    <Button v-if="can('products.edit')" variant="ghost" size="icon" @click="openEditDialog(addon)" aria-label="Edit">
                                         <Pencil class="h-4 w-4" />
                                     </Button>
-                                    <Button v-if="can('products.delete')" variant="ghost" size="icon" @click="confirmDelete(addon)">
+                                    <Button v-if="can('products.delete')" variant="ghost" size="icon" @click="confirmDelete(addon)" aria-label="Delete">
                                         <Trash2 class="h-4 w-4 text-destructive" />
                                     </Button>
                                 </div>
