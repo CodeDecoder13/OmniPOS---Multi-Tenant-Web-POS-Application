@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { computed, ref, watch } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { BarChart3, CheckCircle, Eye, Pencil, Plus, Search, Tag, Trash2, XCircle } from 'lucide-vue-next';
@@ -301,7 +302,7 @@ const breadcrumbs = [{ title: 'Promotions', href: tenantUrl('promotions') }];
                             <th class="px-3 py-3 text-left font-medium sm:px-4">Code</th>
                             <th class="px-3 py-3 text-left font-medium sm:px-4">Name</th>
                             <th class="hidden px-3 py-3 text-center font-medium sm:table-cell sm:px-4">Type</th>
-                            <th class="px-3 py-3 text-center font-medium sm:px-4">Value</th>
+                            <th class="px-3 py-3 text-center font-medium sm:px-4"><span class="inline-flex items-center gap-1.5">Value<InfoTip text="Percent off, or peso amount off. For Buy X Get Y, the free quantity." /></span></th>
                             <th class="hidden px-3 py-3 text-center font-medium md:table-cell md:px-4">Dates</th>
                             <th class="hidden px-3 py-3 text-center font-medium md:table-cell md:px-4">Usage</th>
                             <th class="hidden px-3 py-3 text-center font-medium sm:table-cell sm:px-4">Status</th>
@@ -450,7 +451,10 @@ const breadcrumbs = [{ title: 'Promotions', href: tenantUrl('promotions') }];
                             <p v-if="form.errors.min_order_amount" class="text-sm text-destructive">{{ form.errors.min_order_amount }}</p>
                         </div>
                         <div class="space-y-2">
-                            <Label for="max_discount">Maximum Discount</Label>
+                            <div class="flex items-center gap-1.5">
+                                <Label for="max_discount">Maximum Discount</Label>
+                                <InfoTip text="Caps how much a percentage promotion can take off one order." />
+                            </div>
                             <Input id="max_discount" v-model.number="form.max_discount" type="number" min="0" step="0.01" placeholder="No cap" />
                             <p v-if="form.errors.max_discount" class="text-sm text-destructive">{{ form.errors.max_discount }}</p>
                         </div>
@@ -472,7 +476,10 @@ const breadcrumbs = [{ title: 'Promotions', href: tenantUrl('promotions') }];
 
                     <!-- Row 5: Usage Limit (hidden for presets) -->
                     <div v-if="!editingPreset" class="space-y-2">
-                        <Label for="usage_limit">Usage Limit</Label>
+                        <div class="flex items-center gap-1.5">
+                            <Label for="usage_limit">Usage Limit</Label>
+                            <InfoTip text="Total times this promotion can be used across all customers." />
+                        </div>
                         <Input id="usage_limit" v-model.number="form.usage_limit" type="number" min="1" placeholder="Unlimited" />
                         <p v-if="form.errors.usage_limit" class="text-sm text-destructive">{{ form.errors.usage_limit }}</p>
                     </div>

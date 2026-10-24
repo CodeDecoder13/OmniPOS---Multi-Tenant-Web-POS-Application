@@ -89,7 +89,7 @@ onUnmounted(() => {
                     <User class="h-3.5 w-3.5 text-muted-foreground" />
                     <span class="hidden sm:inline text-xs font-medium max-w-[80px] md:max-w-none truncate">{{ operatorName }}</span>
                 </div>
-                <Button variant="outline" size="sm" @click="handleLogout" class="h-9 w-9 p-0 md:h-auto md:w-auto md:px-3">
+                <Button variant="outline" size="sm" @click="handleLogout" class="h-9 w-9 p-0 md:h-auto md:w-auto md:px-3" aria-label="Switch user" title="Lock the till so another cashier can sign in with their PIN">
                     <Lock class="h-3.5 w-3.5 md:mr-1.5" />
                     <span class="hidden md:inline">Switch User</span>
                 </Button>

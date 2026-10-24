@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { RotateCcw, Save, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -189,7 +190,7 @@ function saveChanges() {
                             <th class="hidden px-4 py-3 text-left font-medium lg:table-cell">Category</th>
                             <th class="px-4 py-3 text-right font-medium">Global Price</th>
                             <th class="px-4 py-3 text-right font-medium">Branch Price</th>
-                            <th class="px-4 py-3 text-right font-medium">Effective</th>
+                            <th class="px-4 py-3 text-right font-medium"><span class="inline-flex items-center gap-1.5">Effective<InfoTip text="The branch price if one is set, otherwise the global price." /></span></th>
                             <th class="px-4 py-3 text-center font-medium">Available</th>
                         </tr>
                     </thead>

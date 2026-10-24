@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import TenantLayout from '@/layouts/TenantLayout.vue';
@@ -83,7 +84,10 @@ const breadcrumbs = [{ title: 'Reports', href: tenantUrl('reports') }];
                         <p class="text-sm text-muted-foreground">Analytics and insights for your business</p>
                     </div>
                 </div>
-                <ExportButton :type="exportTypeMap[activeTab] ?? 'sales_summary'" :filters="filters" class="w-full sm:w-auto" />
+                <div class="flex items-center gap-2">
+                    <ExportButton :type="exportTypeMap[activeTab] ?? 'sales_summary'" :filters="filters" class="w-full sm:w-auto" />
+                    <InfoTip label="About export" text="Exports the current tab for the selected dates." />
+                </div>
             </div>
 
             <ReportFilterBar :filters="filters" :branches="branches" @apply="applyFilters" />

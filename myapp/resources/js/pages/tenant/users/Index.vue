@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Check, ChevronDown, ChevronRight, Copy, Download, FileUp, RefreshCw, SquarePen, Trash2, Upload, UserPlus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -387,7 +388,7 @@ function roleBadgeClass(slug: string): string {
                             <th class="px-4 py-3 text-left font-medium">Branch</th>
                             <th class="px-4 py-3 text-left font-medium">Status</th>
                             <th class="px-4 py-3 text-left font-medium">Last Login</th>
-                            <th class="px-4 py-3 text-left font-medium">PIN</th>
+                            <th class="px-4 py-3 text-left font-medium"><span class="inline-flex items-center gap-1.5">PIN<InfoTip text="4-6 digit code used to sign in at the POS." /></span></th>
                             <th class="px-4 py-3 text-right font-medium">Actions</th>
                         </tr>
                     </thead>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { ArrowLeft, Printer, Mail, LinkIcon, Copy } from 'lucide-vue-next';
@@ -188,6 +189,7 @@ const breadcrumbs = [
                     >
                         <Link :href="tenantUrl(`orders/${order.id}/refund`)">Refund</Link>
                     </Button>
+                    <InfoTip v-if="can('pos.void') && order.status === 'completed'" label="About refunds" text="Returns money for some or all items. The sale stays on record." />
                     <Button
                         v-if="can('pos.void') && order.status === 'completed'"
                         variant="destructive"
@@ -196,6 +198,7 @@ const breadcrumbs = [
                     >
                         Void Order
                     </Button>
+                    <InfoTip v-if="can('pos.void') && order.status === 'completed'" label="About voiding" text="Cancels the whole sale and returns stock. Use it for mistakes made today." />
                 </div>
             </div>
 

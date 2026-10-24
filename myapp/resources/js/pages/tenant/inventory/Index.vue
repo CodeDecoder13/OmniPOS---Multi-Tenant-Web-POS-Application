@@ -24,6 +24,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import Pagination from '@/components/Pagination.vue';
+import InfoTip from '@/components/InfoTip.vue';
 import type { Branch, BreadcrumbItem, Inventory, InventoryAdjustment, PaginatedData } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
@@ -418,7 +419,10 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                        <Label>Adjustment Type</Label>
+                        <div class="flex items-center gap-1.5">
+                            <Label>Adjustment Type</Label>
+                            <InfoTip text="Purchase: stock received. Damage: broken or spoiled. Correction: fix a counting mistake. Initial: opening stock." />
+                        </div>
                         <Select v-model="adjustForm.type">
                             <SelectTrigger>
                                 <SelectValue />
@@ -458,7 +462,10 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                     </div>
 
                     <div class="flex flex-col gap-1.5">
-                        <Label>Low Stock Threshold</Label>
+                        <div class="flex items-center gap-1.5">
+                            <Label>Low Stock Threshold</Label>
+                            <InfoTip text="You get a low-stock alert when stock falls to this number. Use 0 for no alert." />
+                        </div>
                         <Input
                             v-model.number="adjustForm.low_stock_threshold"
                             type="number"
@@ -470,7 +477,10 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
 
                     <div class="grid grid-cols-2 gap-3">
                         <div class="flex flex-col gap-1.5">
+                            <div class="flex items-center gap-1.5">
                             <Label>Reorder Point</Label>
+                            <InfoTip text="When stock falls to this number, a draft purchase order is created automatically." />
+                        </div>
                             <Input
                                 v-model.number="adjustForm.reorder_point"
                                 type="number"
@@ -479,7 +489,10 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                             />
                         </div>
                         <div class="flex flex-col gap-1.5">
+                            <div class="flex items-center gap-1.5">
                             <Label>Reorder Quantity</Label>
+                            <InfoTip text="How many units that purchase order asks for." />
+                        </div>
                             <Input
                                 v-model.number="adjustForm.reorder_quantity"
                                 type="number"

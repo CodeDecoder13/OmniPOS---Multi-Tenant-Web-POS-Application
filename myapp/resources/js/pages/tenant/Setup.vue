@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,7 +113,10 @@ function skipPin() {
                         </div>
 
                         <div>
-                            <Label for="code">Branch Code</Label>
+                            <div class="flex items-center gap-1.5">
+                                <Label for="code">Branch Code</Label>
+                                <InfoTip text="Short code printed on receipts and order numbers." />
+                            </div>
                             <Input
                                 id="code"
                                 v-model="branchForm.code"

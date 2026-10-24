@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
@@ -145,7 +146,7 @@ const breadcrumbs = [
                             <span class="font-medium">{{ formatCurrency(shift.starting_cash) }}</span>
                         </div>
                         <div class="flex justify-between py-2 text-sm">
-                            <span class="text-muted-foreground">Expected Cash</span>
+                            <span class="flex items-center gap-1.5 text-muted-foreground">Expected Cash<InfoTip text="Starting cash + cash sales - cash refunds." /></span>
                             <span class="font-medium">{{ formatCurrency(shift.expected_cash ?? 0) }}</span>
                         </div>
                         <div class="flex justify-between py-2 text-sm">
@@ -153,7 +154,7 @@ const breadcrumbs = [
                             <span class="font-medium">{{ formatCurrency(shift.ending_cash ?? 0) }}</span>
                         </div>
                         <div class="flex justify-between py-2 text-sm font-semibold">
-                            <span>Difference</span>
+                            <span class="flex items-center gap-1.5">Difference<InfoTip text="Counted cash minus expected cash. Negative means the drawer is short." /></span>
                             <span :class="differenceColor">
                                 {{ formatCurrency(Math.abs(cashDifference)) }}
                                 ({{ differenceLabel }})

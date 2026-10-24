@@ -1280,7 +1280,7 @@ onUnmounted(() => {
                         <Badge v-if="cartItemCount > 0" variant="secondary" class="text-xs">{{ cartItemCount }}</Badge>
                     </div>
                     <div class="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" class="text-xs text-muted-foreground relative" @click="openHeldOrders" title="Held Orders">
+                        <Button variant="ghost" size="sm" class="text-xs text-muted-foreground relative" @click="openHeldOrders" title="Held orders: carts you parked for later. Tap to bring one back.">
                             <Pause class="h-3 w-3" />
                             Held
                         </Button>
@@ -1507,7 +1507,7 @@ onUnmounted(() => {
                         <span>-{{ formatCurrency(promoDiscount) }}</span>
                     </div>
                     <div v-if="taxAmount > 0" class="flex justify-between text-muted-foreground">
-                        <span>{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
+                        <span :title="taxInclusive ? 'Prices already include tax' : undefined">{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
                         <span>{{ formatCurrency(taxAmount) }}</span>
                     </div>
                     <Separator class="my-2" />
@@ -1525,6 +1525,7 @@ onUnmounted(() => {
                             class="flex-1 h-10"
                             :disabled="holdingOrder"
                             @click="holdOrder"
+                            title="Save this cart and start a new one"
                         >
                             <Pause class="mr-1.5 h-4 w-4" />
                             {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
@@ -1749,7 +1750,7 @@ onUnmounted(() => {
                         <span>-{{ formatCurrency(promoDiscount) }}</span>
                     </div>
                     <div v-if="taxAmount > 0" class="flex justify-between text-muted-foreground">
-                        <span>{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
+                        <span :title="taxInclusive ? 'Prices already include tax' : undefined">{{ taxLabel }}{{ taxInclusive ? ' (incl.)' : '' }}</span>
                         <span>{{ formatCurrency(taxAmount) }}</span>
                     </div>
                     <Separator class="my-2" />
@@ -1767,6 +1768,7 @@ onUnmounted(() => {
                             class="flex-1 h-10"
                             :disabled="holdingOrder"
                             @click="holdOrder"
+                            title="Save this cart and start a new one"
                         >
                             <Pause class="mr-1.5 h-4 w-4" />
                             {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
@@ -1869,7 +1871,7 @@ onUnmounted(() => {
                     <!-- Split toggle -->
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-medium">Split Payment</span>
-                        <Button variant="outline" size="sm" class="text-xs" @click="toggleSplitMode">
+                        <Button variant="outline" size="sm" class="text-xs" @click="toggleSplitMode" title="Pay with more than one method">
                             {{ splitMode ? 'Single Payment' : 'Split Payment' }}
                         </Button>
                     </div>

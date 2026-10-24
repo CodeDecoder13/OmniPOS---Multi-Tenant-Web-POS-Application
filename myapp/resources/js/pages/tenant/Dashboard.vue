@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import {
@@ -357,6 +358,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             <TrendingDown class="mr-0.5 h-3 w-3" /> {{ revenueChange }}%
                         </span>
                         <span class="text-muted-foreground">vs yesterday</span>
+                        <InfoTip text="Compared with revenue at this time yesterday." />
                     </div>
                 </div>
 
@@ -429,6 +431,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             </div>
                             <h3 class="font-semibold">AI Insights</h3>
                             <span class="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-medium text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">Beta</span>
+                            <InfoTip text="Insights are calculated from statistics on your own sales data." />
                         </div>
                         <Link :href="tenantUrl('ai-insights')" class="flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300">
                             View all insights <ArrowUpRight class="h-3 w-3" />
@@ -444,7 +447,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             <p class="text-sm font-medium leading-snug">{{ aiInsights.secondary_insight }}</p>
                         </div>
                         <div class="rounded-lg bg-white/60 p-4 dark:bg-white/[0.05] border border-white/30 dark:border-white/[0.08] backdrop-blur-sm">
-                            <p class="text-xs text-muted-foreground mb-1">7-Day Forecast</p>
+                            <p class="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">7-Day Forecast<InfoTip text="Estimated from your recent daily averages." /></p>
                             <p class="text-lg font-bold text-violet-600 dark:text-violet-400">{{ formatCurrency(aiInsights.projected_revenue_7d) }}</p>
                             <p class="text-xs text-muted-foreground">projected revenue</p>
                         </div>

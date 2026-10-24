@@ -37,9 +37,9 @@ const groups: { title: string; items: ToggleItem[] }[] = [
     {
         title: 'POS & Orders',
         items: [
-            { key: 'pos_enabled', label: 'POS Terminal', description: 'Enable POS terminal access for this branch' },
+            { key: 'pos_enabled', label: 'POS Terminal', description: 'Enable POS terminal access for this branch. Off hides POS from the menu.' },
             { key: 'discounts_enabled', label: 'Discounts', description: 'Allow applying discounts at the POS' },
-            { key: 'dine_in', label: 'Dine-in', description: 'Enable dine-in order type' },
+            { key: 'dine_in', label: 'Dine-in', description: 'Enable dine-in order type. Off hides Tables.' },
             { key: 'takeout', label: 'Takeout', description: 'Enable takeout order type' },
             { key: 'delivery', label: 'Delivery', description: 'Enable delivery order type' },
         ],
@@ -47,8 +47,8 @@ const groups: { title: string; items: ToggleItem[] }[] = [
     {
         title: 'Operations',
         items: [
-            { key: 'inventory_tracking', label: 'Inventory Tracking', description: 'Track stock levels for this branch' },
-            { key: 'kitchen_display', label: 'Kitchen Display', description: 'Enable kitchen display system' },
+            { key: 'inventory_tracking', label: 'Inventory Tracking', description: 'Track stock levels for this branch. Off hides Inventory, Purchase Orders, Stock Transfers and Suppliers.' },
+            { key: 'kitchen_display', label: 'Kitchen Display', description: 'Enable kitchen display system. Off hides Kitchen.' },
             { key: 'receipt_printing', label: 'Receipt Printing', description: 'Auto-print receipts after checkout' },
         ],
     },

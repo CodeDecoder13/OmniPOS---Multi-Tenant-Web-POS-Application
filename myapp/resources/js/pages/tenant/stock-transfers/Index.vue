@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { computed, ref, watch } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeftRight, CheckCircle, Clock, Eye, Plus, Search, Trash2, Truck } from 'lucide-vue-next';
@@ -253,7 +254,7 @@ const breadcrumbs = [{ title: 'Stock Transfers', href: tenantUrl('stock-transfer
                                 <th class="px-3 py-3 text-left font-medium sm:px-4">Transfer #</th>
                                 <th class="px-3 py-3 text-left font-medium sm:px-4">From</th>
                                 <th class="px-3 py-3 text-left font-medium sm:px-4">To</th>
-                                <th class="px-3 py-3 text-center font-medium sm:px-4">Status</th>
+                                <th class="px-3 py-3 text-center font-medium sm:px-4"><span class="inline-flex items-center gap-1.5">Status<InfoTip text="Pending: waiting to ship. In Transit: on the way. Completed: received at the destination branch." /></span></th>
                                 <th class="hidden px-3 py-3 text-left font-medium sm:table-cell sm:px-4">Created By</th>
                                 <th class="hidden px-3 py-3 text-left font-medium sm:table-cell sm:px-4">Date</th>
                                 <th class="px-3 py-3 text-right font-medium sm:px-4">Actions</th>

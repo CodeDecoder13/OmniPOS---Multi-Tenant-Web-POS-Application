@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InfoTip from '@/components/InfoTip.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Edit, Plus, Shield, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -116,6 +117,7 @@ function deleteRole() {
                             <td class="px-4 py-3 text-muted-foreground">{{ role.description || '—' }}</td>
                             <td class="px-4 py-3">
                                 <Badge v-if="role.is_system" variant="secondary">System</Badge>
+                                <InfoTip v-if="role.is_system" text="Built-in role. It cannot be deleted." />
                                 <Badge v-else variant="outline">Custom</Badge>
                             </td>
                             <td class="px-4 py-3 text-center">{{ role.tenant_users_count ?? 0 }}</td>
