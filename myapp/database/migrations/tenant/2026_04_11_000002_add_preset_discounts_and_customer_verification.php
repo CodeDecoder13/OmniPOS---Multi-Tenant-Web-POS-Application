@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('promotions', 'is_preset')) {
+            return;
+        }
+
         // Add is_preset flag to promotions
         Schema::table('promotions', function (Blueprint $table) {
             $table->boolean('is_preset')->default(false)->after('description');

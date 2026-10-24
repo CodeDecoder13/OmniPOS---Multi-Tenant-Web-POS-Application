@@ -90,8 +90,8 @@ class PosPinController extends Controller
         foreach ($otherUsers as $other) {
             if (Hash::check($pin, $other->pos_pin)) {
                 return response()->json([
-                    'message' => 'This PIN is already in use by another user.',
-                    'errors' => ['pin' => ['This PIN is already in use by another user.']],
+                    'message' => 'Please choose a different PIN.',
+                    'errors' => ['pin' => ['Please choose a different PIN.']],
                 ], 422);
             }
         }
@@ -129,7 +129,7 @@ class PosPinController extends Controller
 
         foreach ($otherUsers as $other) {
             if (Hash::check($pin, $other->pos_pin)) {
-                return back()->with('error', 'This PIN is already in use by another user.');
+                return back()->with('error', 'Please choose a different PIN.');
             }
         }
 

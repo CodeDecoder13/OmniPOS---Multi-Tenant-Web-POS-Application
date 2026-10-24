@@ -71,14 +71,26 @@ class StockTransferService
     public function ship(StockTransfer $transfer, array $sentQuantities, int $userId): StockTransfer
     {
         return DB::transaction(function () use ($transfer, $sentQuantities, $userId) {
+            // Lock and re-read so shipping twice cannot take the stock out twice.
+            $transfer = StockTransfer::where('id', $transfer->id)->lockForUpdate()->firstOrFail();
+            abort_unless($transfer->status === TransferStatus::Pending, 422, 'Only a pending transfer can be shipped.');
+
             foreach ($transfer->items as $item) {
-                $sent = $sentQuantities[$item->id] ?? $item->quantity_requested;
+                $sent = (int) ($sentQuantities[$item->id] ?? $item->quantity_requested);
+                abort_if($sent < 0 || $sent > $item->quantity_requested, 422, 'Sent quantity must be between 0 and the quantity requested.');
+
+                $inventory = Inventory::where('product_id', $item->product_id)
+                    ->where('branch_id', $transfer->source_branch_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_if($sent > ($inventory?->quantity_on_hand ?? 0), 422, 'Not enough stock at the source branch to ship that quantity.');
+
                 $item->update(['quantity_sent' => $sent]);
 
-                $inventory = Inventory::firstOrCreate(
-                    ['product_id' => $item->product_id, 'branch_id' => $transfer->source_branch_id],
-                    ['tenant_id' => $transfer->tenant_id, 'quantity_on_hand' => 0, 'low_stock_threshold' => 0]
-                );
+                if (! $inventory || $sent === 0) {
+                    continue;
+                }
 
                 $qtyBefore = $inventory->quantity_on_hand;
                 $qtyAfter = $qtyBefore - $sent;
@@ -110,8 +122,13 @@ class StockTransferService
     public function receive(StockTransfer $transfer, array $receivedQuantities, int $userId): StockTransfer
     {
         return DB::transaction(function () use ($transfer, $receivedQuantities, $userId) {
+            $transfer = StockTransfer::where('id', $transfer->id)->lockForUpdate()->firstOrFail();
+            abort_unless($transfer->status === TransferStatus::InTransit, 422, 'Only a transfer in transit can be received.');
+
             foreach ($transfer->items as $item) {
-                $received = $receivedQuantities[$item->id] ?? $item->quantity_sent;
+                $received = (int) ($receivedQuantities[$item->id] ?? $item->quantity_sent);
+                abort_if($received < 0 || $received > (int) $item->quantity_sent, 422, 'Received quantity must be between 0 and the quantity sent.');
+
                 $item->update(['quantity_received' => $received]);
 
                 $inventory = Inventory::firstOrCreate(
@@ -150,6 +167,9 @@ class StockTransferService
     public function cancel(StockTransfer $transfer, int $userId): StockTransfer
     {
         return DB::transaction(function () use ($transfer, $userId) {
+            $transfer = StockTransfer::where('id', $transfer->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($transfer->status, [TransferStatus::Pending, TransferStatus::InTransit], true), 422, 'This transfer can no longer be cancelled.');
+
             if ($transfer->status === TransferStatus::InTransit) {
                 foreach ($transfer->items as $item) {
                     if (!$item->quantity_sent) continue;

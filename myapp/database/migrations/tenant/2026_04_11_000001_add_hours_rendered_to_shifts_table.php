@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('shifts', 'hours_rendered')) {
+            return;
+        }
+
         Schema::table('shifts', function (Blueprint $table) {
             $table->decimal('hours_rendered', 8, 2)->nullable()->after('closed_at');
         });

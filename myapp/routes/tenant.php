@@ -37,7 +37,7 @@ Route::prefix('{tenant}')
     ->group(function () {
         Route::get('setup', [SetupController::class, 'index'])->name('tenant.setup');
         Route::post('setup', [SetupController::class, 'store'])->name('tenant.setup.store');
-        Route::post('setup/pin', [SetupController::class, 'storePin'])->name('tenant.setup.pin');
+        Route::post('setup/pin', [SetupController::class, 'storePin'])->middleware('throttle:5,1')->name('tenant.setup.pin');
 
         Route::get('dashboard', [DashboardController::class, 'index'])->name('tenant.dashboard');
         Route::post('release-notes/mark-seen', [DashboardController::class, 'markReleaseNotesSeen'])->name('tenant.release-notes.mark-seen');

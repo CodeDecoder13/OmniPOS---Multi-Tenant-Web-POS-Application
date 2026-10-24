@@ -177,6 +177,13 @@ class UserController extends Controller
                 'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenant->id)],
             ]);
 
+            // Nobody but the owner changes their own role or branch through this form.
+            abort_if(
+                (int) $userId === (int) $request->user()->id && (int) $request->user()->id !== (int) $tenant->owner_id,
+                403,
+                'You cannot change your own role.',
+            );
+
             $role = Role::forTenant($tenant->id)->findOrFail($validated['role_id']);
 
             // Only the owner can hand out the Owner role (stops self-promotion).

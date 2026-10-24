@@ -35,15 +35,17 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->registerEvents();
+
+        // Suppliers, purchase orders, transfers, promotions, tables, refunds etc. live in this subfolder;
+        // without this a fresh database never gets them. Each migration skips itself if the table exists.
+        $this->loadMigrationsFrom(database_path('migrations/tenant'));
     }
 
     protected function registerEvents(): void
     {
-        Event::listen(LowStockReached::class, SendLowStockDatabaseNotification::class);
-        Event::listen(LowStockReached::class, SendLowStockEmailNotification::class);
-        Event::listen(LowStockReached::class, CreateAutoReorderPurchaseOrder::class);
+        // LowStockReached and SendAutoReceiptEmail listeners are auto-discovered from app/Listeners;
+        // registering them here too made every one run twice. Only LogOrderActivity needs explicit wiring.
         Event::listen(OrderCompleted::class, LogOrderActivity::class);
-        Event::listen(OrderCompleted::class, SendAutoReceiptEmail::class);
         Event::listen(OrderVoided::class, LogOrderActivity::class);
         Event::listen(OrderRefunded::class, LogOrderActivity::class);
     }

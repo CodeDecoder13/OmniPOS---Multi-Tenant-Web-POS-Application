@@ -65,11 +65,14 @@ class OrderService
 
     public function voidOrder(Order $order, ?int $userId = null, ?string $voidReason = null): Order
     {
-        if (! $order->canBeVoided()) {
-            abort(422, 'This order cannot be voided.');
-        }
-
         return DB::transaction(function () use ($order, $userId, $voidReason) {
+            // Re-read under a lock so two simultaneous voids cannot both restock.
+            $order = Order::where('id', $order->id)->lockForUpdate()->firstOrFail();
+
+            if (! $order->canBeVoided()) {
+                abort(422, 'This order cannot be voided.');
+            }
+
             $order->update([
                 'status' => OrderStatus::Voided,
                 'voided_by' => $userId,

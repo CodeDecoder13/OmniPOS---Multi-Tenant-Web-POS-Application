@@ -78,7 +78,7 @@ class SetupController extends Controller
 
         foreach ($otherUsers as $other) {
             if (Hash::check($pin, $other->pos_pin)) {
-                return back()->withErrors(['pin' => 'This PIN is already in use by another user.']);
+                return back()->withErrors(['pin' => 'Please choose a different PIN.']);
             }
         }
 

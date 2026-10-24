@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('variation_groups')) {
+            return; // already created (this folder was not migrated before)
+        }
+
         Schema::create('variation_groups', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id');

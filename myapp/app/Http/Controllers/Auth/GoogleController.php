@@ -31,6 +31,12 @@ class GoogleController extends Controller
             return redirect('/login')->with('status', 'Google authentication failed. Please try again.');
         }
 
+        // Only trust an email Google itself reports as verified.
+        $raw = $googleUser->user ?? [];
+        if (! ($raw['email_verified'] ?? $raw['verified_email'] ?? false) || ! $googleUser->getEmail()) {
+            return redirect('/login')->with('status', 'Your Google email is not verified. Please verify it with Google and try again.');
+        }
+
         // Check if a user with this email already exists
         $existingUser = User::where('email', $googleUser->getEmail())->first();
 
@@ -40,9 +46,10 @@ class GoogleController extends Controller
                 $existingUser->forceFill(['google_id' => $googleUser->getId()])->save();
             }
 
-            // Auto-verify email
+            // Linking verifies the email. If the account was never verified, someone else may have
+            // registered it with a password of their choosing, so that password is dropped.
             if (! $existingUser->hasVerifiedEmail()) {
-                $existingUser->forceFill(['email_verified_at' => now()])->save();
+                $existingUser->forceFill(['email_verified_at' => now(), 'password' => null])->save();
             }
 
             // If 2FA is enabled, redirect to challenge

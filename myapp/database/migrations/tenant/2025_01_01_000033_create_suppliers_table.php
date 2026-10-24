@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('suppliers')) {
+            return; // already created (this folder was not migrated before)
+        }
+
         Schema::create('suppliers', function (Blueprint $table) {
             $table->id();
             $table->string('tenant_id');

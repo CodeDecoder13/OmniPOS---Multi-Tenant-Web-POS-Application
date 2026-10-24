@@ -12,6 +12,7 @@ use App\Models\Tenant\InventoryAdjustment;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\Refund;
+use App\Models\Tenant\RefundItem;
 use Illuminate\Support\Facades\DB;
 
 class RefundService
@@ -25,6 +26,12 @@ class RefundService
                 abort(422, 'This order cannot be refunded.');
             }
 
+            // Quantity already refunded per line, so a second refund can never restock the same units again.
+            $refundedQty = RefundItem::whereIn('order_item_id', $order->items->pluck('id'))
+                ->groupBy('order_item_id')
+                ->selectRaw('order_item_id, SUM(quantity) as qty')
+                ->pluck('qty', 'order_item_id');
+
             $refundNumber = $this->generateRefundNumber($tenant);
             $refundItems = [];
             $totalRefundAmount = 0;
@@ -34,10 +41,15 @@ class RefundService
                 $totalRefundAmount = (float) $order->total - (float) $order->refunded_amount;
 
                 foreach ($order->items as $item) {
+                    $remaining = $item->quantity - (int) ($refundedQty[$item->id] ?? 0);
+                    if ($remaining <= 0) {
+                        continue;
+                    }
+
                     $refundItems[] = [
                         'order_item_id' => $item->id,
-                        'quantity' => $item->quantity,
-                        'amount' => (float) $item->subtotal,
+                        'quantity' => $remaining,
+                        'amount' => round((float) $item->subtotal * $remaining / max(1, $item->quantity), 2),
                     ];
                 }
             } else {
@@ -49,6 +61,11 @@ class RefundService
                     }
 
                     $qty = $refundItemData['quantity'];
+
+                    $remaining = $orderItem->quantity - (int) ($refundedQty[$orderItem->id] ?? 0);
+                    if ($qty > $remaining) {
+                        abort(422, 'Cannot refund more than the quantity still refundable.');
+                    }
                     $unitPrice = (float) $orderItem->product_price;
                     $itemAmount = round($unitPrice * $qty, 2);
                     $totalRefundAmount += $itemAmount;

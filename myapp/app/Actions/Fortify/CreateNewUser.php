@@ -33,6 +33,11 @@ class CreateNewUser implements CreatesNewUsers
         $googleUser = session('google_user');
         $isGoogleRegistration = ! empty($googleUser);
 
+        // The email Google proved is the only one allowed; never trust the form's copy.
+        if ($isGoogleRegistration) {
+            $input['email'] = $googleUser['email'];
+        }
+
         $rules = [
             ...$this->profileRules(),
             'store_name' => ['required', 'string', 'max:255'],

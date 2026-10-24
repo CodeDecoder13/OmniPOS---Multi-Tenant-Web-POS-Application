@@ -81,6 +81,9 @@ class PurchaseOrderService
 
     public function update(PurchaseOrder $po, array $data): PurchaseOrder
     {
+        // Once goods are being received (or it is closed), the lines are a record, not a draft.
+        abort_unless(in_array($po->status, [PurchaseOrderStatus::Draft, PurchaseOrderStatus::Sent], true), 422, 'This purchase order can no longer be edited.');
+
         return DB::transaction(function () use ($po, $data) {
             $po->update([
                 'supplier_id' => $data['supplier_id'],
@@ -112,6 +115,8 @@ class PurchaseOrderService
 
     public function send(PurchaseOrder $po): PurchaseOrder
     {
+        abort_unless($po->status === PurchaseOrderStatus::Draft, 422, 'Only a draft purchase order can be sent.');
+
         $po->update(['status' => PurchaseOrderStatus::Sent]);
         return $po->fresh();
     }
@@ -119,10 +124,17 @@ class PurchaseOrderService
     public function receive(PurchaseOrder $po, array $receivedQuantities, int $userId): PurchaseOrder
     {
         return DB::transaction(function () use ($po, $receivedQuantities, $userId) {
+            // Lock and re-read so a double click or a replayed request cannot add the same stock twice.
+            $po = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($po->status, [PurchaseOrderStatus::Sent, PurchaseOrderStatus::Partial], true), 422, 'This purchase order is not waiting for goods.');
+
             $allFullyReceived = true;
 
             foreach ($po->items as $item) {
-                $received = $receivedQuantities[$item->id] ?? 0;
+                $received = (int) ($receivedQuantities[$item->id] ?? 0);
+                $remaining = $item->quantity_ordered - $item->quantity_received;
+                abort_if($received < 0 || $received > $remaining, 422, 'Received quantity must be between 0 and the quantity still outstanding.');
+
                 $newTotal = $item->quantity_received + $received;
                 $item->update(['quantity_received' => $newTotal]);
 
@@ -169,6 +181,8 @@ class PurchaseOrderService
 
     public function cancel(PurchaseOrder $po): PurchaseOrder
     {
+        abort_unless(in_array($po->status, [PurchaseOrderStatus::Draft, PurchaseOrderStatus::Sent], true), 422, 'This purchase order can no longer be cancelled.');
+
         $po->update(['status' => PurchaseOrderStatus::Cancelled]);
         return $po->fresh();
     }

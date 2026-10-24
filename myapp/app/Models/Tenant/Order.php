@@ -70,7 +70,9 @@ class Order extends Model
 
     public function canBeVoided(): bool
     {
-        return $this->status === OrderStatus::Completed;
+        // A partly refunded order must not also be voided: the void would restock the same units again.
+        return $this->status === OrderStatus::Completed
+            && (float) $this->refunded_amount <= 0;
     }
 
     public function canBeRefunded(): bool

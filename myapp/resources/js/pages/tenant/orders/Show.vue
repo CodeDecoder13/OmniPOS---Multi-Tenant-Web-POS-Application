@@ -191,14 +191,14 @@ const breadcrumbs = [
                     </Button>
                     <InfoTip v-if="can('pos.void') && order.status === 'completed'" label="About refunds" text="Returns money for some or all items. The sale stays on record." />
                     <Button
-                        v-if="can('pos.void') && order.status === 'completed'"
+                        v-if="can('pos.void') && order.status === 'completed' && Number(order.refunded_amount) <= 0"
                         variant="destructive"
                         size="sm"
                         @click="voidDialog = true"
                     >
                         Void Order
                     </Button>
-                    <InfoTip v-if="can('pos.void') && order.status === 'completed'" label="About voiding" text="Cancels the whole sale and returns stock. Use it for mistakes made today." />
+                    <InfoTip v-if="can('pos.void') && order.status === 'completed' && Number(order.refunded_amount) <= 0" label="About voiding" text="Cancels the whole sale and returns stock. Use it for mistakes made today." />
                 </div>
             </div>
 

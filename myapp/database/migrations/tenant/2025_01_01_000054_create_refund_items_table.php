@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('refund_items')) {
+            return; // already created (this folder was not migrated before)
+        }
+
         Schema::create('refund_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('refund_id')->constrained()->cascadeOnDelete();

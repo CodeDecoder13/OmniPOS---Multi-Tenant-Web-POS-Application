@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('order_item_variations')) {
+            return; // already created (this folder was not migrated before)
+        }
+
         Schema::create('order_item_variations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_item_id')->constrained()->cascadeOnDelete();
