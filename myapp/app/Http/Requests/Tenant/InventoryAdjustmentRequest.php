@@ -17,13 +17,13 @@ class InventoryAdjustmentRequest extends FormRequest
     {
         return [
             'type' => [
-                'required',
+                'required_with:quantity_change',
                 Rule::enum(AdjustmentType::class)->except([
                     AdjustmentType::Sale,
                     AdjustmentType::Return,
                 ]),
             ],
-            'quantity_change' => ['required', 'integer', 'not_in:0'],
+            'quantity_change' => ['nullable', 'integer'],
             'reason' => ['nullable', 'string', 'max:500'],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
             'reorder_point' => ['nullable', 'integer', 'min:0'],

@@ -511,7 +511,7 @@ const sampleData = computed(() => ({
             :open="showUpgradeModal"
             :current-plan-slug="currentPlanSlug"
             :plans="plans"
-            resource="branches"
+            feature="Receipt Design"
             @update:open="showUpgradeModal = $event"
         />
     </TenantLayout>

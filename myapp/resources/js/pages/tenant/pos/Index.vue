@@ -20,6 +20,7 @@ import DiscountPanel from '@/components/DiscountPanel.vue';
 import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
+import { toast } from '@/composables/useToast';
 import { usePermissions } from '@/composables/usePermissions';
 import { usePosAuth } from '@/composables/usePosAuth';
 import { usePosShift } from '@/composables/usePosShift';
@@ -695,7 +696,7 @@ async function processCheckout() {
 
         if (!res.ok) {
             const err = await res.json();
-            alert(err.message || 'Checkout failed. Please try again.');
+            toast.error(err.message || 'Checkout failed. Please try again.');
             return;
         }
 
@@ -747,7 +748,7 @@ async function processCheckout() {
             }
         });
     } catch {
-        alert('Checkout failed. Please try again.');
+        toast.error('Checkout failed. Please try again.');
     } finally {
         processing.value = false;
     }
@@ -891,10 +892,10 @@ async function holdOrder() {
             recalledOrderId.value = null;
         } else {
             const err = await res.json();
-            alert(err.message || 'Failed to hold order.');
+            toast.error(err.message || 'Failed to hold order.');
         }
     } catch {
-        alert('Failed to hold order.');
+        toast.error('Failed to hold order.');
     } finally {
         holdingOrder.value = false;
     }
@@ -957,7 +958,7 @@ async function recallOrder(orderId: number) {
         recalledOrderId.value = data.order_id;
         showHeldOrders.value = false;
     } catch {
-        alert('Failed to recall order.');
+        toast.error('Failed to recall order.');
     }
 }
 

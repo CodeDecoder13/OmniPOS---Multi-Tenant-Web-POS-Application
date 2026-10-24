@@ -24,7 +24,10 @@ const props = defineProps<{
     open: boolean;
     currentPlanSlug: string;
     plans: PlanData[];
-    resource: 'branches' | 'users' | 'products';
+    /** Which limit was hit. Omit when locking a whole feature and pass `feature` instead. */
+    resource?: 'branches' | 'users' | 'products';
+    /** Name of a plan-locked feature, e.g. "Receipt Design". */
+    feature?: string;
 }>();
 
 const emit = defineEmits<{
@@ -33,8 +36,10 @@ const emit = defineEmits<{
 
 const resourceLabel = computed(() => {
     const labels = { branches: 'branch', users: 'user', products: 'product' };
-    return labels[props.resource];
+    return props.resource ? labels[props.resource] : '';
 });
+
+const upgradeMailto = 'mailto:support@omnipos.shop?subject=Upgrade%20my%20OmniPOS%20plan';
 
 const currentPlan = computed(() => props.plans.find((p) => p.slug === props.currentPlanSlug));
 
@@ -45,7 +50,7 @@ function formatLimit(value: number | null): string {
 function formatPrice(price: string): string {
     const num = Number(price);
     if (num === 0) return 'Free';
-    return `$${num.toFixed(2)}/mo`;
+    return `${new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(num)}/mo`;
 }
 
 function isCurrentPlan(plan: PlanData): boolean {
@@ -66,8 +71,13 @@ function isUpgrade(plan: PlanData): boolean {
                     Upgrade Your Plan
                 </DialogTitle>
                 <DialogDescription>
-                    You've reached the {{ resourceLabel }} limit on your
-                    {{ currentPlan?.name ?? 'current' }} plan. Upgrade to unlock more.
+                    <template v-if="feature">
+                        {{ feature }} isn't included in your {{ currentPlan?.name ?? 'current' }} plan. Upgrade to turn it on.
+                    </template>
+                    <template v-else>
+                        You've reached the {{ resourceLabel }} limit on your
+                        {{ currentPlan?.name ?? 'current' }} plan. Upgrade to unlock more.
+                    </template>
                 </DialogDescription>
             </DialogHeader>
 
@@ -136,10 +146,13 @@ function isUpgrade(plan: PlanData): boolean {
                         </Button>
                         <Button
                             v-else-if="isUpgrade(plan)"
+                            as-child
                             class="w-full bg-amber-500 text-white hover:bg-amber-600"
                         >
-                            <Sparkles class="mr-2 h-4 w-4" />
-                            Upgrade
+                            <a :href="upgradeMailto">
+                                <Sparkles class="mr-2 h-4 w-4" />
+                                Request upgrade
+                            </a>
                         </Button>
                         <Button
                             v-else
@@ -154,7 +167,7 @@ function isUpgrade(plan: PlanData): boolean {
             </div>
 
             <p class="text-center text-xs text-muted-foreground">
-                Payment integration coming soon. Contact support to upgrade your plan.
+                Online payment is coming soon. For now, request an upgrade and our team will switch your plan.
             </p>
         </DialogContent>
     </Dialog>

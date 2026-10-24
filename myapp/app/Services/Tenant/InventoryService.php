@@ -16,10 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
-    public function list(Tenant $tenant, Request $request, int $perPage = 15): LengthAwarePaginator
+    /** Branch + search scoped query shared by the list and its stat cards. */
+    private function scopedQuery(Tenant $tenant, Request $request)
     {
         $query = Inventory::forTenant($tenant)
-            ->with(['product:id,name,sku,image_path', 'branch:id,name'])
             ->whereHas('product', fn ($q) => $q->where('is_food', false));
 
         if ($branchId = $request->input('branch_id')) {
@@ -32,6 +32,23 @@ class InventoryService
                   ->orWhere('sku', 'like', "%{$search}%");
             });
         }
+
+        return $query;
+    }
+
+    /** Totals across every page, not just the one on screen. */
+    public function stats(Tenant $tenant, Request $request): array
+    {
+        $total = $this->scopedQuery($tenant, $request)->count();
+        $low = $this->scopedQuery($tenant, $request)->lowStock()->count();
+
+        return ['total' => $total, 'low_stock' => $low, 'in_stock' => $total - $low];
+    }
+
+    public function list(Tenant $tenant, Request $request, int $perPage = 15): LengthAwarePaginator
+    {
+        $query = $this->scopedQuery($tenant, $request)
+            ->with(['product:id,name,sku,image_path', 'branch:id,name']);
 
         if ($request->boolean('low_stock')) {
             $query->lowStock();

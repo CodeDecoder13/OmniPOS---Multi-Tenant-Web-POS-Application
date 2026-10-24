@@ -23,6 +23,7 @@ class InventoryController extends Controller
 
         return Inertia::render('tenant/inventory/Index', [
             'inventory' => $this->inventoryService->list($tenant, $request),
+            'stats' => $this->inventoryService->stats($tenant, $request),
             'branches' => Branch::forTenant($tenant)->where('is_active', true)->select(['id', 'name'])->orderBy('name')->get(),
             'filters' => $request->only(['search', 'branch_id', 'low_stock']),
         ]);
@@ -30,13 +31,16 @@ class InventoryController extends Controller
 
     public function adjust(InventoryAdjustmentRequest $request, string $tenantSlug, Inventory $inventory)
     {
-        $this->inventoryService->adjust(
-            $inventory,
-            AdjustmentType::from($request->validated('type')),
-            $request->validated('quantity_change'),
-            $request->validated('reason'),
-            $request->user()->id,
-        );
+        // Thresholds and reorder settings can be saved without changing stock.
+        if ((int) $request->validated('quantity_change') !== 0) {
+            $this->inventoryService->adjust(
+                $inventory,
+                AdjustmentType::from($request->validated('type')),
+                $request->validated('quantity_change'),
+                $request->validated('reason'),
+                $request->user()->id,
+            );
+        }
 
         $updateFields = [];
         if ($request->has('low_stock_threshold')) {
@@ -52,7 +56,7 @@ class InventoryController extends Controller
             $inventory->update($updateFields);
         }
 
-        return redirect()->back()->with('success', 'Inventory adjusted successfully.');
+        return redirect()->back()->with('success', 'Inventory updated successfully.');
     }
 
     public function history(Request $request, string $tenantSlug, Inventory $inventory)

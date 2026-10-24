@@ -5,8 +5,7 @@ import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CircleHelp } from 'lucide-vue-next';
+import InfoTip from '@/components/InfoTip.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -299,16 +298,7 @@ function submit() {
                         <div v-if="form.sku" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <div class="flex items-center gap-1 mb-4">
                                 <h2 class="text-sm font-medium">Barcode</h2>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger as-child>
-                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                            <p>Auto-generated from SKU for label printing</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <InfoTip text="Auto-generated from SKU for label printing" />
                             </div>
                             <BarcodeLabel :sku="form.sku" :product-name="form.name" :price="String(form.price)" />
                         </div>
@@ -317,16 +307,7 @@ function submit() {
                         <div v-if="branches.length > 1" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <div class="flex items-center gap-1 mb-4">
                                 <h2 class="text-sm font-medium">Branch Availability</h2>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger as-child>
-                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                            <p>Choose which branches this product is available at</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <InfoTip text="Choose which branches this product is available at" />
                             </div>
                             <label class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50 mb-2">
                                 <Checkbox :model-value="allBranches" @update:model-value="allBranches = !!$event; if (allBranches) form.branch_ids = []" />
@@ -350,16 +331,7 @@ function submit() {
                                 <div>
                                     <div class="flex items-center gap-1">
                                         <Label for="name">Product Name</Label>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger as-child>
-                                                    <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top">
-                                                    <p>The display name shown to customers and on receipts</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        <InfoTip text="The display name shown to customers and on receipts" />
                                     </div>
                                     <Input
                                         id="name"
@@ -374,16 +346,7 @@ function submit() {
                                     <div>
                                         <div class="flex items-center gap-1">
                                             <Label for="slug">Slug</Label>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger as-child>
-                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                        <p>URL-friendly identifier, auto-generated from name</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <InfoTip text="URL-friendly identifier, auto-generated from name" />
                                         </div>
                                         <Input
                                             id="slug"
@@ -397,16 +360,7 @@ function submit() {
                                     <div>
                                         <div class="flex items-center gap-1">
                                             <Label for="sku">SKU</Label>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger as-child>
-                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                        <p>Stock Keeping Unit — a unique code for tracking this product</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <InfoTip text="Stock Keeping Unit — a unique code for tracking this product" />
                                         </div>
                                         <Input
                                             id="sku"
@@ -421,16 +375,7 @@ function submit() {
                                 <div>
                                     <div class="flex items-center gap-1">
                                         <Label for="category_id">Category</Label>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger as-child>
-                                                    <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top">
-                                                    <p>Group products for easier browsing and reporting</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        <InfoTip text="Group products for easier browsing and reporting" />
                                     </div>
                                     <div class="mt-1 flex gap-2">
                                         <div class="flex-1">
@@ -464,16 +409,7 @@ function submit() {
                                 <div>
                                     <div class="flex items-center gap-1">
                                         <Label for="description">Description</Label>
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger as-child>
-                                                    <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                </TooltipTrigger>
-                                                <TooltipContent side="top">
-                                                    <p>Optional details about the product</p>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
+                                        <InfoTip text="Optional details about the product" />
                                     </div>
                                     <Textarea
                                         id="description"
@@ -490,16 +426,7 @@ function submit() {
                                         <div>
                                             <div class="flex items-center gap-1">
                                                 <Label>Product Type</Label>
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger as-child>
-                                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="top" class="max-w-xs">
-                                                            <p>Food items are made to order with no stock tracking. Non-food items are physical goods that require inventory management.</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                                <InfoTip text="Food items are made to order with no stock tracking. Non-food items are physical goods that require inventory management." />
                                             </div>
                                             <p class="text-sm text-muted-foreground">
                                                 {{ form.is_food ? 'Made to order — no stock tracking' : 'Physical goods — requires stock count' }}
@@ -515,16 +442,7 @@ function submit() {
                                     <div v-if="!form.is_food" class="mt-3">
                                         <div class="flex items-center gap-1">
                                             <Label for="initial_stock">Initial Stock</Label>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger as-child>
-                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                        <p>Starting inventory count for your current branch</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <InfoTip text="Starting inventory count for your current branch" />
                                         </div>
                                         <Input
                                             id="initial_stock"
@@ -544,16 +462,7 @@ function submit() {
                                     <div>
                                         <div class="flex items-center gap-1">
                                             <Label for="price">Price</Label>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger as-child>
-                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                        <p>The selling price customers will pay</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <InfoTip text="The selling price customers will pay" />
                                         </div>
                                         <Input
                                             id="price"
@@ -570,16 +479,7 @@ function submit() {
                                     <div>
                                         <div class="flex items-center gap-1">
                                             <Label for="cost_price">Cost Price</Label>
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger as-child>
-                                                        <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top">
-                                                        <p>What you paid the supplier — used for profit margin calculations</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <InfoTip text="What you paid the supplier — used for profit margin calculations" />
                                         </div>
                                         <Input
                                             id="cost_price"
@@ -601,16 +501,7 @@ function submit() {
                                         @update:model-value="form.is_active = !!$event"
                                     />
                                     <Label for="is_active">Active</Label>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger as-child>
-                                                <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top">
-                                                <p>Inactive products are hidden from POS and menus</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                    <InfoTip text="Inactive products are hidden from POS and menus" />
                                 </div>
                             </div>
                         </div>
@@ -620,16 +511,7 @@ function submit() {
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center gap-1">
                                     <h2 class="text-sm font-medium">Variation Groups</h2>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger as-child>
-                                                <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top">
-                                                <p>Define options like Size or Sugar Level that customers choose from</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
+                                    <InfoTip text="Define options like Size or Sugar Level that customers choose from" />
                                 </div>
                                 <Button type="button" variant="outline" size="sm" @click="addVariationGroup">+ Add Group</Button>
                             </div>
@@ -660,16 +542,7 @@ function submit() {
                         <div v-if="addons && addons.length > 0" class="rounded-xl border bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <div class="flex items-center gap-1 mb-4">
                                 <h2 class="text-sm font-medium">Add-ons</h2>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger as-child>
-                                            <CircleHelp class="size-3.5 text-muted-foreground cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                            <p>Extra items customers can add to this product</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
+                                <InfoTip text="Extra items customers can add to this product" />
                             </div>
                             <div class="space-y-2">
                                 <label v-for="addon in addons" :key="addon.id" class="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/50">

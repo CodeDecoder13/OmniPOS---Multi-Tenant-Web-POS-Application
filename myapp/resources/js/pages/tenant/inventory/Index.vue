@@ -31,6 +31,7 @@ import { usePermissions } from '@/composables/usePermissions';
 const props = defineProps<{
     inventory: PaginatedData<Inventory>;
     branches: Pick<Branch, 'id' | 'name'>[];
+    stats: { total: number; low_stock: number; in_stock: number };
     filters: {
         search?: string;
         branch_id?: string;
@@ -47,16 +48,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Stats
-const stats = computed(() => {
-    const data = props.inventory.data;
-    const lowStock = data.filter(item => isLowStock(item)).length;
-    return {
-        total: props.inventory.total,
-        lowStock,
-        inStock: data.length - lowStock,
-        branches: props.branches.length,
-    };
-});
+// Totals come from the server so they cover every page, not just this one.
+const stats = computed(() => ({
+    total: props.stats.total,
+    lowStock: props.stats.low_stock,
+    inStock: props.stats.in_stock,
+    branches: props.branches.length,
+}));
 
 // Filters
 const search = ref(props.filters.search ?? '');
@@ -119,8 +117,18 @@ const resultingStock = computed(() => {
     return adjustItem.value.quantity_on_hand + (adjustForm.value.quantity_change || 0);
 });
 
+const settingsChanged = computed(() => {
+    const item = adjustItem.value;
+    if (!item) return false;
+    const f = adjustForm.value;
+    return f.low_stock_threshold !== item.low_stock_threshold
+        || f.reorder_point !== item.reorder_point
+        || f.reorder_quantity !== item.reorder_quantity;
+});
+const canSubmitAdjust = computed(() => adjustForm.value.quantity_change !== 0 || settingsChanged.value);
+
 function submitAdjust() {
-    if (!adjustItem.value || adjustForm.value.quantity_change === 0) return;
+    if (!adjustItem.value || !canSubmitAdjust.value) return;
     adjusting.value = true;
     router.post(tenantUrl(`inventory/${adjustItem.value.id}/adjust`), adjustForm.value as any, {
         onFinish: () => {
@@ -234,15 +242,21 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
                         <p class="text-xs text-muted-foreground">Total Items</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
+                <button
+                    type="button"
+                    class="flex cursor-pointer items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
+                    :class="lowStockFilter ? 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : ''"
+                    :aria-pressed="lowStockFilter"
+                    @click="toggleLowStock"
+                >
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/40">
                         <AlertTriangle class="h-4.5 w-4.5 text-red-600 dark:text-red-400" />
                     </div>
                     <div>
                         <p class="text-2xl font-bold">{{ stats.lowStock }}</p>
-                        <p class="text-xs text-muted-foreground">Low Stock</p>
+                        <p class="text-xs text-muted-foreground">Low Stock{{ lowStockFilter ? ' (filtered)' : '' }}</p>
                     </div>
-                </div>
+                </button>
                 <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
                         <CheckCircle class="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
@@ -479,7 +493,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
 
                 <DialogFooter class="gap-2 sm:gap-0">
                     <Button variant="outline" @click="adjustDialog = false">Cancel</Button>
-                    <Button @click="submitAdjust" :disabled="adjusting || adjustForm.quantity_change === 0">
+                    <Button @click="submitAdjust" :disabled="adjusting || !canSubmitAdjust">
                         {{ adjusting ? 'Saving...' : 'Apply Adjustment' }}
                     </Button>
                 </DialogFooter>

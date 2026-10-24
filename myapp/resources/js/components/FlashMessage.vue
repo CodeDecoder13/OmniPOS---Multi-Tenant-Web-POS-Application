@@ -1,61 +1,69 @@
 <script setup lang="ts">
+import { CircleAlert, CircleCheck, Info, X } from 'lucide-vue-next';
+import { watch } from 'vue';
 import { useFlash } from '@/composables/useFlash';
-import { X } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { dismissToast, toast, useToasts } from '@/composables/useToast';
 
+// Server flash messages become toasts; pages can also call toast.*() directly.
 const { flash } = useFlash();
-
-const visible = ref(false);
-const message = ref('');
-const type = ref<'success' | 'error'>('success');
-let timeout: ReturnType<typeof setTimeout>;
+const { toasts } = useToasts();
 
 watch(
     flash,
     (val) => {
-        if (val.success) {
-            show(val.success, 'success');
-        } else if (val.error) {
-            show(val.error, 'error');
-        }
+        if (val.success) toast.success(val.success);
+        else if (val.error) toast.error(val.error);
     },
     { immediate: true },
 );
 
-function show(msg: string, t: 'success' | 'error') {
-    message.value = msg;
-    type.value = t;
-    visible.value = true;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
-        visible.value = false;
-    }, 5000);
-}
+const icons = { success: CircleCheck, error: CircleAlert, info: Info };
+const tones = {
+    success: 'border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100',
+    error: 'border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100',
+    info: 'border-border bg-card text-card-foreground',
+};
 
-function close() {
-    visible.value = false;
-    clearTimeout(timeout);
+function runAction(id: number, onClick: () => void) {
+    onClick();
+    dismissToast(id);
 }
 </script>
 
 <template>
-    <Transition
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="translate-y-[-100%] opacity-0"
-        enter-to-class="translate-y-0 opacity-100"
-        leave-active-class="transition duration-200 ease-in"
-        leave-from-class="translate-y-0 opacity-100"
-        leave-to-class="translate-y-[-100%] opacity-0"
+    <TransitionGroup
+        tag="div"
+        class="pointer-events-none fixed top-4 right-4 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
+        enter-active-class="transition duration-200 ease-out motion-reduce:transition-opacity"
+        enter-from-class="translate-x-4 opacity-0 motion-reduce:translate-x-0"
+        leave-active-class="transition duration-150 ease-out motion-reduce:transition-opacity"
+        leave-to-class="opacity-0"
     >
         <div
-            v-if="visible"
-            class="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white shadow-lg"
-            :class="type === 'success' ? 'bg-green-600' : 'bg-red-600'"
+            v-for="t in toasts"
+            :key="t.id"
+            :role="t.type === 'error' ? 'alert' : 'status'"
+            class="pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg"
+            :class="tones[t.type]"
         >
-            <span>{{ message }}</span>
-            <button @click="close" class="ml-2 rounded-full p-0.5 hover:bg-white/20">
-                <X class="h-4 w-4" />
+            <component :is="icons[t.type]" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span class="flex-1 break-words">{{ t.message }}</span>
+            <button
+                v-if="t.action"
+                type="button"
+                class="shrink-0 font-semibold underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                @click="runAction(t.id, t.action.onClick)"
+            >
+                {{ t.action.label }}
+            </button>
+            <button
+                type="button"
+                aria-label="Dismiss notification"
+                class="-mr-1 shrink-0 rounded p-1 opacity-70 outline-none hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                @click="dismissToast(t.id)"
+            >
+                <X class="size-4" />
             </button>
         </div>
-    </Transition>
+    </TransitionGroup>
 </template>
