@@ -21,6 +21,12 @@ import {
     Pill,
     Wrench,
     Factory,
+    Sparkles,
+    Scissors,
+    PawPrint,
+    Smartphone,
+    WashingMachine,
+    CupSoda,
     LayoutGrid,
     User,
     CreditCard,
@@ -32,7 +38,7 @@ import {
 } from 'lucide-vue-next';
 
 const iconMap: Record<string, Component> = {
-    ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, Factory, LayoutGrid,
+    ShoppingCart, Coffee, Utensils, Wine, Store, Shirt, Cake, Pill, Wrench, Factory, Sparkles, Scissors, PawPrint, Smartphone, WashingMachine, CupSoda, LayoutGrid,
 };
 
 interface GoogleUser {

@@ -14,6 +14,12 @@ enum BusinessType: string
     case Pharmacy = 'pharmacy';
     case Hardware = 'hardware';
     case FoodManufacturing = 'food_manufacturing';
+    case BeautySalon = 'beauty_salon';
+    case Barbershop = 'barbershop';
+    case PetShop = 'pet_shop';
+    case Electronics = 'electronics';
+    case Laundry = 'laundry';
+    case MilkTea = 'milk_tea';
     case Other = 'other';
 
     public function label(): string
@@ -29,6 +35,12 @@ enum BusinessType: string
             self::Pharmacy => 'Pharmacy / Drugstore',
             self::Hardware => 'Hardware Store',
             self::FoodManufacturing => 'Food Manufacturing',
+            self::BeautySalon => 'Beauty Salon & Spa',
+            self::Barbershop => 'Barbershop',
+            self::PetShop => 'Pet Shop',
+            self::Electronics => 'Electronics & Gadgets',
+            self::Laundry => 'Laundry Shop',
+            self::MilkTea => 'Milk Tea & Dessert Shop',
             self::Other => 'Other',
         };
     }
@@ -46,6 +58,12 @@ enum BusinessType: string
             self::Pharmacy => 'Pill',
             self::Hardware => 'Wrench',
             self::FoodManufacturing => 'Factory',
+            self::BeautySalon => 'Sparkles',
+            self::Barbershop => 'Scissors',
+            self::PetShop => 'PawPrint',
+            self::Electronics => 'Smartphone',
+            self::Laundry => 'WashingMachine',
+            self::MilkTea => 'CupSoda',
             self::Other => 'LayoutGrid',
         };
     }
@@ -161,6 +179,62 @@ enum BusinessType: string
                 ['name' => 'Condiments & Sauces', 'slug' => 'condiments-sauces', 'description' => 'Sauces, seasonings, and condiment products'],
                 ['name' => 'Snacks', 'slug' => 'snacks', 'description' => 'Manufactured snack products'],
                 ['name' => 'Supplies', 'slug' => 'supplies', 'description' => 'Production supplies and equipment'],
+            ],
+            self::BeautySalon => [
+                ['name' => 'Hair Services', 'slug' => 'hair-services', 'description' => 'Cuts, color, rebond, and treatments'],
+                ['name' => 'Nail Services', 'slug' => 'nail-services', 'description' => 'Manicure, pedicure, and nail art'],
+                ['name' => 'Skin & Facial', 'slug' => 'skin-facial', 'description' => 'Facials, peels, and skin treatments'],
+                ['name' => 'Massage & Spa', 'slug' => 'massage-spa', 'description' => 'Massage, body scrub, and spa packages'],
+                ['name' => 'Waxing & Threading', 'slug' => 'waxing-threading', 'description' => 'Hair removal services'],
+                ['name' => 'Makeup', 'slug' => 'makeup', 'description' => 'Makeup services and bridal packages'],
+                ['name' => 'Retail Products', 'slug' => 'retail-products', 'description' => 'Shampoo, skincare, and beauty products for sale'],
+                ['name' => 'Packages', 'slug' => 'packages', 'description' => 'Bundled service packages and promos'],
+            ],
+            self::Barbershop => [
+                ['name' => 'Haircuts', 'slug' => 'haircuts', 'description' => 'Regular, kids, and premium haircuts'],
+                ['name' => 'Shave & Beard', 'slug' => 'shave-beard', 'description' => 'Shaves, beard trims, and grooming'],
+                ['name' => 'Hair Color & Treatment', 'slug' => 'hair-color-treatment', 'description' => 'Coloring, hot oil, and treatments'],
+                ['name' => 'Packages', 'slug' => 'packages', 'description' => 'Combo services and promos'],
+                ['name' => 'Hair Products', 'slug' => 'hair-products', 'description' => 'Pomade, wax, shampoo, and styling products'],
+                ['name' => 'Grooming Tools', 'slug' => 'grooming-tools', 'description' => 'Combs, razors, and accessories'],
+            ],
+            self::PetShop => [
+                ['name' => 'Dog Food', 'slug' => 'dog-food', 'description' => 'Dry and wet food for dogs'],
+                ['name' => 'Cat Food', 'slug' => 'cat-food', 'description' => 'Dry and wet food for cats'],
+                ['name' => 'Treats & Snacks', 'slug' => 'treats-snacks', 'description' => 'Pet treats and chews'],
+                ['name' => 'Accessories', 'slug' => 'accessories', 'description' => 'Collars, leashes, beds, and carriers'],
+                ['name' => 'Toys', 'slug' => 'toys', 'description' => 'Toys for dogs, cats, and small pets'],
+                ['name' => 'Grooming', 'slug' => 'grooming', 'description' => 'Shampoo, brushes, and grooming services'],
+                ['name' => 'Health & Medicine', 'slug' => 'health-medicine', 'description' => 'Vitamins, flea and tick, and meds'],
+                ['name' => 'Aquarium & Small Pets', 'slug' => 'aquarium-small-pets', 'description' => 'Fish, bird, and small pet supplies'],
+            ],
+            self::Electronics => [
+                ['name' => 'Phones & Tablets', 'slug' => 'phones-tablets', 'description' => 'Smartphones, tablets, and wearables'],
+                ['name' => 'Computers & Laptops', 'slug' => 'computers-laptops', 'description' => 'Laptops, desktops, and peripherals'],
+                ['name' => 'Accessories', 'slug' => 'accessories', 'description' => 'Cases, chargers, cables, and earphones'],
+                ['name' => 'Audio', 'slug' => 'audio', 'description' => 'Speakers, headphones, and sound gear'],
+                ['name' => 'Gaming', 'slug' => 'gaming', 'description' => 'Consoles, controllers, and games'],
+                ['name' => 'Parts & Components', 'slug' => 'parts-components', 'description' => 'Replacement parts and components'],
+                ['name' => 'Repair Services', 'slug' => 'repair-services', 'description' => 'Device repair and service jobs'],
+                ['name' => 'Power & Batteries', 'slug' => 'power-batteries', 'description' => 'Power banks, batteries, and adapters'],
+            ],
+            self::Laundry => [
+                ['name' => 'Wash & Fold', 'slug' => 'wash-fold', 'description' => 'Wash, dry, and fold by kilo'],
+                ['name' => 'Dry Cleaning', 'slug' => 'dry-cleaning', 'description' => 'Dry cleaning per piece'],
+                ['name' => 'Ironing & Pressing', 'slug' => 'ironing-pressing', 'description' => 'Ironing and pressing services'],
+                ['name' => 'Bulky Items', 'slug' => 'bulky-items', 'description' => 'Comforters, curtains, and blankets'],
+                ['name' => 'Add-ons', 'slug' => 'add-ons', 'description' => 'Fabric conditioner, stain removal, and express service'],
+                ['name' => 'Supplies', 'slug' => 'supplies', 'description' => 'Detergent, softener, and laundry supplies'],
+            ],
+            self::MilkTea => [
+                ['name' => 'Milk Tea', 'slug' => 'milk-tea', 'description' => 'Classic and flavored milk teas'],
+                ['name' => 'Fruit Tea', 'slug' => 'fruit-tea', 'description' => 'Fruit teas and refreshers'],
+                ['name' => 'Cheese Cream Series', 'slug' => 'cheese-cream-series', 'description' => 'Cream cheese topped drinks'],
+                ['name' => 'Frappes & Smoothies', 'slug' => 'frappes-smoothies', 'description' => 'Blended and frozen drinks'],
+                ['name' => 'Coffee', 'slug' => 'coffee', 'description' => 'Hot and iced coffee'],
+                ['name' => 'Desserts', 'slug' => 'desserts', 'description' => 'Waffles, cakes, and sweets'],
+                ['name' => 'Snacks', 'slug' => 'snacks', 'description' => 'Fries, siomai, and light bites'],
+                ['name' => 'Add-ons', 'slug' => 'add-ons', 'description' => 'Pearls, jellies, cream cheese, and toppings'],
             ],
             self::Other => [
                 ['name' => 'General', 'slug' => 'general', 'description' => 'General products and items'],

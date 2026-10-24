@@ -11,6 +11,7 @@ import {
     CreditCard, Printer, LayoutDashboard,
     Tag, Clock, Truck, CalendarDays, Zap, Globe, Boxes, ChefHat, Star, Users,
     FileSpreadsheet, Lock, QrCode, Bell, Timer, Shuffle, TableProperties, Megaphone,
+    Scissors, PawPrint, Smartphone, WashingMachine, CupSoda,
     Cookie, Eye, UsersRound, ChevronDown, ChevronUp, ArrowUp, Quote, MessageSquareQuote,
 } from 'lucide-vue-next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -377,16 +378,21 @@ const howItWorks = [
 ];
 
 const businessTypes = [
-    { icon: ShoppingCart, name: 'Retail Store', count: '500+ products' },
-    { icon: Coffee, name: 'Coffee Shop', count: 'Beverages & food' },
+    { icon: Store, name: 'Retail Store', count: 'Shops & boutiques' },
+    { icon: Coffee, name: 'Cafe', count: 'Coffee & pastries' },
+    { icon: CupSoda, name: 'Milk Tea & Dessert', count: 'Drinks & add-ons' },
     { icon: Utensils, name: 'Restaurant', count: 'Dine-in & takeout' },
-    { icon: Wine, name: 'Bar & Lounge', count: 'Drinks & events' },
-    { icon: Store, name: 'Grocery', count: 'Fresh & packaged' },
-    { icon: Shirt, name: 'Clothing', count: 'Apparel & accessories' },
+    { icon: Wine, name: 'Bar & Pub', count: 'Drinks & pulutan' },
+    { icon: ShoppingCart, name: 'Grocery', count: 'Fresh & packaged' },
     { icon: Cake, name: 'Bakery', count: 'Pastries & cakes' },
+    { icon: Sparkles, name: 'Beauty Salon & Spa', count: 'Services & packages' },
+    { icon: Scissors, name: 'Barbershop', count: 'Cuts & grooming' },
+    { icon: WashingMachine, name: 'Laundry', count: 'Wash, fold & press' },
+    { icon: PawPrint, name: 'Pet Shop', count: 'Food & supplies' },
+    { icon: Smartphone, name: 'Electronics', count: 'Gadgets & repairs' },
+    { icon: Shirt, name: 'Clothing', count: 'Apparel & accessories' },
     { icon: Pill, name: 'Pharmacy', count: 'Health & wellness' },
     { icon: Wrench, name: 'Hardware', count: 'Tools & supplies' },
-    { icon: LayoutGrid, name: 'General Store', count: 'Multi-category' },
 ];
 
 // --- Cookie consent ---
