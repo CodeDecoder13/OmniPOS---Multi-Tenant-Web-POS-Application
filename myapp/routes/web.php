@@ -19,6 +19,19 @@ Route::middleware(\App\Http\Middleware\TrackPageVisit::class)->group(function ()
         ]);
     })->name('home');
 
+    Route::get('/features', fn () => inertia('Features', [
+        'canRegister' => Features::enabled(Features::registration()),
+    ]))->name('features');
+
+    Route::get('/how-it-works', fn () => inertia('HowItWorks', [
+        'canRegister' => Features::enabled(Features::registration()),
+    ]))->name('how-it-works');
+
+    Route::get('/pricing', fn () => inertia('Pricing', [
+        'canRegister' => Features::enabled(Features::registration()),
+        'plans' => Plan::active()->orderBy('price')->get(['id', 'name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products']),
+    ]))->name('pricing');
+
     Route::get('/about', function () {
         return inertia('About', [
             'canRegister' => Features::enabled(Features::registration()),

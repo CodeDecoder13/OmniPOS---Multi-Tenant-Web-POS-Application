@@ -67,9 +67,9 @@ onMounted(() => {
                 </Link>
 
                 <div class="hidden items-center gap-8 md:flex">
-                    <Link href="/#features" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Features</Link>
-                    <Link href="/#how-it-works" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">How It Works</Link>
-                    <Link href="/#pricing" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Pricing</Link>
+                    <Link href="/features" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Features</Link>
+                    <Link href="/how-it-works" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">How It Works</Link>
+                    <Link href="/pricing" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Pricing</Link>
                     <span class="text-sm font-medium text-teal-600 dark:text-teal-400">About</span>
                 </div>
 
@@ -111,9 +111,9 @@ onMounted(() => {
             >
                 <div v-if="mobileMenuOpen" class="border-t border-gray-200 px-4 py-4 md:hidden dark:border-gray-800">
                     <div class="flex flex-col gap-3">
-                        <Link href="/#features" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Features</Link>
-                        <Link href="/#how-it-works" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">How It Works</Link>
-                        <Link href="/#pricing" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Pricing</Link>
+                        <Link href="/features" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Features</Link>
+                        <Link href="/how-it-works" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">How It Works</Link>
+                        <Link href="/pricing" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Pricing</Link>
                         <span class="text-left text-sm font-medium text-teal-600">About</span>
                         <hr class="border-gray-200 dark:border-gray-800" />
                         <Link v-if="$page.props.auth.user" href="/dashboard" class="text-sm font-medium text-teal-600">Dashboard</Link>

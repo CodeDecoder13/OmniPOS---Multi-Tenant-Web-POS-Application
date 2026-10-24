@@ -460,9 +460,9 @@ function declineCookies() {
 
                 <!-- Desktop nav -->
                 <div class="hidden items-center gap-8 md:flex">
-                    <button @click="scrollTo('features')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Features</button>
-                    <button @click="scrollTo('how-it-works')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">How It Works</button>
-                    <button @click="scrollTo('pricing')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Pricing</button>
+                    <Link href="/features" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Features</Link>
+                    <Link href="/how-it-works" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">How It Works</Link>
+                    <Link href="/pricing" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">Pricing</Link>
                     <button @click="scrollTo('faq')" class="cursor-pointer text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">FAQ</button>
                     <Link href="/about" class="text-sm text-gray-600 transition hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400">About</Link>
                 </div>
@@ -507,9 +507,9 @@ function declineCookies() {
             >
                 <div v-if="mobileMenuOpen" class="border-t border-gray-200 px-4 py-4 md:hidden dark:border-gray-800">
                     <div class="flex flex-col gap-3">
-                        <button @click="scrollTo('features')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Features</button>
-                        <button @click="scrollTo('how-it-works')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">How It Works</button>
-                        <button @click="scrollTo('pricing')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Pricing</button>
+                        <Link href="/features" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Features</Link>
+                        <Link href="/how-it-works" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">How It Works</Link>
+                        <Link href="/pricing" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">Pricing</Link>
                         <button @click="scrollTo('faq')" class="cursor-pointer text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">FAQ</button>
                         <Link href="/about" class="text-left text-sm text-gray-600 hover:text-teal-600 dark:text-gray-400">About</Link>
                         <hr class="border-gray-200 dark:border-gray-800" />
@@ -1694,9 +1694,9 @@ function declineCookies() {
                     <div>
                         <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Product</h4>
                         <ul class="mt-4 space-y-3">
-                            <li><button @click="scrollTo('features')" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Features</button></li>
-                            <li><button @click="scrollTo('pricing')" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Pricing</button></li>
-                            <li><button @click="scrollTo('how-it-works')" class="cursor-pointer text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">How It Works</button></li>
+                            <li><Link href="/features" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Features</Link></li>
+                            <li><Link href="/pricing" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">Pricing</Link></li>
+                            <li><Link href="/how-it-works" class="text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">How It Works</Link></li>
                             <li><button @click="scrollTo('faq')" class="cursor-pointer text-sm text-gray-500 hover:text-teal-600 dark:text-gray-400">FAQ</button></li>
                         </ul>
                     </div>
