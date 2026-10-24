@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\TenantLock;
 use App\Enums\AdjustmentType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
@@ -183,7 +184,8 @@ class RefundService
 
     private function generateRefundNumber(Tenant $tenant): string
     {
-        $today = now()->format('Ymd');
+        TenantLock::acquire($tenant->id);
+        $today = now('Asia/Manila')->format('Ymd');
         $prefix = "REF-{$today}-";
 
         $lastRefund = Refund::forTenant($tenant)

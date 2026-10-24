@@ -48,6 +48,9 @@ class SetupController extends Controller
 
     public function store(BranchRequest $request, string $tenantSlug): RedirectResponse
     {
+        // Setup only creates the FIRST branch. After that, branches go through the plan-limited Branches page.
+        abort_if($request->attributes->get('current_tenant')->branches()->exists(), 403, 'Setup is already complete.');
+
         $tenant = $request->attributes->get('current_tenant');
 
         $branch = $this->branchService->create($tenant, $request->validated(), $request->user()->id);

@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\TenantLock;
 use App\Enums\AdjustmentType;
 use App\Enums\PurchaseOrderStatus;
 use App\Models\Tenant;
@@ -189,7 +190,8 @@ class PurchaseOrderService
 
     private function generatePoNumber(Tenant $tenant): string
     {
-        $today = now()->format('Ymd');
+        TenantLock::acquire($tenant->id);
+        $today = now('Asia/Manila')->format('Ymd');
         $prefix = "PO-{$today}-";
 
         $last = PurchaseOrder::forTenant($tenant)

@@ -45,6 +45,26 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * A shift may only be acted on for yourself, or for a cashier who proved their PIN in this
+     * session (same rule as checkout). Anything else would let one user run another's till.
+     */
+    private function assertMayActFor(Request $request, int $userId): void
+    {
+        if ($userId === (int) $request->user()->id) {
+            return;
+        }
+
+        $tenant = $request->attributes->get('current_tenant');
+        $verifiedAt = $request->session()->get('pos_verified_operator_at');
+
+        $verified = (int) $request->session()->get('pos_verified_operator_id') === $userId
+            && $verifiedAt
+            && (now()->timestamp - $verifiedAt) <= 8 * 60 * 60;
+
+        abort_unless($verified || (int) $request->user()->id === (int) $tenant->owner_id, 403, 'You cannot act on another user\'s shift.');
+    }
+
     public function open(Request $request, string $tenantSlug): JsonResponse
     {
         $tenant = $request->attributes->get('current_tenant');
@@ -54,6 +74,8 @@ class ShiftController extends Controller
             'user_id' => 'required|integer',
             'starting_cash' => 'required|numeric|min:0|max:9999999.99',
         ]);
+
+        $this->assertMayActFor($request, (int) $validated['user_id']);
 
         $shift = $this->shiftService->openShift($tenant, $validated['user_id'], [
             'starting_cash' => $validated['starting_cash'],
@@ -77,6 +99,7 @@ class ShiftController extends Controller
         ]);
 
         $shift = $this->shiftService->findForTenant($tenant, $validated['shift_id']);
+        $this->assertMayActFor($request, (int) $shift->user_id);
         $shift = $this->shiftService->closeShift($shift, $validated);
         $summary = $this->shiftService->getShiftSummary($shift);
 

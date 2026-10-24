@@ -115,4 +115,19 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Support Chat Recipients
+    |--------------------------------------------------------------------------
+    |
+    | Who is emailed when a business sends a support chat message.
+    | Comma separated in SUPPORT_NOTIFY_EMAILS; the defaults match the previous behaviour.
+    |
+    */
+
+    'support_recipients' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('SUPPORT_NOTIFY_EMAILS', 'rhuzzel.paramio@omnipos.shop,boyparamio@gmail.com')),
+    ))),
+
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\TenantLock;
 use App\Enums\OrderStatus;
 use App\Enums\ShiftStatus;
 use App\Events\ShiftClosed;
@@ -18,30 +19,33 @@ class ShiftService
 {
     public function openShift(Tenant $tenant, int $userId, array $data): Shift
     {
-        $existing = $this->getOpenShift($tenant, $userId);
+        $shift = DB::transaction(function () use ($tenant, $userId, $data) {
+            // One open shift per user: serialize the check and the insert so a double tap cannot open two.
+            TenantLock::acquire($tenant->id, "open-shift-{$userId}");
 
-        if ($existing) {
-            abort(422, 'You already have an open shift.');
-        }
-
-        // Validate branch belongs to tenant
-        if (! empty($data['branch_id'])) {
-            $branch = Branch::forTenant($tenant)->where('id', $data['branch_id'])->first();
-            if (! $branch) {
-                throw ValidationException::withMessages([
-                    'branch_id' => 'The selected branch does not belong to this tenant.',
-                ]);
+            if ($this->getOpenShift($tenant, $userId)) {
+                abort(422, 'You already have an open shift.');
             }
-        }
 
-        $shift = Shift::create([
-            'tenant_id' => $tenant->id,
-            'branch_id' => $data['branch_id'] ?? null,
-            'user_id' => $userId,
-            'starting_cash' => $data['starting_cash'],
-            'status' => ShiftStatus::Open,
-            'opened_at' => now(),
-        ]);
+            // Validate branch belongs to tenant
+            if (! empty($data['branch_id'])) {
+                $branch = Branch::forTenant($tenant)->where('id', $data['branch_id'])->first();
+                if (! $branch) {
+                    throw ValidationException::withMessages([
+                        'branch_id' => 'The selected branch does not belong to this tenant.',
+                    ]);
+                }
+            }
+
+            return Shift::create([
+                'tenant_id' => $tenant->id,
+                'branch_id' => $data['branch_id'] ?? null,
+                'user_id' => $userId,
+                'starting_cash' => $data['starting_cash'],
+                'status' => ShiftStatus::Open,
+                'opened_at' => now(),
+            ]);
+        });
 
         ShiftOpened::dispatch($shift);
 
@@ -50,11 +54,14 @@ class ShiftService
 
     public function closeShift(Shift $shift, array $data): Shift
     {
-        if (! $shift->isOpen()) {
-            abort(422, 'This shift is already closed.');
-        }
-
         return DB::transaction(function () use ($shift, $data) {
+            // Lock and re-read so two close requests cannot both close it.
+            $shift = Shift::where('id', $shift->id)->lockForUpdate()->firstOrFail();
+
+            if (! $shift->isOpen()) {
+                abort(422, 'This shift is already closed.');
+            }
+
             $summary = $this->getShiftSummary($shift);
             $totalSales = $summary['total_sales'];
             $totalOrders = $summary['total_orders'];

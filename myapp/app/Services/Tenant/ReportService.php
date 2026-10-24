@@ -20,9 +20,9 @@ class ReportService
     {
         $stats = $this->baseDbQuery($tenant, $dateFrom, $dateTo, $branchId)
             ->selectRaw('
-                COALESCE(SUM(total), 0) as total_revenue,
+                COALESCE(SUM(total - COALESCE(refunded_amount, 0)), 0) as total_revenue,
                 COUNT(*) as order_count,
-                COALESCE(AVG(total), 0) as avg_order_value,
+                COALESCE(AVG(total - COALESCE(refunded_amount, 0)), 0) as avg_order_value,
                 COALESCE(SUM(discount_amount), 0) as total_discounts
             ')->first();
 
@@ -56,7 +56,7 @@ class ReportService
 
         $results = $this->baseDbQuery($tenant, $dateFrom, $dateTo, $branchId)
             ->selectRaw("date_trunc('{$truncFormat}', created_at) as period_date")
-            ->selectRaw('COALESCE(SUM(total), 0) as revenue')
+            ->selectRaw('COALESCE(SUM(total - COALESCE(refunded_amount, 0)), 0) as revenue')
             ->selectRaw('COUNT(*) as order_count')
             ->groupByRaw("date_trunc('{$truncFormat}', created_at)")
             ->orderBy('period_date')
@@ -77,7 +77,7 @@ class ReportService
 
     public function getTopProducts(Tenant $tenant, CarbonInterface $dateFrom, CarbonInterface $dateTo, ?int $branchId): array
     {
-        $orderIds = $this->baseQuery($tenant, $dateFrom, $dateTo, $branchId)->pluck('id');
+        $orderIds = $this->baseQuery($tenant, $dateFrom, $dateTo, $branchId)->select('id');
 
         $baseQuery = OrderItem::whereIn('order_id', $orderIds)
             ->select('product_name')
@@ -107,7 +107,7 @@ class ReportService
 
     public function getPaymentBreakdown(Tenant $tenant, CarbonInterface $dateFrom, CarbonInterface $dateTo, ?int $branchId): array
     {
-        $orderIds = $this->baseQuery($tenant, $dateFrom, $dateTo, $branchId)->pluck('id');
+        $orderIds = $this->baseQuery($tenant, $dateFrom, $dateTo, $branchId)->select('id');
 
         return Payment::whereIn('order_id', $orderIds)
             ->select('method')

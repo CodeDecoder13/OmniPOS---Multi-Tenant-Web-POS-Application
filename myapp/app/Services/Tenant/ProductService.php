@@ -129,8 +129,17 @@ class ProductService
 
     public function delete(Product $product): void
     {
+        // Purchase order and transfer lines point at the product with no cascade, so deleting would fail
+        // (and, done in the old order, would already have thrown away the image).
+        if (\App\Models\Tenant\PurchaseOrderItem::where('product_id', $product->id)->exists()
+            || \App\Models\Tenant\StockTransferItem::where('product_id', $product->id)->exists()) {
+            throw new \DomainException('This product is on a purchase order or stock transfer, so it cannot be deleted. Deactivate it instead.');
+        }
+
+        DB::transaction(fn () => $product->delete());
+
+        // File last: if the row delete had failed, the image would still be there.
         $this->deleteImage($product);
-        $product->delete();
     }
 
     private function storeImage(Product $product, UploadedFile $image): void

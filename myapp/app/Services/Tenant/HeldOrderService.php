@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\TenantLock;
 use App\Enums\OrderStatus;
 use App\Events\OrderHeld;
 use App\Models\Tenant;
@@ -123,7 +124,8 @@ class HeldOrderService
 
     private function generateHeldNumber(Tenant $tenant): string
     {
-        $today = now()->format('Ymd');
+        TenantLock::acquire($tenant->id);
+        $today = now('Asia/Manila')->format('Ymd');
         $prefix = "HLD-{$today}-";
 
         $last = Order::forTenant($tenant)

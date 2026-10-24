@@ -95,7 +95,7 @@ class ChatService
 
         $conversation->update($updateData);
 
-        Mail::to(['rhuzzel.paramio@omnipos.shop', 'boyparamio@gmail.com'])->queue(
+        Mail::to(config('mail.support_recipients'))->queue(
             new NewChatMessageMail($user, $conversation, $chatMessage)
         );
 

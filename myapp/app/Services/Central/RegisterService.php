@@ -47,11 +47,20 @@ class RegisterService
 
             $promoCodeId = null;
             if ($promoCode) {
-                $promo = PromoCode::where('code', strtoupper($promoCode))->first();
+                // Lock the code so two sign-ups cannot both take the last use.
+                $promo = PromoCode::where('code', strtoupper($promoCode))->lockForUpdate()->first();
                 if ($promo && $promo->isValidForPlan($planSlug)) {
                     $promoCodeId = $promo->id;
                     $promo->incrementUsage();
                 }
+            }
+
+            // A paid plan is only granted through a valid code. If the code ran out in the meantime,
+            // fail (and roll everything back) instead of quietly creating a free paid tenant.
+            if (! $plan->isFree() && ! $promoCodeId) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'promo_code' => 'Invalid or expired promo code.',
+                ]);
             }
 
             TenantSubscription::create([

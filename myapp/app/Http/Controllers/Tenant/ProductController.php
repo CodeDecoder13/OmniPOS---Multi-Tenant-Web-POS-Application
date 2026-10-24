@@ -150,7 +150,11 @@ class ProductController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $product = $this->productService->findForTenant($tenant, $product);
 
-        $this->productService->delete($product);
+        try {
+            $this->productService->delete($product);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('tenant.products.index', ['tenant' => $tenant->slug])

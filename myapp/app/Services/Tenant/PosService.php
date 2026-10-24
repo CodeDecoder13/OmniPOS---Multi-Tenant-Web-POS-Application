@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\TenantLock;
 use App\Enums\KitchenStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
@@ -112,6 +113,7 @@ class PosService
             $items = $data['items'];
             $productIds = collect($items)->pluck('product_id')->toArray();
             $products = Product::forTenant($tenant)
+                ->with(['variationGroups.options', 'addons'])
                 ->whereIn('id', $productIds)
                 ->get()
                 ->keyBy('id');
@@ -146,22 +148,43 @@ class PosService
                 $product = $products[$item['product_id']];
                 $effectivePrice = $branchPrices[$product->id] ?? $product->price;
 
-                // Calculate variation price modifiers
+                // Variation and add-on prices are looked up on the server. The browser only says
+                // which option/add-on was picked; a price it sends is ignored.
                 $variationTotal = 0;
                 if (!empty($item['variations'])) {
+                    $resolved = [];
                     foreach ($item['variations'] as $variation) {
-                        $variationTotal += $variation['price_modifier'] ?? 0;
+                        $group = $product->variationGroups->firstWhere('name', $variation['variation_group_name']);
+                        $option = $group?->options->firstWhere('name', $variation['option_name']);
+                        if (! $option) {
+                            throw ValidationException::withMessages([
+                                'items' => "Option \"{$variation['option_name']}\" is no longer available for \"{$product->name}\".",
+                            ]);
+                        }
+                        $variationTotal += (float) $option->price_modifier;
+                        $resolved[] = [
+                            'variation_group_name' => $group->name,
+                            'option_name' => $option->name,
+                            'price_modifier' => (float) $option->price_modifier,
+                        ];
                     }
-                    $itemVariations[$index] = $item['variations'];
+                    $itemVariations[$index] = $resolved;
                 }
 
-                // Calculate addon prices
                 $addonTotal = 0;
                 if (!empty($item['addons'])) {
+                    $resolved = [];
                     foreach ($item['addons'] as $addon) {
-                        $addonTotal += $addon['addon_price'] ?? 0;
+                        $found = $product->addons->firstWhere('name', $addon['addon_name']);
+                        if (! $found) {
+                            throw ValidationException::withMessages([
+                                'items' => "Add-on \"{$addon['addon_name']}\" is no longer available for \"{$product->name}\".",
+                            ]);
+                        }
+                        $addonTotal += (float) $found->price;
+                        $resolved[] = ['addon_name' => $found->name, 'addon_price' => (float) $found->price];
                     }
-                    $itemAddons[$index] = $item['addons'];
+                    $itemAddons[$index] = $resolved;
                 }
 
                 $unitPrice = $effectivePrice + $variationTotal + $addonTotal;
@@ -188,9 +211,12 @@ class PosService
                 } else {
                     $discountAmount = $data['discount_amount'];
                 }
+
+                // A discount can never take more than the order is worth (no negative totals).
+                $discountAmount = min((float) $discountAmount, (float) $subtotal);
             }
 
-            $afterDiscount = $subtotal - $discountAmount;
+            $afterDiscount = max(0, $subtotal - $discountAmount);
 
             // Apply promotion discount
             $promotionId = $data['promotion_id'] ?? null;
@@ -358,7 +384,8 @@ class PosService
 
     private function generateOrderNumber(Tenant $tenant): string
     {
-        $today = now()->format('Ymd');
+        TenantLock::acquire($tenant->id);
+        $today = now('Asia/Manila')->format('Ymd');
         $prefix = "ORD-{$today}-";
 
         $lastOrder = Order::forTenant($tenant)

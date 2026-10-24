@@ -349,7 +349,7 @@ Route::prefix('{tenant}')
         // Chat (no permission guard — any authenticated tenant user)
         Route::get('chat', [ChatController::class, 'index'])->name('tenant.chat.index');
         Route::get('chat/poll', [ChatController::class, 'poll'])->name('tenant.chat.poll');
-        Route::post('chat/messages', [ChatController::class, 'sendMessage'])->name('tenant.chat.send');
+        Route::post('chat/messages', [ChatController::class, 'sendMessage'])->middleware('throttle:20,1')->name('tenant.chat.send');
         Route::post('chat/read', [ChatController::class, 'markRead'])->name('tenant.chat.read');
         Route::post('chat/acknowledge-resolve', [ChatController::class, 'acknowledgeResolve'])->name('tenant.chat.acknowledge-resolve');
     });

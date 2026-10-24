@@ -476,6 +476,7 @@ const taxPreview = computed(() => {
                     <li>All <strong>products</strong>, variations, and stock levels will be deleted.</li>
                     <li>All <strong>categories</strong> will be deleted and replaced with the defaults for {{ newTypeLabel }}.</li>
                     <li>Purchase order and stock transfer lines for those products will be removed.</li>
+                    <li>Held orders are discarded and product photos are removed.</li>
                     <li>Past orders are kept, but will no longer link to a product.</li>
                 </ul>
                 <div>
