@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import InfoTip from '@/components/InfoTip.vue';
+import StatusBadge from '@/components/StatusBadge.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import {
     Package, Plus, ShoppingCart, UserPlus,
     TrendingUp, TrendingDown, DollarSign,
@@ -75,7 +76,24 @@ const revenueChange = computed(() => {
 });
 
 // Detect dark mode for chart theming
-const isDark = computed(() => document.documentElement.classList.contains('dark'));
+const isDark = ref(document.documentElement.classList.contains('dark'));
+let themeObserver: MutationObserver | undefined;
+onMounted(() => {
+    themeObserver = new MutationObserver(() => (isDark.value = document.documentElement.classList.contains('dark')));
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+});
+onBeforeUnmount(() => themeObserver?.disconnect());
+
+// Plan usage: only plans with a cap get a meter.
+const usage = computed(() =>
+    [
+        { label: 'Branches', used: props.stats.branches_count, max: props.stats.max_branches },
+        { label: 'Users', used: props.stats.users_count, max: props.stats.max_users },
+        { label: 'Products', used: props.stats.products_count, max: props.stats.max_products },
+    ]
+        .filter((u) => u.max !== null)
+        .map((u) => ({ ...u, pct: Math.min(100, Math.round((u.used / (u.max as number)) * 100)) })),
+);
 
 // Line chart - Sales Trend
 const lineChartOptions = computed(() => ({
@@ -246,13 +264,6 @@ const paymentOptions = computed(() => ({
     },
 }));
 
-const statusBadgeClass: Record<string, string> = {
-    completed: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-    voided: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    refunded: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-};
-
 // Tab state for combined chart cards
 const salesTab = ref('trend');
 const ordersTab = ref('status');
@@ -336,6 +347,23 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                     >
                         {{ stats.plan_name }} Plan
                     </span>
+                </div>
+            </div>
+
+            <!-- Plan usage -->
+            <div v-if="usage.length" class="grid gap-3 sm:grid-cols-3">
+                <div v-for="u in usage" :key="u.label" class="rounded-xl border bg-card p-4">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="flex items-center gap-1.5 font-medium">{{ u.label }}<InfoTip :text="`Your ${stats.plan_name} plan includes up to ${u.max} ${u.label.toLowerCase()}.`" /></span>
+                        <span class="tabular-nums text-muted-foreground">{{ u.used }} of {{ u.max }}</span>
+                    </div>
+                    <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" role="progressbar" :aria-valuenow="u.used" aria-valuemin="0" :aria-valuemax="u.max ?? 0" :aria-label="`${u.label} used`">
+                        <div
+                            class="h-full rounded-full transition-[width] duration-300 ease-out"
+                            :class="u.pct >= 100 ? 'bg-red-500' : u.pct >= 80 ? 'bg-amber-500' : 'bg-teal-500'"
+                            :style="{ width: u.pct + '%' }"
+                        ></div>
+                    </div>
                 </div>
             </div>
 
@@ -564,9 +592,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                                     <td class="py-3 text-muted-foreground">{{ order.branch }}</td>
                                     <td class="py-3 font-medium">{{ formatCurrency(order.total) }}</td>
                                     <td class="py-3">
-                                        <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="statusBadgeClass[order.status] ?? 'bg-gray-100 text-gray-700'">
-                                            {{ statusLabels[order.status] || order.status }}
-                                        </span>
+                                        <StatusBadge :status="order.status" :label="statusLabels[order.status]" />
                                     </td>
                                     <td class="py-3 text-right text-xs text-muted-foreground">{{ order.created_at }}</td>
                                 </tr>

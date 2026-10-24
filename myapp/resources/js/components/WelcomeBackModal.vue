@@ -25,15 +25,15 @@ const emit = defineEmits<{
 const { formatCurrency } = useCurrency();
 
 const typeBadge: Record<ReleaseNoteItemType, { label: string; class: string }> = {
-    feature: { label: 'NEW', class: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
-    fix: { label: 'FIX', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
-    improvement: { label: 'IMP', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+    feature: { label: 'New', class: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400' },
+    fix: { label: 'Fixed', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+    improvement: { label: 'Improved', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
 };
 </script>
 
 <template>
     <Dialog :open="show" @update:open="emit('close')">
-        <DialogContent :show-close-button="false" class="sm:max-w-lg">
+        <DialogContent class="sm:max-w-lg">
             <DialogHeader class="text-center sm:text-center">
                 <DialogTitle class="text-2xl font-bold">
                     Welcome back, {{ userName }}!

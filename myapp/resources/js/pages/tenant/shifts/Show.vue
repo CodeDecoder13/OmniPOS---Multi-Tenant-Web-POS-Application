@@ -97,8 +97,8 @@ const breadcrumbs = [
                     </Link>
                 </Button>
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight">Shift #{{ shift.id }}</h1>
-                    <p class="text-sm text-muted-foreground">{{ shift.operator?.name ?? 'Unknown' }}</p>
+                    <h1 class="text-2xl font-bold tracking-tight">Shift on {{ formatDate(shift.opened_at) }}</h1>
+                    <p class="text-sm text-muted-foreground">{{ shift.operator?.name ?? 'Unknown' }} &middot; Shift #{{ shift.id }}</p>
                 </div>
                 <Badge :variant="shift.status === 'open' ? 'default' : 'secondary'" class="capitalize ml-2">
                     {{ shift.status }}

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import InfoTip from '@/components/InfoTip.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { Check, ChevronDown, ChevronRight, Copy, Download, FileUp, RefreshCw, SquarePen, Trash2, Upload, UserPlus } from 'lucide-vue-next';
@@ -228,6 +229,18 @@ function submitPin() {
 // Toggle active
 const toggling = ref<number | null>(null);
 
+// Deactivating locks someone out, so ask first. Reactivating is one click.
+const deactivateTarget = ref<TenantUser | null>(null);
+const deactivateOpen = computed({
+    get: () => deactivateTarget.value !== null,
+    set: (v) => { if (!v) deactivateTarget.value = null; },
+});
+
+function requestToggle(user: TenantUser) {
+    if (user.is_active) deactivateTarget.value = user;
+    else toggleActive(user);
+}
+
 async function toggleActive(user: TenantUser) {
     if (user.id === props.ownerId) return;
     toggling.value = user.id;
@@ -449,7 +462,7 @@ function roleBadgeClass(slug: string): string {
                                         variant="ghost"
                                         size="sm"
                                         :disabled="toggling === user.id"
-                                        @click="toggleActive(user)"
+                                        @click="requestToggle(user)"
                                         class="text-xs"
                                     >
                                         {{ toggling === user.id ? '...' : (user.is_active ? 'Deactivate' : 'Activate') }}
@@ -524,6 +537,15 @@ function roleBadgeClass(slug: string): string {
                 </div>
             </div>
         </div>
+
+        <ConfirmDialog
+            v-model:open="deactivateOpen"
+            :title="`Deactivate ${deactivateTarget?.name ?? ''}?`"
+            description="They will be signed out and blocked from logging in. Their history is kept, and you can reactivate them any time."
+            confirm-label="Deactivate"
+            :loading="toggling !== null"
+            @confirm="async () => { if (deactivateTarget) { await toggleActive(deactivateTarget); deactivateTarget = null; } }"
+        />
 
         <!-- Add User Dialog -->
         <Dialog v-model:open="addDialog">

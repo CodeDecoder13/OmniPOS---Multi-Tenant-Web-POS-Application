@@ -2,7 +2,7 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Briefcase, Crown, Globe, Monitor, Moon, Percent, ReceiptText, Store, Sun, Palette, TriangleAlert } from 'lucide-vue-next';
+import { Briefcase, Crown, CreditCard, Globe, Monitor, Moon, Percent, ReceiptText, Store, Sun, Palette, TriangleAlert } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,6 +29,8 @@ const props = defineProps<{
 }>();
 
 const { tenant, tenantUrl } = useTenant();
+const plan = computed(() => tenant.value?.subscription?.plan ?? null);
+const limitText = (n: number | null | undefined, unit: string) => (n == null ? `Unlimited ${unit}` : `Up to ${n} ${unit}`);
 const isEnterprise = computed(() => tenant.value?.subscription?.plan?.slug === 'enterprise');
 
 const breadcrumbs = computed<BreadcrumbItem[]>(() => [
@@ -395,6 +397,32 @@ const taxPreview = computed(() => {
                     </Button>
                 </div>
             </form>
+
+            <!-- Plan & Billing -->
+            <div class="mt-6 rounded-xl border bg-card p-6 shadow-sm">
+                <div class="mb-5 flex items-center gap-3">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                        <CreditCard class="h-5 w-5 text-primary" />
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-base font-semibold">Plan &amp; Billing</h2>
+                        <p class="text-xs text-muted-foreground">What your plan includes</p>
+                    </div>
+                    <span v-if="plan" class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">{{ plan.name }}</span>
+                </div>
+                <ul v-if="plan" class="grid gap-2 text-sm sm:grid-cols-3">
+                    <li class="rounded-lg bg-muted/50 px-3 py-2">{{ limitText(plan.max_branches, 'branches') }}</li>
+                    <li class="rounded-lg bg-muted/50 px-3 py-2">{{ limitText(plan.max_users, 'users') }}</li>
+                    <li class="rounded-lg bg-muted/50 px-3 py-2">{{ limitText(plan.max_products, 'products') }}</li>
+                </ul>
+                <p v-else class="text-sm text-muted-foreground">No plan is attached to this business yet.</p>
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <p class="text-xs text-muted-foreground">Online payment is coming soon. To change plans, send us a request and we will switch it for you.</p>
+                    <Button as-child variant="outline" size="sm">
+                        <a href="mailto:support@omnipos.shop?subject=Change%20my%20OmniPOS%20plan">Request a plan change</a>
+                    </Button>
+                </div>
+            </div>
 
             <!-- Business Type (owner only) -->
             <div v-if="isOwner" class="mt-6 rounded-xl border border-red-200 bg-card p-6 shadow-sm dark:border-red-900/50">

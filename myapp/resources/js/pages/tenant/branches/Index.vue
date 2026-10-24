@@ -123,14 +123,16 @@ function handleAddBranch() {
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1">
-                                    <Button variant="ghost" size="icon" as-child title="Menu & Pricing">
-                                        <Link :href="tenantUrl(`branches/${branch.id}/menu`)">
+                                    <Button variant="outline" size="sm" as-child>
+                                        <Link :href="tenantUrl(`branches/${branch.id}/menu`)" aria-label="Menu and pricing" title="Set which products this branch sells and at what price">
                                             <List class="h-4 w-4" />
+                                            <span class="hidden lg:inline">Menu &amp; Pricing</span>
                                         </Link>
                                     </Button>
-                                    <Button variant="ghost" size="icon" as-child title="Feature Settings">
-                                        <Link :href="tenantUrl(`branches/${branch.id}/settings`)">
+                                    <Button variant="outline" size="sm" as-child>
+                                        <Link :href="tenantUrl(`branches/${branch.id}/settings`)" aria-label="Feature settings" title="Turn features on or off for this branch">
                                             <Settings class="h-4 w-4" />
+                                            <span class="hidden lg:inline">Feature Settings</span>
                                         </Link>
                                     </Button>
                                     <Button variant="ghost" size="icon" as-child>

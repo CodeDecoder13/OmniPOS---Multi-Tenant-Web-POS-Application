@@ -89,6 +89,9 @@ function skipPin() {
                         :class="step === 2 ? 'bg-primary' : 'bg-primary/30'"
                     />
                 </div>
+                <p class="mt-2 text-center text-xs text-muted-foreground">
+                    Step {{ step }} of 2: {{ step === 1 ? 'Your first branch' : 'Your POS PIN' }}
+                </p>
             </div>
 
             <!-- Step 1: Branch Creation -->
@@ -178,7 +181,7 @@ function skipPin() {
                 <CardHeader>
                     <CardTitle>Set Your POS PIN</CardTitle>
                     <CardDescription>
-                        This PIN lets you quickly log in to the point-of-sale terminal.
+                        You will enter this 4-6 digit PIN to sign in at the register, so every sale is recorded under your name.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

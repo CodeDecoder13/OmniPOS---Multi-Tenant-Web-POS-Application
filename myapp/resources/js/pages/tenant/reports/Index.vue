@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import InfoTip from '@/components/InfoTip.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -47,7 +47,15 @@ const props = defineProps<{
 
 const { tenantUrl } = useTenant();
 
-const activeTab = ref('overview');
+// Keep the selected tab in the URL so a refresh or shared link lands on the same report.
+const tabs = ['overview', 'products', 'payments', 'team', 'inventory', 'tax', 'forecast'];
+const urlTab = new URLSearchParams(window.location.search).get('tab') ?? '';
+const activeTab = ref(tabs.includes(urlTab) ? urlTab : 'overview');
+watch(activeTab, (tab) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState(window.history.state, '', url);
+});
 
 const exportTypeMap: Record<string, string> = {
     overview: 'sales_summary',

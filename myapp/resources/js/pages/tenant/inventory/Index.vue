@@ -24,7 +24,10 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import Pagination from '@/components/Pagination.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import InfoTip from '@/components/InfoTip.vue';
+import PageHeader from '@/components/PageHeader.vue';
+import StatCard from '@/components/StatCard.vue';
 import type { Branch, BreadcrumbItem, Inventory, InventoryAdjustment, PaginatedData } from '@/types';
 import { useTenant } from '@/composables/useTenant';
 import { usePermissions } from '@/composables/usePermissions';
@@ -219,63 +222,22 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
 
     <TenantLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
-            <!-- Page Header -->
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
-                        <Warehouse class="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold">Inventory</h1>
-                        <p class="text-sm text-muted-foreground">Track and manage your stock levels</p>
-                    </div>
-                </div>
-            </div>
+            <PageHeader :icon="Warehouse" title="Inventory" description="Track and manage your stock levels" />
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
-                        <Warehouse class="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">{{ stats.total }}</p>
-                        <p class="text-xs text-muted-foreground">Total Items</p>
-                    </div>
-                </div>
-                <button
-                    type="button"
-                    class="flex cursor-pointer items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring"
-                    :class="lowStockFilter ? 'border-red-300 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20' : ''"
-                    :aria-pressed="lowStockFilter"
+                <StatCard :icon="Warehouse" tone="indigo" label="Total Items" :value="stats.total" />
+                <StatCard
+                    :icon="AlertTriangle"
+                    tone="red"
+                    :label="lowStockFilter ? 'Low Stock (filtered)' : 'Low Stock'"
+                    :value="stats.lowStock"
+                    toggle
+                    :selected="lowStockFilter"
                     @click="toggleLowStock"
-                >
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/40">
-                        <AlertTriangle class="h-4.5 w-4.5 text-red-600 dark:text-red-400" />
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">{{ stats.lowStock }}</p>
-                        <p class="text-xs text-muted-foreground">Low Stock{{ lowStockFilter ? ' (filtered)' : '' }}</p>
-                    </div>
-                </button>
-                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
-                        <CheckCircle class="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">{{ stats.inStock }}</p>
-                        <p class="text-xs text-muted-foreground">In Stock</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3 rounded-xl border bg-card p-4">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/40">
-                        <Building class="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">{{ stats.branches }}</p>
-                        <p class="text-xs text-muted-foreground">Branches</p>
-                    </div>
-                </div>
+                />
+                <StatCard :icon="CheckCircle" tone="emerald" label="In Stock" :value="stats.inStock" />
+                <StatCard :icon="Building" tone="purple" label="Branches" :value="stats.branches" />
             </div>
 
             <!-- Filter Bar -->
@@ -313,18 +275,14 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
             </div>
 
             <!-- Empty State -->
-            <div
+            <EmptyState
                 v-if="inventory.data.length === 0"
-                class="flex flex-col items-center justify-center rounded-xl border bg-card py-16"
-            >
-                <div class="rounded-full bg-muted p-4">
-                    <Warehouse class="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 class="mt-4 text-lg font-semibold">No inventory records found</h3>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    {{ search || branchFilter !== 'all' || lowStockFilter ? 'Try adjusting your filters.' : 'Inventory records are created automatically when products are sold via POS, or you can add stock manually.' }}
-                </p>
-            </div>
+                :icon="Warehouse"
+                title="No inventory records found"
+                :description="search || branchFilter !== 'all' || lowStockFilter
+                    ? 'Try adjusting your filters.'
+                    : 'Records appear when you add a product, or when a sale uses one. Open a product to set its starting stock.'"
+            />
 
             <!-- Table -->
             <div v-else class="overflow-x-auto rounded-xl border bg-card">
