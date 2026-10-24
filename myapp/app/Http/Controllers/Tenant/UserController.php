@@ -93,8 +93,8 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', Password::default(), 'max:255'],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
-            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenant->id)],
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenant->id)],
         ]);
 
         $role = Role::forTenant($tenant->id)->findOrFail($validated['role_id']);
@@ -132,6 +132,12 @@ class UserController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $isOwnerRow = (int) $userId === (int) $tenant->owner_id;
 
+        // Users are global accounts: only ever touch someone who belongs to THIS tenant.
+        abort_unless(
+            TenantUser::where('tenant_id', $tenant->id)->where('user_id', $userId)->exists(),
+            404,
+        );
+
         // Only the owner can edit themselves
         if ($isOwnerRow && (int) $request->user()->id !== (int) $tenant->owner_id) {
             return back()->with('error', 'Cannot edit the organization owner.');
@@ -142,7 +148,7 @@ class UserController extends Controller
             $validated = $request->validate([
                 'name' => ['required', 'string', 'max:255'],
                 'password' => ['nullable', 'string', Password::default(), 'max:255'],
-                'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+                'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenant->id)],
             ]);
 
             $branchId = $validated['branch_id'] ?? Branch::forTenant($tenant)->where('is_active', true)->latest('id')->value('id');
@@ -167,11 +173,18 @@ class UserController extends Controller
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
                 'password' => ['nullable', 'string', Password::default(), 'max:255'],
-                'role_id' => ['required', 'integer', 'exists:roles,id'],
-                'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+                'role_id' => ['required', 'integer', Rule::exists('roles', 'id')->where('tenant_id', $tenant->id)],
+                'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')->where('tenant_id', $tenant->id)],
             ]);
 
             $role = Role::forTenant($tenant->id)->findOrFail($validated['role_id']);
+
+            // Only the owner can hand out the Owner role (stops self-promotion).
+            abort_if(
+                $role->is_system && $role->slug === 'owner' && (int) $request->user()->id !== (int) $tenant->owner_id,
+                403,
+                'Only the organization owner can assign the Owner role.',
+            );
 
             $branchId = $validated['branch_id'] ?? Branch::forTenant($tenant)->where('is_active', true)->latest('id')->value('id');
 
@@ -180,12 +193,16 @@ class UserController extends Controller
             }
 
             $user = User::findOrFail($userId);
-            $data = [
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-            ];
-            if (!empty($validated['password'])) {
-                $data['password'] = $validated['password'];
+            $data = ['name' => $validated['name']];
+
+            // The login belongs to the person, not this tenant. If they also work for another
+            // business, a manager here must not be able to change their email or password.
+            $sharedWithOtherTenant = TenantUser::where('user_id', $userId)->where('tenant_id', '!=', $tenant->id)->exists();
+            if (! $sharedWithOtherTenant) {
+                $data['email'] = $validated['email'];
+                if (!empty($validated['password'])) {
+                    $data['password'] = $validated['password'];
+                }
             }
             $user->update($data);
 

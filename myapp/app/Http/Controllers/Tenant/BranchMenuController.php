@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Category;
 use App\Services\Tenant\BranchMenuService;
@@ -50,7 +51,7 @@ class BranchMenuController extends Controller
 
         $validated = $request->validate([
             'items' => 'required|array',
-            'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.product_id' => ['required', 'integer', Rule::exists('products', 'id')->where('tenant_id', $tenant->id)],
             'items.*.custom_price' => 'nullable|numeric|min:0',
             'items.*.is_available' => 'required|boolean',
         ]);

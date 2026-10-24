@@ -29,8 +29,11 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function adjust(InventoryAdjustmentRequest $request, string $tenantSlug, Inventory $inventory)
+    public function adjust(InventoryAdjustmentRequest $request, string $tenantSlug, int $inventory)
     {
+        // Resolve inside this tenant: a bare route-bound model would accept another tenant's id.
+        $inventory = $this->inventoryService->findForTenant($request->attributes->get('current_tenant'), $inventory);
+
         // Thresholds and reorder settings can be saved without changing stock.
         if ((int) $request->validated('quantity_change') !== 0) {
             $this->inventoryService->adjust(
@@ -43,13 +46,13 @@ class InventoryController extends Controller
         }
 
         $updateFields = [];
-        if ($request->has('low_stock_threshold')) {
+        if ($request->filled('low_stock_threshold')) {
             $updateFields['low_stock_threshold'] = $request->validated('low_stock_threshold');
         }
-        if ($request->has('reorder_point')) {
+        if ($request->filled('reorder_point')) {
             $updateFields['reorder_point'] = $request->validated('reorder_point');
         }
-        if ($request->has('reorder_quantity')) {
+        if ($request->filled('reorder_quantity')) {
             $updateFields['reorder_quantity'] = $request->validated('reorder_quantity');
         }
         if (! empty($updateFields)) {
@@ -59,8 +62,10 @@ class InventoryController extends Controller
         return redirect()->back()->with('success', 'Inventory updated successfully.');
     }
 
-    public function history(Request $request, string $tenantSlug, Inventory $inventory)
+    public function history(Request $request, string $tenantSlug, int $inventory)
     {
+        $inventory = $this->inventoryService->findForTenant($request->attributes->get('current_tenant'), $inventory);
+
         return response()->json(
             $this->inventoryService->getHistory($inventory)
         );

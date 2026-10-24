@@ -60,8 +60,21 @@ class KitchenDisplayController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, string $tenantSlug, Order $order): JsonResponse
+    /** Only orders from this tenant and the user's own branch; anything else is a 404. */
+    private function findOrderForUser(Request $request, int $orderId): Order
     {
+        $tenant = $request->attributes->get('current_tenant');
+        $branchId = $request->attributes->get('current_tenant_user')->branch_id ?? null;
+
+        abort_unless($branchId, 404);
+
+        return Order::forTenant($tenant)->where('branch_id', $branchId)->findOrFail($orderId);
+    }
+
+    public function updateStatus(Request $request, string $tenantSlug, int $order): JsonResponse
+    {
+        $order = $this->findOrderForUser($request, $order);
+
         $request->validate([
             'kitchen_status' => ['required', 'string', 'in:new,preparing,ready,served'],
             'kitchen_notes' => ['nullable', 'string', 'max:500'],
@@ -75,9 +88,10 @@ class KitchenDisplayController extends Controller
         return response()->json(['order' => $updated]);
     }
 
-    public function kotPdf(Request $request, string $tenantSlug, Order $order): Response
+    public function kotPdf(Request $request, string $tenantSlug, int $order): Response
     {
         $tenant = $request->attributes->get('current_tenant');
+        $order = $this->findOrderForUser($request, $order);
 
         return $this->kotService->generatePdf($tenant, $order);
     }

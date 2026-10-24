@@ -63,9 +63,9 @@ class ProductRequest extends FormRequest
             'variation_groups.*.options.*.name' => ['required', 'string', 'max:255'],
             'variation_groups.*.options.*.price_modifier' => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
             'addon_ids' => ['nullable', 'array'],
-            'addon_ids.*' => ['integer', 'exists:addons,id'],
+            'addon_ids.*' => ['integer', Rule::exists('addons', 'id')->where('tenant_id', $this->attributes->get('current_tenant')->id)],
             'branch_ids' => ['nullable', 'array'],
-            'branch_ids.*' => ['integer', 'exists:branches,id'],
+            'branch_ids.*' => ['integer', Rule::exists('branches', 'id')->where('tenant_id', $this->attributes->get('current_tenant')->id)],
         ];
     }
 }
