@@ -146,7 +146,7 @@ function handleAddProduct() {
                         <Package class="h-5 w-5" />
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold">Products</h1>
+                        <h1 class="text-2xl font-bold">{{ $t('products.title') }}</h1>
                         <p class="text-sm text-muted-foreground">Manage your product catalog</p>
                     </div>
                 </div>

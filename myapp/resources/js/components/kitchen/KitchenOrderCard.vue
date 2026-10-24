@@ -151,18 +151,17 @@ function downloadKotPdf() {
             <Button
                 v-if="nextAction"
                 :variant="nextAction.variant"
-                size="sm"
-                class="flex-1"
+                class="h-11 flex-1"
                 @click="handleAction"
             >
                 {{ nextAction.label }}
             </Button>
-            <Button variant="ghost" size="icon" class="h-8 w-8 text-gray-400 hover:text-white" @click="handlePrintKot" aria-label="Print KOT" title="Print the kitchen order ticket (KOT): the slip the cooks work from">
+            <Button variant="ghost" size="icon" class="size-11 text-gray-400 hover:text-white" @click="handlePrintKot" aria-label="Print KOT" title="Print the kitchen order ticket (KOT): the slip the cooks work from">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" />
                 </svg>
             </Button>
-            <Button variant="ghost" size="icon" class="h-8 w-8 text-gray-400 hover:text-white" @click="downloadKotPdf" aria-label="Download KOT PDF" title="Download the kitchen order ticket (KOT) as a PDF">
+            <Button variant="ghost" size="icon" class="size-11 text-gray-400 hover:text-white" @click="downloadKotPdf" aria-label="Download KOT PDF" title="Download the kitchen order ticket (KOT) as a PDF">
                 <Download class="h-4 w-4" />
             </Button>
         </div>

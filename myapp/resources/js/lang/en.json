@@ -160,7 +160,17 @@
         "exitPos": "Exit POS",
         "scanBarcode": "Scan barcode...",
         "noProducts": "No products found",
-        "loadMore": "Load More"
+        "loadMore": "Load More",
+        "held": "Held",
+        "holdOrder": "Hold Order",
+        "completePurchase": "Complete Purchase",
+        "searchProducts": "Search products (F2)",
+        "reviewOrder": "Review order ({count} items)",
+        "splitPayment": "Split Payment",
+        "singlePayment": "Single Payment",
+        "cartCleared": "Cart cleared",
+        "undo": "Undo",
+        "checkoutFailed": "Checkout failed. Please try again."
     },
     "receipt": {
         "order": "Order",

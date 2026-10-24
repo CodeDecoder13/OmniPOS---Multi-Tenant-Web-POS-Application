@@ -222,7 +222,7 @@ function typeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive'
 
     <TenantLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-4 p-4 sm:gap-6 sm:p-6">
-            <PageHeader :icon="Warehouse" title="Inventory" description="Track and manage your stock levels" />
+            <PageHeader :icon="Warehouse" :title="$t('inventory.title')" description="Track and manage your stock levels" />
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

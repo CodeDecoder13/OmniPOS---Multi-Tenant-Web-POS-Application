@@ -123,7 +123,7 @@ function shouldShowDate(index: number): boolean {
 </script>
 
 <template>
-    <div class="fixed bottom-6 right-6 z-50">
+    <div class="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
         <!-- Chat Panel -->
         <Transition
             enter-active-class="transition duration-200 ease-out"
@@ -135,7 +135,7 @@ function shouldShowDate(index: number): boolean {
         >
             <div
                 v-if="isOpen"
-                class="mb-4 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
+                class="mb-4 flex h-[min(500px,calc(100dvh-8rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
             >
                 <!-- Header -->
                 <div class="flex items-center justify-between bg-teal-600 px-4 py-3 text-white">
@@ -145,7 +145,8 @@ function shouldShowDate(index: number): boolean {
                     </div>
                     <button
                         @click="toggleChat"
-                        class="rounded-full p-1 transition-colors hover:bg-teal-700"
+                        aria-label="Close chat"
+                        class="rounded-full p-2 transition-colors hover:bg-teal-700"
                     >
                         <X class="size-5" />
                     </button>
@@ -162,7 +163,7 @@ function shouldShowDate(index: number): boolean {
                         class="flex h-full flex-col px-2 py-3"
                     >
                         <div class="mb-3 flex items-center gap-2">
-                            <button @click="closeReportForm" class="rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <button @click="closeReportForm" aria-label="Back to chat" class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800">
                                 <ArrowLeft class="size-4 text-muted-foreground" />
                             </button>
                             <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Report an Issue</h3>
@@ -212,6 +213,7 @@ function shouldShowDate(index: number): boolean {
                                     <img :src="reportPreview" alt="Preview" class="max-h-28 w-full rounded-lg border object-cover dark:border-gray-700" />
                                     <button
                                         @click="clearReportFile"
+                                        aria-label="Remove screenshot"
                                         class="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white transition-colors hover:bg-black/80"
                                     >
                                         <X class="size-3.5" />
@@ -350,7 +352,8 @@ function shouldShowDate(index: number): boolean {
                         <button
                             @click="sendMessage()"
                             :disabled="sending || !newMessage.trim()"
-                            class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white transition-colors hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Send message"
+                            class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white transition-colors hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Send class="size-4" />
                         </button>
@@ -362,6 +365,7 @@ function shouldShowDate(index: number): boolean {
         <!-- Chat Bubble Button -->
         <button
             @click="toggleChat"
+            :aria-label="isOpen ? 'Close chat' : 'Open chat'"
             class="relative flex size-14 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition-all hover:bg-teal-700 hover:shadow-xl hover:scale-105 active:scale-95"
         >
             <MessageSquare v-if="!isOpen" class="size-6" />

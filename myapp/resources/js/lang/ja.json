@@ -160,7 +160,17 @@
         "exitPos": "POS を終了",
         "scanBarcode": "バーコードをスキャン...",
         "noProducts": "商品が見つかりません",
-        "loadMore": "もっと見る"
+        "loadMore": "もっと見る",
+        "held": "保留中",
+        "holdOrder": "注文を保留",
+        "completePurchase": "会計へ",
+        "searchProducts": "商品を検索 (F2)",
+        "reviewOrder": "注文を確認 ({count}点)",
+        "splitPayment": "分割払い",
+        "singlePayment": "一括払い",
+        "cartCleared": "カートを空にしました",
+        "undo": "元に戻す",
+        "checkoutFailed": "会計に失敗しました。もう一度お試しください。"
     },
     "receipt": {
         "order": "注文",

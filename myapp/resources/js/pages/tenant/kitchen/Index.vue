@@ -78,10 +78,11 @@ onMounted(() => {
                 <Button
                     variant="ghost"
                     size="icon"
-                    class="h-8 w-8"
+                    class="size-11"
                     :class="audioEnabled ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-400'"
                     @click="toggleAudio"
                     :title="audioEnabled ? 'Mute alerts' : 'Enable alerts'"
+                    :aria-label="audioEnabled ? 'Mute alerts' : 'Enable alerts'"
                 >
                     <Volume2 v-if="audioEnabled" class="h-4 w-4" />
                     <VolumeX v-else class="h-4 w-4" />

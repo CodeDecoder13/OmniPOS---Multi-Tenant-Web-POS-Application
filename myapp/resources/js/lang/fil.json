@@ -160,7 +160,17 @@
         "exitPos": "Lumabas sa POS",
         "scanBarcode": "I-scan ang barcode...",
         "noProducts": "Walang nahanap na produkto",
-        "loadMore": "Magpakita pa"
+        "loadMore": "Magpakita pa",
+        "held": "Naka-hold",
+        "holdOrder": "I-hold ang Order",
+        "completePurchase": "Tapusin ang Bili",
+        "searchProducts": "Maghanap ng produkto (F2)",
+        "reviewOrder": "Suriin ang order ({count} aytem)",
+        "splitPayment": "Hatiin ang Bayad",
+        "singlePayment": "Isang Bayad",
+        "cartCleared": "Na-clear ang cart",
+        "undo": "I-undo",
+        "checkoutFailed": "Hindi nagtagumpay ang checkout. Subukan ulit."
     },
     "receipt": {
         "order": "Order",

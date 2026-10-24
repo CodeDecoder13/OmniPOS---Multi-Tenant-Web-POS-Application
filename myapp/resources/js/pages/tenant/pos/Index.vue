@@ -22,6 +22,7 @@ import type { ReceiptData } from '@/components/ReceiptTemplate.vue';
 import { useTenant } from '@/composables/useTenant';
 import { useCurrency } from '@/composables/useCurrency';
 import { toast } from '@/composables/useToast';
+import i18n from '@/plugins/i18n';
 import { usePermissions } from '@/composables/usePermissions';
 import { usePosAuth } from '@/composables/usePosAuth';
 import { usePosShift } from '@/composables/usePosShift';
@@ -576,10 +577,10 @@ function clearCartWithUndo() {
         discountCustomer: discountCustomer.value, recalledOrderId: recalledOrderId.value,
     }));
     clearCart();
-    toast.info('Cart cleared', {
+    toast.info(i18n.global.t('pos.cartCleared'), {
         duration: 8000,
         action: {
-            label: 'Undo',
+            label: i18n.global.t('pos.undo'),
             onClick: () => {
                 cart.value = snap.cart;
                 orderType.value = snap.orderType;
@@ -722,7 +723,7 @@ async function processCheckout() {
 
         if (!res.ok) {
             const err = await res.json();
-            toast.error(err.message || 'Checkout failed. Please try again.');
+            toast.error(err.message || i18n.global.t('pos.checkoutFailed'));
             return;
         }
 
@@ -774,7 +775,7 @@ async function processCheckout() {
             }
         });
     } catch {
-        toast.error('Checkout failed. Please try again.');
+        toast.error(i18n.global.t('pos.checkoutFailed'));
     } finally {
         processing.value = false;
     }
@@ -1121,7 +1122,7 @@ onUnmounted(() => {
                     <div class="flex flex-col gap-2 border-b px-3 py-2.5 md:flex-row md:items-center md:gap-2 md:px-4 md:py-3">
                         <div class="relative flex-1">
                             <Search class="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
-                            <Input ref="productSearchRef" v-model="productSearch" placeholder="Search products (F2)" class="h-11 rounded-full bg-muted/50 border-none pl-10 text-sm" />
+                            <Input ref="productSearchRef" v-model="productSearch" :placeholder="$t('pos.searchProducts')" class="h-11 rounded-full bg-muted/50 border-none pl-10 text-sm" />
                         </div>
                         <div class="flex items-center gap-1.5 md:gap-2">
                             <button
@@ -1332,10 +1333,10 @@ onUnmounted(() => {
                     <div class="flex items-center gap-1">
                         <Button variant="ghost" size="sm" class="text-xs text-muted-foreground relative" @click="openHeldOrders" title="Held orders: carts you parked for later. Tap to bring one back.">
                             <Pause class="h-3 w-3" />
-                            Held
+                            {{ $t('pos.held') }}
                         </Button>
                         <Button v-if="cart.length > 0" variant="ghost" size="sm" class="text-xs text-muted-foreground" @click="clearCartWithUndo">
-                            Clear
+                            {{ $t('common.clear') }}
                         </Button>
                     </div>
                 </div>
@@ -1454,8 +1455,8 @@ onUnmounted(() => {
                         <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/5 mb-3">
                             <ShoppingCart class="h-8 w-8 text-primary/30" />
                         </div>
-                        <p class="text-sm font-medium">Cart is empty</p>
-                        <p class="text-xs mt-0.5">Click products to add them</p>
+                        <p class="text-sm font-medium">{{ $t('pos.cartEmpty') }}</p>
+                        <p class="text-xs mt-0.5">{{ $t('pos.clickToAdd') }}</p>
                     </div>
                     <div v-else class="divide-y">
                         <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2.5">
@@ -1579,7 +1580,7 @@ onUnmounted(() => {
                             title="Save this cart and start a new one (F4)"
                         >
                             <Pause class="mr-1.5 h-4 w-4" />
-                            {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
+                            {{ holdingOrder ? $t('pos.processing') : $t('pos.holdOrder') }}
                         </Button>
                     </div>
                     <Button
@@ -1589,7 +1590,7 @@ onUnmounted(() => {
                         @click="openReceiptPreview"
                     >
                         <ShoppingCart class="mr-2 h-5 w-5" />
-                        Complete Purchase {{ cart.length > 0 ? formatCurrency(total) : '' }}
+                        {{ $t('pos.completePurchase') }} {{ cart.length > 0 ? formatCurrency(total) : '' }}
                     </Button>
                 </div>
             </Card>
@@ -1705,8 +1706,8 @@ onUnmounted(() => {
                         <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/5 mb-3">
                             <ShoppingCart class="h-8 w-8 text-primary/30" />
                         </div>
-                        <p class="text-sm font-medium">Cart is empty</p>
-                        <p class="text-xs mt-0.5">Click products to add them</p>
+                        <p class="text-sm font-medium">{{ $t('pos.cartEmpty') }}</p>
+                        <p class="text-xs mt-0.5">{{ $t('pos.clickToAdd') }}</p>
                     </div>
                     <div v-else class="divide-y">
                         <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2.5">
@@ -1823,7 +1824,7 @@ onUnmounted(() => {
                             title="Save this cart and start a new one (F4)"
                         >
                             <Pause class="mr-1.5 h-4 w-4" />
-                            {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
+                            {{ holdingOrder ? $t('pos.processing') : $t('pos.holdOrder') }}
                         </Button>
                     </div>
                     <Button
@@ -1832,7 +1833,7 @@ onUnmounted(() => {
                         @click="openReceiptPreviewMobile"
                     >
                         <ShoppingCart class="mr-2 h-5 w-5" />
-                        Complete Purchase {{ cart.length > 0 ? formatCurrency(total) : '' }}
+                        {{ $t('pos.completePurchase') }} {{ cart.length > 0 ? formatCurrency(total) : '' }}
                     </Button>
                 </div>
             </SheetContent>
@@ -1877,14 +1878,14 @@ onUnmounted(() => {
         <Dialog v-model:open="showPaymentDialog">
             <DialogContent class="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Payment</DialogTitle>
+                    <DialogTitle>{{ $t('pos.payment') }}</DialogTitle>
                 </DialogHeader>
 
                 <div class="space-y-4">
                     <!-- Order review: replaces the old separate preview step -->
                     <details class="rounded-lg border px-3 py-2 text-sm">
                         <summary class="cursor-pointer select-none font-medium">
-                            Review order ({{ cart.reduce((n, c) => n + c.quantity, 0) }} items)
+                            {{ $t('pos.reviewOrder', { count: cart.reduce((n, c) => n + c.quantity, 0) }) }}
                         </summary>
                         <ul class="mt-2 max-h-40 space-y-1 overflow-y-auto">
                             <li v-for="c in cart" :key="c.product_id" class="flex justify-between gap-3">
@@ -1896,15 +1897,15 @@ onUnmounted(() => {
 
                     <!-- Total display -->
                     <div class="rounded-lg bg-muted p-4 text-center">
-                        <p class="text-sm text-muted-foreground">Total</p>
+                        <p class="text-sm text-muted-foreground">{{ $t('common.total') }}</p>
                         <p class="text-3xl font-bold">{{ formatCurrency(total) }}</p>
                     </div>
 
                     <!-- Split toggle -->
                     <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium">Split Payment</span>
+                        <span class="text-sm font-medium">{{ $t('pos.splitPayment') }}</span>
                         <Button variant="outline" size="sm" class="text-xs" @click="toggleSplitMode" title="Pay with more than one method">
-                            {{ splitMode ? 'Single Payment' : 'Split Payment' }}
+                            {{ splitMode ? $t('pos.singlePayment') : $t('pos.splitPayment') }}
                         </Button>
                     </div>
 

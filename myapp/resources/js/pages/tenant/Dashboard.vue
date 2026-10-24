@@ -335,8 +335,8 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
             <!-- Header -->
             <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold">Welcome back, {{ firstName }}!</h1>
-                    <p class="text-sm text-muted-foreground">Here's what's happening with your business today.</p>
+                    <h1 class="text-2xl font-bold">{{ $t('dashboard.welcomeBack', { name: firstName }) }}</h1>
+                    <p class="text-sm text-muted-foreground">{{ $t('dashboard.todayOverview') }}</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <span
@@ -372,7 +372,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                 <!-- Today Revenue -->
                 <div class="glass-card rounded-xl p-5">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">Today's Revenue</p>
+                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.todayRevenue') }}</p>
                         <div class="rounded-lg bg-gradient-to-br from-teal-400/90 to-teal-600/90 p-2 shadow-md shadow-teal-500/20">
                             <DollarSign class="h-4 w-4 text-white" />
                         </div>
@@ -385,7 +385,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                         <span v-else class="flex items-center text-red-500">
                             <TrendingDown class="mr-0.5 h-3 w-3" /> {{ revenueChange }}%
                         </span>
-                        <span class="text-muted-foreground">vs yesterday</span>
+                        <span class="text-muted-foreground">{{ $t('common.vsYesterday') }}</span>
                         <InfoTip text="Compared with revenue at this time yesterday." />
                     </div>
                 </div>
@@ -393,7 +393,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                 <!-- Today Orders -->
                 <div class="glass-card rounded-xl p-5">
                     <div class="flex items-center justify-between">
-                        <p class="text-sm font-medium text-muted-foreground">Today's Orders</p>
+                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.todayOrders') }}</p>
                         <div class="rounded-lg bg-gradient-to-br from-sky-400/90 to-blue-600/90 p-2 shadow-md shadow-blue-500/20">
                             <ShoppingCart class="h-4 w-4 text-white" />
                         </div>
@@ -405,7 +405,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                 <!-- Quick Actions -->
                 <div class="glass-card rounded-xl p-5 sm:col-span-2 lg:col-span-1">
                     <div class="flex items-center justify-between mb-3">
-                        <p class="text-sm font-medium text-muted-foreground">Quick Actions</p>
+                        <p class="text-sm font-medium text-muted-foreground">{{ $t('dashboard.quickActions') }}</p>
                         <div class="rounded-lg bg-gradient-to-br from-emerald-400/90 to-teal-600/90 p-2 shadow-md shadow-teal-500/20">
                             <Plus class="h-4 w-4 text-white" />
                         </div>
@@ -417,7 +417,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-teal-50/80 dark:hover:bg-teal-900/20 hover:border-teal-200/50 dark:hover:border-teal-800/30"
                         >
                             <Plus class="h-3.5 w-3.5 text-teal-500 shrink-0" />
-                            <span class="text-xs font-medium">Add Branch</span>
+                            <span class="text-xs font-medium">{{ $t('dashboard.addBranch') }}</span>
                         </Link>
                         <Link
                             v-if="can('users.invite')"
@@ -433,7 +433,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             class="flex items-center gap-2 rounded-lg bg-white/50 dark:bg-white/[0.04] p-2.5 border border-white/20 dark:border-white/[0.06] transition hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:border-amber-200/50 dark:hover:border-amber-800/30"
                         >
                             <Package class="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                            <span class="text-xs font-medium">Add Product</span>
+                            <span class="text-xs font-medium">{{ $t('dashboard.addProduct') }}</span>
                         </Link>
                         <a
                             v-if="can('pos.access')"
@@ -442,7 +442,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal-500/10 to-emerald-500/10 p-2.5 border border-teal-200/30 dark:border-teal-800/30 transition hover:from-teal-500/20 hover:to-emerald-500/20"
                         >
                             <ShoppingCart class="h-3.5 w-3.5 text-teal-500 shrink-0" />
-                            <span class="text-xs font-medium text-teal-700 dark:text-teal-400">Open POS</span>
+                            <span class="text-xs font-medium text-teal-700 dark:text-teal-400">{{ $t('dashboard.openPos') }}</span>
                         </a>
                     </div>
                 </div>
@@ -511,8 +511,8 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                     <Tabs v-model="salesTab" default-value="trend">
                         <div class="mb-4 flex items-center justify-between">
                             <TabsList class="h-8 bg-white/30 dark:bg-white/[0.04]">
-                                <TabsTrigger value="trend" class="text-xs px-3 py-1">Sales Trend</TabsTrigger>
-                                <TabsTrigger value="products" class="text-xs px-3 py-1">Top Products</TabsTrigger>
+                                <TabsTrigger value="trend" class="text-xs px-3 py-1">{{ $t('dashboard.salesTrend') }}</TabsTrigger>
+                                <TabsTrigger value="products" class="text-xs px-3 py-1">{{ $t('dashboard.topProducts') }}</TabsTrigger>
                             </TabsList>
                             <div class="rounded-lg bg-gradient-to-br from-teal-400/20 to-teal-600/20 p-2 dark:from-teal-400/10 dark:to-teal-600/10">
                                 <TrendingUp class="h-4 w-4 text-teal-500" />
@@ -522,7 +522,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             <div v-if="salesTrend.length">
                                 <apexchart type="area" height="256" :options="lineChartOptions" :series="lineSeries" />
                             </div>
-                            <div v-else class="flex h-64 items-center justify-center text-sm text-muted-foreground">No sales data yet</div>
+                            <div v-else class="flex h-64 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noSalesData') }}</div>
                         </TabsContent>
                         <TabsContent value="products" class="mt-0">
                             <div v-if="topProducts.length">
@@ -546,7 +546,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             <div v-if="Object.keys(ordersByStatus).length">
                                 <apexchart type="donut" height="224" :options="orderStatusOptions" :series="orderStatusSeries" />
                             </div>
-                            <div v-else class="flex h-56 items-center justify-center text-sm text-muted-foreground">No orders yet</div>
+                            <div v-else class="flex h-56 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noOrdersYet') }}</div>
                         </TabsContent>
                         <TabsContent value="payments" class="mt-0">
                             <div v-if="Object.keys(paymentsByMethod).length">
@@ -563,7 +563,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                 <div class="glass-card rounded-xl p-5">
                     <div class="mb-4 flex items-center justify-between">
                         <div>
-                            <h3 class="font-semibold">Recent Orders</h3>
+                            <h3 class="font-semibold">{{ $t('dashboard.recentOrders') }}</h3>
                             <p class="text-xs text-muted-foreground">Latest 10 orders across all branches</p>
                         </div>
                         <Link :href="tenantUrl('orders')" class="flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700">
@@ -599,7 +599,7 @@ const topProductsBarSeries = computed(() => [{ name: 'Revenue', data: props.topP
                             </tbody>
                         </table>
                     </div>
-                    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">No orders yet</div>
+                    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">{{ $t('dashboard.noOrdersYet') }}</div>
                 </div>
 
             </div>

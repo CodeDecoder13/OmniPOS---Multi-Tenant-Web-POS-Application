@@ -81,7 +81,7 @@ const breadcrumbs = [{ title: 'Orders', href: tenantUrl('orders') }];
                         <ShoppingCart class="h-5 w-5 text-white" />
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold tracking-tight">Orders</h1>
+                        <h1 class="text-2xl font-bold tracking-tight">{{ $t('orders.title') }}</h1>
                         <p class="text-sm text-muted-foreground">View and manage all transactions</p>
                     </div>
                 </div>
