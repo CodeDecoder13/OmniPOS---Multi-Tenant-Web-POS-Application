@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core';
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
-import { Minus, Plus, Search, ShoppingCart, Trash2, User, UserPlus, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play, Tag, ScanBarcode, History, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Minus, Plus, Search, ShoppingCart, Trash2, User, UserPlus, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play, Tag, ScanBarcode, IdCard, History, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import PosLayout from '@/layouts/PosLayout.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -433,7 +434,6 @@ function toggleSplitMode() {
 }
 
 // Receipt preview state
-const showReceiptPreview = ref(false);
 
 // Receipt dialog state
 const showReceiptDialog = ref(false);
@@ -567,6 +567,37 @@ function removeFromCart(index: number) {
     cart.value.splice(index, 1);
 }
 
+// "Clear" button: snapshot first so the cashier can undo a mis-tap.
+function clearCartWithUndo() {
+    const snap = JSON.parse(JSON.stringify({
+        cart: cart.value, orderType: orderType.value, selectedTable: selectedTable.value, discountAmount: discountAmount.value,
+        orderNotes: orderNotes.value, selectedCustomer: selectedCustomer.value, appliedPromo: appliedPromo.value,
+        promoCode: promoCode.value, promoDiscount: promoDiscount.value, appliedPresetDiscount: appliedPresetDiscount.value,
+        discountCustomer: discountCustomer.value, recalledOrderId: recalledOrderId.value,
+    }));
+    clearCart();
+    toast.info('Cart cleared', {
+        duration: 8000,
+        action: {
+            label: 'Undo',
+            onClick: () => {
+                cart.value = snap.cart;
+                orderType.value = snap.orderType;
+                selectedTable.value = snap.selectedTable;
+                discountAmount.value = snap.discountAmount;
+                orderNotes.value = snap.orderNotes;
+                selectedCustomer.value = snap.selectedCustomer;
+                appliedPromo.value = snap.appliedPromo;
+                promoCode.value = snap.promoCode;
+                promoDiscount.value = snap.promoDiscount;
+                appliedPresetDiscount.value = snap.appliedPresetDiscount;
+                discountCustomer.value = snap.discountCustomer;
+                recalledOrderId.value = snap.recalledOrderId;
+            },
+        },
+    });
+}
+
 function clearCart() {
     cart.value = [];
     orderType.value = availableOrderTypes.value[0] ?? 'dine_in';
@@ -602,13 +633,8 @@ function loadMore() {
 }
 
 // Open receipt preview
+// Complete Purchase now opens payment directly; the items are reviewable inside it.
 function openReceiptPreview() {
-    showReceiptPreview.value = true;
-}
-
-// Confirm & proceed to payment
-function confirmAndPay() {
-    showReceiptPreview.value = false;
     openPaymentDialog();
 }
 
@@ -998,6 +1024,25 @@ function removeCustomer() {
 // Barcode input ref for programmatic focus
 const barcodeInputRef = ref<InstanceType<typeof Input> | null>(null);
 
+const productSearchRef = ref<any>(null);
+
+// Cashier shortcuts: F-keys only (no Ctrl combos), ignored while a dialog is open.
+// No animation is tied to them: they are used all day.
+useEventListener(window, 'keydown', (e: KeyboardEvent) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || document.querySelector('[role="dialog"]')) return;
+    if (e.key === 'F2') {
+        e.preventDefault();
+        const el = productSearchRef.value?.$el?.querySelector?.('input') ?? productSearchRef.value?.$el;
+        el?.focus();
+    } else if (e.key === 'F4' && cart.value.length > 0) {
+        e.preventDefault();
+        holdOrder();
+    } else if (e.key === 'F9' && cart.value.length > 0) {
+        e.preventDefault();
+        openReceiptPreview();
+    }
+});
+
 function focusBarcodeInput() {
     nextTick(() => {
         const el = barcodeInputRef.value?.$el?.querySelector('input') ?? barcodeInputRef.value?.$el;
@@ -1076,7 +1121,7 @@ onUnmounted(() => {
                     <div class="flex flex-col gap-2 border-b px-3 py-2.5 md:flex-row md:items-center md:gap-2 md:px-4 md:py-3">
                         <div class="relative flex-1">
                             <Search class="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground" />
-                            <Input v-model="productSearch" placeholder="Search products..." class="h-11 rounded-full bg-muted/50 border-none pl-10 text-sm" />
+                            <Input ref="productSearchRef" v-model="productSearch" placeholder="Search products (F2)" class="h-11 rounded-full bg-muted/50 border-none pl-10 text-sm" />
                         </div>
                         <div class="flex items-center gap-1.5 md:gap-2">
                             <button
@@ -1090,12 +1135,14 @@ onUnmounted(() => {
                             </button>
                             <button
                                 @click="showBillingHistorySheet = true"
+                                aria-label="Billing history"
                                 class="flex md:hidden items-center gap-2 rounded-full border px-2.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                             >
                                 <History class="h-4 w-4" />
                             </button>
                             <button
                                 @click="focusBarcodeInput"
+                                title="Click, then scan with your USB scanner"
                                 :class="[
                                     'flex items-center gap-2 rounded-full border px-2.5 py-2 lg:px-4 lg:py-2.5 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary',
                                     scanStatus === 'scanned' ? 'border-green-300 text-green-600 bg-green-50 dark:bg-green-950' : scanStatus === 'not_found' ? 'border-red-300 text-red-600 bg-red-50 dark:bg-red-950' : 'text-muted-foreground',
@@ -1117,12 +1164,13 @@ onUnmounted(() => {
                             <button
                                 v-if="presetDiscounts && presetDiscounts.length > 0"
                                 @click="showDiscountPanel = true"
+                                title="Senior Citizen or PWD discount. Needs the customer's ID."
                                 :class="[
                                     'flex items-center gap-2 rounded-full border px-2.5 py-2 lg:px-4 lg:py-2.5 text-xs font-medium transition-colors hover:border-primary/40 hover:text-primary',
                                     appliedPresetDiscount ? 'border-green-300 text-green-600 bg-green-50 dark:bg-green-950' : 'text-muted-foreground',
                                 ]"
                             >
-                                <Tag class="h-4 w-4" />
+                                <IdCard class="h-4 w-4" />
                                 <span class="hidden lg:inline">ID Discount</span>
                             </button>
                         </div>
@@ -1140,6 +1188,7 @@ onUnmounted(() => {
                         <button
                             v-show="canScrollLeft"
                             @click="scrollCategories('left')"
+                            aria-label="Scroll categories left"
                             class="absolute left-0 z-10 flex h-full w-8 items-center justify-center bg-gradient-to-r from-card via-card/90 to-transparent"
                         >
                             <ChevronLeft class="h-4 w-4 text-muted-foreground" />
@@ -1152,7 +1201,7 @@ onUnmounted(() => {
                             <button
                                 @click="selectCategory(null)"
                                 :class="[
-                                    'shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all',
+                                    'shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold transition-all min-h-11',
                                     !selectedCategory ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card border hover:border-primary/40 hover:text-primary',
                                 ]"
                             >
@@ -1163,7 +1212,7 @@ onUnmounted(() => {
                                 :key="cat.id"
                                 @click="selectCategory(cat.id)"
                                 :class="[
-                                    'shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all',
+                                    'shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold transition-all min-h-11',
                                     selectedCategory === cat.id ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card border hover:border-primary/40 hover:text-primary',
                                 ]"
                             >
@@ -1173,6 +1222,7 @@ onUnmounted(() => {
                         <button
                             v-show="canScrollRight"
                             @click="scrollCategories('right')"
+                            aria-label="Scroll categories right"
                             class="absolute right-0 z-10 flex h-full w-8 items-center justify-center bg-gradient-to-l from-card via-card/90 to-transparent"
                         >
                             <ChevronRight class="h-4 w-4 text-muted-foreground" />
@@ -1284,7 +1334,7 @@ onUnmounted(() => {
                             <Pause class="h-3 w-3" />
                             Held
                         </Button>
-                        <Button v-if="cart.length > 0" variant="ghost" size="sm" class="text-xs text-muted-foreground" @click="clearCart">
+                        <Button v-if="cart.length > 0" variant="ghost" size="sm" class="text-xs text-muted-foreground" @click="clearCartWithUndo">
                             Clear
                         </Button>
                     </div>
@@ -1300,7 +1350,7 @@ onUnmounted(() => {
                                 <p v-if="selectedCustomer.phone" class="text-xs text-muted-foreground">{{ selectedCustomer.phone }}</p>
                             </div>
                         </div>
-                        <Button variant="ghost" size="icon" class="h-6 w-6" @click="removeCustomer">
+                        <Button variant="ghost" size="icon" class="size-10" aria-label="Remove customer" @click="removeCustomer">
                             <X class="h-3 w-3" />
                         </Button>
                     </div>
@@ -1315,7 +1365,8 @@ onUnmounted(() => {
                             </button>
                             <button
                                 @click="openAddCustomer"
-                                class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                class="flex size-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                aria-label="Create new customer"
                                 title="Create new customer"
                             >
                                 <UserPlus class="h-3.5 w-3.5" />
@@ -1420,23 +1471,23 @@ onUnmounted(() => {
                                     <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }}</p>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, -1)">
+                                    <Button variant="outline" size="icon" class="size-10 rounded-full" aria-label="Decrease quantity" @click="updateQuantity(index, -1)">
                                         <Minus class="h-3 w-3" />
                                     </Button>
                                     <span class="w-8 text-center text-sm font-semibold">{{ item.quantity }}</span>
-                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, 1)">
+                                    <Button variant="outline" size="icon" class="size-10 rounded-full" aria-label="Increase quantity" @click="updateQuantity(index, 1)">
                                         <Plus class="h-3 w-3" />
                                     </Button>
                                 </div>
                                 <p class="w-20 text-right text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
-                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)" aria-label="Delete">
+                                <Button variant="ghost" size="icon" class="size-10 shrink-0 opacity-50 hover:opacity-100" @click="removeFromCart(index)" aria-label="Remove item from cart">
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>
                             <Input
                                 v-model="item.notes"
                                 placeholder="Item note (optional)"
-                                class="mt-1 h-6 text-[11px] text-muted-foreground"
+                                class="mt-1 h-9 text-xs text-muted-foreground"
                             />
                         </div>
                     </div>
@@ -1525,7 +1576,7 @@ onUnmounted(() => {
                             class="flex-1 h-10"
                             :disabled="holdingOrder"
                             @click="holdOrder"
-                            title="Save this cart and start a new one"
+                            title="Save this cart and start a new one (F4)"
                         >
                             <Pause class="mr-1.5 h-4 w-4" />
                             {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
@@ -1534,6 +1585,7 @@ onUnmounted(() => {
                     <Button
                         class="w-full h-14 text-lg font-bold rounded-xl shadow-md"
                         :disabled="cart.length === 0"
+                        title="Go to payment (F9)"
                         @click="openReceiptPreview"
                     >
                         <ShoppingCart class="mr-2 h-5 w-5" />
@@ -1577,7 +1629,7 @@ onUnmounted(() => {
                                 <p v-if="selectedCustomer.phone" class="text-xs text-muted-foreground">{{ selectedCustomer.phone }}</p>
                             </div>
                         </div>
-                        <Button variant="ghost" size="icon" class="h-6 w-6" @click="removeCustomer">
+                        <Button variant="ghost" size="icon" class="size-10" aria-label="Remove customer" @click="removeCustomer">
                             <X class="h-3 w-3" />
                         </Button>
                     </div>
@@ -1670,23 +1722,23 @@ onUnmounted(() => {
                                     <p class="text-xs text-muted-foreground">{{ formatCurrency(item.price) }}</p>
                                 </div>
                                 <div class="flex items-center gap-1">
-                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, -1)">
+                                    <Button variant="outline" size="icon" class="size-10 rounded-full" aria-label="Decrease quantity" @click="updateQuantity(index, -1)">
                                         <Minus class="h-3 w-3" />
                                     </Button>
                                     <span class="w-8 text-center text-sm font-semibold">{{ item.quantity }}</span>
-                                    <Button variant="outline" size="icon" class="h-7 w-7 rounded-full" @click="updateQuantity(index, 1)">
+                                    <Button variant="outline" size="icon" class="size-10 rounded-full" aria-label="Increase quantity" @click="updateQuantity(index, 1)">
                                         <Plus class="h-3 w-3" />
                                     </Button>
                                 </div>
                                 <p class="w-20 text-right text-sm font-semibold">{{ formatCurrency(item.price * item.quantity) }}</p>
-                                <Button variant="ghost" size="icon" class="h-7 w-7 shrink-0 opacity-40 hover:opacity-100" @click="removeFromCart(index)" aria-label="Delete">
+                                <Button variant="ghost" size="icon" class="size-10 shrink-0 opacity-50 hover:opacity-100" @click="removeFromCart(index)" aria-label="Remove item from cart">
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>
                             <Input
                                 v-model="item.notes"
                                 placeholder="Item note (optional)"
-                                class="mt-1 h-6 text-[11px] text-muted-foreground"
+                                class="mt-1 h-9 text-xs text-muted-foreground"
                             />
                         </div>
                     </div>
@@ -1768,7 +1820,7 @@ onUnmounted(() => {
                             class="flex-1 h-10"
                             :disabled="holdingOrder"
                             @click="holdOrder"
-                            title="Save this cart and start a new one"
+                            title="Save this cart and start a new one (F4)"
                         >
                             <Pause class="mr-1.5 h-4 w-4" />
                             {{ holdingOrder ? 'Holding...' : 'Hold Order' }}
@@ -1821,39 +1873,6 @@ onUnmounted(() => {
             </SheetContent>
         </Sheet>
 
-        <!-- Receipt Preview Dialog -->
-        <Dialog v-model:open="showReceiptPreview">
-            <DialogContent class="sm:max-w-sm">
-                <DialogHeader>
-                    <DialogTitle class="flex items-center gap-2">
-                        <Receipt class="h-5 w-5" />
-                        Order Preview
-                    </DialogTitle>
-                </DialogHeader>
-
-                <div class="max-h-[60vh] overflow-y-auto py-2">
-                    <ReceiptTemplate
-                        :data="previewReceiptData"
-                        :showPaymentDetails="false"
-                        :logo-url="tenant?.settings?.receipt_logo_url ?? null"
-                        :show-address="tenant?.settings?.receipt_show_address !== false"
-                        :show-phone="tenant?.settings?.receipt_show_phone !== false"
-                        :show-customer="tenant?.settings?.receipt_show_customer !== false"
-                        :show-table="tenant?.settings?.receipt_show_table !== false"
-                        :show-order-type="tenant?.settings?.receipt_show_order_type !== false"
-                        :show-tax-breakdown="tenant?.settings?.receipt_show_tax_breakdown !== false"
-                        :thank-you-message="(tenant?.settings?.receipt_thank_you_message as string) ?? ''"
-                        :width="(tenant?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm'"
-                    />
-                </div>
-
-                <DialogFooter class="flex-row gap-2 sm:flex-row">
-                    <Button variant="outline" class="flex-1" @click="showReceiptPreview = false">Back</Button>
-                    <Button class="flex-1" @click="confirmAndPay">Confirm & Pay</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
         <!-- Payment Dialog -->
         <Dialog v-model:open="showPaymentDialog">
             <DialogContent class="sm:max-w-md">
@@ -1862,6 +1881,19 @@ onUnmounted(() => {
                 </DialogHeader>
 
                 <div class="space-y-4">
+                    <!-- Order review: replaces the old separate preview step -->
+                    <details class="rounded-lg border px-3 py-2 text-sm">
+                        <summary class="cursor-pointer select-none font-medium">
+                            Review order ({{ cart.reduce((n, c) => n + c.quantity, 0) }} items)
+                        </summary>
+                        <ul class="mt-2 max-h-40 space-y-1 overflow-y-auto">
+                            <li v-for="c in cart" :key="c.product_id" class="flex justify-between gap-3">
+                                <span class="truncate">{{ c.quantity }} x {{ c.name }}</span>
+                                <span class="tabular-nums text-muted-foreground">{{ formatCurrency(c.price * c.quantity) }}</span>
+                            </li>
+                        </ul>
+                    </details>
+
                     <!-- Total display -->
                     <div class="rounded-lg bg-muted p-4 text-center">
                         <p class="text-sm text-muted-foreground">Total</p>
@@ -1931,7 +1963,7 @@ onUnmounted(() => {
                             <div v-for="(sp, idx) in splitPayments" :key="idx" class="rounded-lg border p-3 space-y-2">
                                 <div class="flex items-center justify-between">
                                     <span class="text-xs font-medium text-muted-foreground">Payment {{ idx + 1 }}</span>
-                                    <Button v-if="splitPayments.length > 1" variant="ghost" size="icon" class="h-6 w-6" @click="removeSplitPayment(idx)">
+                                    <Button v-if="splitPayments.length > 1" variant="ghost" size="icon" class="size-10" aria-label="Remove this payment" @click="removeSplitPayment(idx)">
                                         <X class="h-3 w-3" />
                                     </Button>
                                 </div>
@@ -1940,7 +1972,7 @@ onUnmounted(() => {
                                         v-for="m in [{ v: 'cash', l: 'Cash' }, { v: 'card', l: 'Card' }, { v: 'e_wallet', l: 'E-Wallet' }]"
                                         :key="m.v"
                                         @click="sp.method = m.v"
-                                        :class="['rounded border px-2 py-1 text-xs', sp.method === m.v ? 'border-primary bg-primary/10 text-primary' : '']"
+                                        :class="['min-h-11 rounded border px-2 py-2 text-sm', sp.method === m.v ? 'border-primary bg-primary/10 text-primary' : '']"
                                     >{{ m.l }}</button>
                                 </div>
                                 <Input v-model.number="sp.amount" type="number" min="0" step="0.01" placeholder="Amount" class="h-9 text-sm" />
