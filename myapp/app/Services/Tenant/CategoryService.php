@@ -5,7 +5,11 @@ namespace App\Services\Tenant;
 use App\Enums\BusinessType;
 use App\Models\Tenant;
 use App\Models\Tenant\Category;
+use App\Models\Tenant\Product;
+use App\Models\Tenant\PurchaseOrderItem;
+use App\Models\Tenant\StockTransferItem;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class CategoryService
 {
@@ -20,6 +24,29 @@ class CategoryService
                 'sort_order' => $index + 1,
             ]);
         }
+    }
+
+    /**
+     * Switch a tenant's business type: wipes all products and categories
+     * (and the records that hard-reference them), then seeds the new defaults.
+     * Order history is kept; order items just lose their product link.
+     */
+    public function resetForBusinessType(Tenant $tenant, BusinessType $businessType): void
+    {
+        DB::transaction(function () use ($tenant, $businessType) {
+            $productIds = Product::forTenant($tenant)->select('id');
+
+            // These FKs have no cascade, so they would block the product delete.
+            PurchaseOrderItem::whereIn('product_id', $productIds)->delete();
+            StockTransferItem::whereIn('product_id', $productIds)->delete();
+
+            // Cascades to inventory, branch pricing, variations, add-on and supplier links.
+            Product::forTenant($tenant)->delete();
+            Category::forTenant($tenant)->delete();
+
+            $tenant->update(['business_type' => $businessType]);
+            $this->seedDefaults($tenant, $businessType);
+        });
     }
 
     public function list(Tenant $tenant): Collection

@@ -332,6 +332,7 @@ Route::prefix('{tenant}')
         Route::middleware('can-do:settings.manage')->group(function () {
             Route::get('settings', [SettingsController::class, 'edit'])->name('tenant.settings.edit');
             Route::put('settings', [SettingsController::class, 'update'])->name('tenant.settings.update');
+            Route::put('settings/business-type', [SettingsController::class, 'changeBusinessType'])->name('tenant.settings.business-type');
         });
 
         // Receipt Customization

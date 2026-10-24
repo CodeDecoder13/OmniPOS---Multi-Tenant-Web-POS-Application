@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Crown, Globe, Monitor, Moon, Percent, ReceiptText, Store, Sun, Palette } from 'lucide-vue-next';
+import { Briefcase, Crown, Globe, Monitor, Moon, Percent, ReceiptText, Store, Sun, Palette, TriangleAlert } from 'lucide-vue-next';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,9 @@ const { setLocale } = useLocale();
 
 const props = defineProps<{
     settings: TenantSettings;
+    businessType: string;
+    businessTypes: { value: string; label: string; icon: string }[];
+    isOwner: boolean;
 }>();
 
 const { tenant, tenantUrl } = useTenant();
@@ -66,6 +70,23 @@ const form = useForm({
 
 function submit() {
     form.put(tenantUrl('settings'));
+}
+
+const typeForm = useForm({
+    business_type: props.businessType,
+    confirmation: '',
+});
+const confirmOpen = ref(false);
+const newTypeLabel = computed(() => props.businessTypes.find((b) => b.value === typeForm.business_type)?.label ?? '');
+
+function changeType() {
+    typeForm.put(tenantUrl('settings/business-type'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            confirmOpen.value = false;
+            typeForm.reset('confirmation');
+        },
+    });
 }
 
 function setTheme(value: 'light' | 'dark' | 'system') {
@@ -374,6 +395,79 @@ const taxPreview = computed(() => {
                     </Button>
                 </div>
             </form>
+
+            <!-- Business Type (owner only) -->
+            <div v-if="isOwner" class="mt-6 rounded-xl border border-red-200 bg-card p-6 shadow-sm dark:border-red-900/50">
+                <div class="mb-5 flex items-center gap-3">
+                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
+                        <Briefcase class="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                        <h2 class="text-base font-semibold">Business Type</h2>
+                        <p class="text-xs text-muted-foreground">Changing this resets your products and categories.</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="w-full sm:w-72">
+                        <Label>Business type</Label>
+                        <Select v-model="typeForm.business_type">
+                            <SelectTrigger class="mt-1">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="bt in businessTypes" :key="bt.value" :value="bt.value">
+                                    {{ bt.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        :disabled="typeForm.business_type === businessType"
+                        @click="confirmOpen = true"
+                    >
+                        Change business type
+                    </Button>
+                </div>
+            </div>
         </div>
+
+        <Dialog v-model:open="confirmOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle class="flex items-center gap-2 text-red-600">
+                        <TriangleAlert class="h-5 w-5" />
+                        Change business type?
+                    </DialogTitle>
+                    <DialogDescription>
+                        Switching to <strong>{{ newTypeLabel }}</strong> affects all of your data and cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <ul class="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    <li>All <strong>products</strong>, variations, and stock levels will be deleted.</li>
+                    <li>All <strong>categories</strong> will be deleted and replaced with the defaults for {{ newTypeLabel }}.</li>
+                    <li>Purchase order and stock transfer lines for those products will be removed.</li>
+                    <li>Past orders are kept, but will no longer link to a product.</li>
+                </ul>
+                <div>
+                    <Label for="confirmation">Type <strong>CHANGE</strong> to confirm</Label>
+                    <Input id="confirmation" v-model="typeForm.confirmation" class="mt-1" autocomplete="off" />
+                    <p v-if="typeForm.errors.confirmation" class="mt-1 text-sm text-red-500">{{ typeForm.errors.confirmation }}</p>
+                    <p v-if="typeForm.errors.business_type" class="mt-1 text-sm text-red-500">{{ typeForm.errors.business_type }}</p>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" @click="confirmOpen = false">Cancel</Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        :disabled="typeForm.confirmation !== 'CHANGE' || typeForm.processing"
+                        @click="changeType"
+                    >
+                        {{ typeForm.processing ? 'Changing...' : 'Yes, delete and change' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </TenantLayout>
 </template>
