@@ -20,7 +20,7 @@ class HoldOrderRequest extends FormRequest
 
         return [
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer'],
+            'items.*.product_id' => ['required', 'integer', \App\Support\TenantRule::exists('products', $tenant)],
             'items.*.product_name' => ['required', 'string', 'max:255'],
             'items.*.product_price' => ['required', 'numeric', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
@@ -32,10 +32,10 @@ class HoldOrderRequest extends FormRequest
             'items.*.addons' => ['nullable', 'array'],
             'items.*.addons.*.addon_name' => ['required_with:items.*.addons', 'string'],
             'items.*.addons.*.addon_price' => ['nullable', 'numeric'],
-            'customer_id' => ['nullable', 'integer'],
+            'customer_id' => ['nullable', 'integer', \App\Support\TenantRule::exists('customers', $tenant)],
             'notes' => ['nullable', 'string', 'max:1000'],
             'order_type' => ['nullable', new Enum(OrderType::class)],
-            'table_id' => ['nullable', 'integer'],
+            'table_id' => ['nullable', 'integer', \App\Support\TenantRule::exists('tables', $tenant)],
         ];
     }
 }

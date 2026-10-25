@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\RoleRequest;
 use App\Services\Tenant\ActivityLogService;
 use App\Services\Tenant\RoleService;
+use App\Support\PermissionCeiling;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,7 @@ class RoleController extends Controller
     public function store(RoleRequest $request, string $tenantSlug): RedirectResponse
     {
         $tenant = $request->attributes->get('current_tenant');
+        PermissionCeiling::assertPermissionIdsWithin($request, $tenant, $request->validated('permissions'));
         $role = $this->roleService->create($tenant, $request->validated(), $request->validated('permissions'));
 
         $this->activityLog->log($tenant, $request->user()->id, 'role.created', 'Role', $role->id, [
@@ -65,6 +67,8 @@ class RoleController extends Controller
     {
         $tenant = $request->attributes->get('current_tenant');
         $roleModel = $this->roleService->find($tenant, $role);
+        PermissionCeiling::assertNotOwnRole($request, $tenant, $roleModel);
+        PermissionCeiling::assertPermissionIdsWithin($request, $tenant, $request->validated('permissions'));
         $this->roleService->update($roleModel, $request->validated(), $request->validated('permissions'));
 
         $this->activityLog->log($tenant, $request->user()->id, 'role.updated', 'Role', $roleModel->id, [

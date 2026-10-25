@@ -18,7 +18,7 @@ class RefundRequest extends FormRequest
             'type' => ['required', Rule::in(['full', 'partial'])],
             'reason' => ['required', 'string', 'max:1000'],
             'items' => ['required_if:type,partial', 'array', 'min:1'],
-            'items.*.order_item_id' => ['required_with:items', 'integer'],
+            'items.*.order_item_id' => ['required_with:items', 'integer', 'distinct'],
             'items.*.quantity' => ['required_with:items', 'integer', 'min:1'],
         ];
     }

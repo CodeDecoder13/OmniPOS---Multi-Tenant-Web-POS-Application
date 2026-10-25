@@ -74,7 +74,9 @@ class CustomerService
 
     public function getOrderHistory(Customer $customer, int $perPage = 15): LengthAwarePaginator
     {
+        // Belt and braces: only this customer's own tenant's orders, never a held order injected from elsewhere.
         return $customer->orders()
+            ->where('tenant_id', $customer->tenant_id)
             ->with(['creator:id,name', 'branch:id,name'])
             ->withCount('items')
             ->latest()

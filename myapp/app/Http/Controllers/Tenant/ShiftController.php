@@ -119,6 +119,9 @@ class ShiftController extends Controller
             return response()->json(['shift' => null, 'summary' => null]);
         }
 
+        // Shift cash is private to that cashier (or the owner / a PIN-verified operator).
+        $this->assertMayActFor($request, (int) $userId);
+
         $shift = $this->shiftService->getOpenShift($tenant, (int) $userId);
 
         if (! $shift) {

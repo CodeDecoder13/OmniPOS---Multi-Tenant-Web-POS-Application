@@ -80,6 +80,13 @@ class RegisterService
     private function generateUniqueSlug(string $name): string
     {
         $slug = Str::slug($name);
+
+        // These would collide with real routes (/admin/..., /login, ...), so a store named "Admin" becomes "admin-business".
+        $reserved = ['admin', 'login', 'logout', 'register', 'receipts', 'auth', 'email', 'settings', 'up', 'dashboard', 'about', 'privacy', 'terms', 'features', 'pricing', 'how-it-works', 'two-factor-challenge', 'forgot-password', 'reset-password', 'verify-email', 'storage', 'build'];
+        if ($slug === '' || in_array($slug, $reserved, true)) {
+            $slug = ($slug ?: 'store') . '-business';
+        }
+
         $original = $slug;
         $counter = 1;
 

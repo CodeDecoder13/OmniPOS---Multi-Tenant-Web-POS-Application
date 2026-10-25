@@ -12,6 +12,7 @@ use App\Services\PlanLimitService;
 use App\Services\Tenant\ActivityLogService;
 use App\Services\Tenant\UserImportService;
 use DomainException;
+use App\Support\PermissionCeiling;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -186,12 +187,8 @@ class UserController extends Controller
 
             $role = Role::forTenant($tenant->id)->findOrFail($validated['role_id']);
 
-            // Only the owner can hand out the Owner role (stops self-promotion).
-            abort_if(
-                $role->is_system && $role->slug === 'owner' && (int) $request->user()->id !== (int) $tenant->owner_id,
-                403,
-                'Only the organization owner can assign the Owner role.',
-            );
+            // You can only assign a role that grants no more than you hold yourself (the owner can assign any).
+            PermissionCeiling::assertRoleWithin($request, $tenant, $role);
 
             $branchId = $validated['branch_id'] ?? Branch::forTenant($tenant)->where('is_active', true)->latest('id')->value('id');
 
@@ -202,8 +199,15 @@ class UserController extends Controller
             $user = User::findOrFail($userId);
             $data = ['name' => $validated['name']];
 
-            // The login belongs to the person, not this tenant. If they also work for another
-            // business, a manager here must not be able to change their email or password.
+            // A login (email + password) is the person's key to the whole account, so only the owner may
+            // change it for someone else. Anyone else who could reset a coworker's password could simply sign in as them.
+            $isOwnerActor = (int) $request->user()->id === (int) $tenant->owner_id;
+            $changesLogin = $validated['email'] !== $user->email || ! empty($validated['password']);
+            if ($changesLogin && ! $isOwnerActor) {
+                return back()->with('error', 'Only the organization owner can change a user\'s email or password.');
+            }
+
+            // And if the person also works for another business, even the owner here must not change it.
             $sharedWithOtherTenant = TenantUser::where('user_id', $userId)->where('tenant_id', '!=', $tenant->id)->exists();
             if (! $sharedWithOtherTenant) {
                 $data['email'] = $validated['email'];

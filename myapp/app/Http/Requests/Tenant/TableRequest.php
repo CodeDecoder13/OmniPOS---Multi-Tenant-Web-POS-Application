@@ -15,9 +15,11 @@ class TableRequest extends FormRequest
 
     public function rules(): array
     {
+        $tenant = $this->attributes->get('current_tenant');
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'branch_id' => ['nullable', 'integer'],
+            'branch_id' => ['nullable', 'integer', \App\Support\TenantRule::exists('branches', $tenant)],
             'capacity' => ['required', 'integer', 'min:1', 'max:100'],
             'status' => ['sometimes', new Enum(TableStatus::class)],
             'sort_order' => ['sometimes', 'integer', 'min:0'],

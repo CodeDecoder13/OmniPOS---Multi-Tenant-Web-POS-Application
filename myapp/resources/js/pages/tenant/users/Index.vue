@@ -679,12 +679,14 @@ function roleBadgeClass(slug: string): string {
                             type="email"
                             placeholder="user@example.com"
                             class="mt-1"
+                            :disabled="currentUserId !== ownerId"
                             required
                         />
+                        <p v-if="currentUserId !== ownerId" class="mt-1 text-xs text-muted-foreground">Only the owner can change a login email.</p>
                         <p v-if="page.props.errors.email" class="mt-1 text-sm text-red-500">{{ page.props.errors.email }}</p>
                     </div>
 
-                    <div>
+                    <div v-if="currentUserId === ownerId">
                         <Label for="edit-password">New Password</Label>
                         <p class="text-xs text-muted-foreground">Leave empty to keep current password.</p>
                         <div class="mt-1 flex gap-2">

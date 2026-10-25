@@ -1,0 +1,7 @@
+# Never commit production settings or secrets (a storage key pair was once committed under prod/)
+prod/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
