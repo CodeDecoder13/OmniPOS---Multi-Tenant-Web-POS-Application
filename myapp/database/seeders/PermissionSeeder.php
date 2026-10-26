@@ -51,6 +51,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'Delete Promotions', 'slug' => 'promotions.delete', 'group' => 'promotions'],
             ['name' => 'Access Kitchen Display', 'slug' => 'kitchen.access', 'group' => 'kitchen'],
             ['name' => 'Manage Kitchen Orders', 'slug' => 'kitchen.manage', 'group' => 'kitchen'],
+            ['name' => 'Manage Staff', 'slug' => 'staff.manage', 'group' => 'staff'],
+            ['name' => 'View Staff Commissions', 'slug' => 'staff.report', 'group' => 'staff'],
         ];
 
         foreach ($permissions as $permission) {

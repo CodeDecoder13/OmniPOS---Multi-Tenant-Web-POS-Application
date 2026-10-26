@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,7 @@ const props = defineProps<{
 }>();
 
 const { tenantUrl } = useTenant();
+const commissionsOn = !!(usePage().props.branchSettings as Record<string, boolean> | null)?.commissions;
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: tenantUrl('dashboard') },
@@ -56,6 +57,7 @@ const form = useForm({
     remove_image: false,
     price: Number(props.product.price),
     cost_price: props.product.cost_price ? Number(props.product.cost_price) : undefined,
+    commission_rate: props.product.commission_rate != null ? Number(props.product.commission_rate) : undefined,
     is_active: props.product.is_active,
     is_food: props.product.is_food,
     is_service: props.product.is_service ?? false,
@@ -480,6 +482,23 @@ function submit() {
                                         />
                                         <p v-if="form.errors.cost_price" class="mt-1 text-sm text-red-500">{{ form.errors.cost_price }}</p>
                                     </div>
+                                </div>
+                                <div v-if="commissionsOn">
+                                    <div class="flex items-center gap-1">
+                                        <Label for="commission_rate">Commission rate (%)</Label>
+                                        <InfoTip text="Optional. Overrides the staff member's default rate for this item only. Leave blank to use their default." />
+                                    </div>
+                                    <Input
+                                        id="commission_rate"
+                                        v-model.number="form.commission_rate"
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="100"
+                                        placeholder="Use staff default"
+                                        class="mt-1 w-48"
+                                    />
+                                    <p v-if="form.errors.commission_rate" class="mt-1 text-sm text-red-500">{{ form.errors.commission_rate }}</p>
                                 </div>
 
                                 <div class="flex items-center gap-2">

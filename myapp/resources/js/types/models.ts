@@ -226,6 +226,7 @@ export interface Product {
     is_active: boolean;
     is_food: boolean;
     is_service: boolean;
+    commission_rate: string | null;
     duration_minutes: number | null;
     created_by: number | null;
     category?: { id: number; name: string };

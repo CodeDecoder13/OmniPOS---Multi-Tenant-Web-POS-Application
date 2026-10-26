@@ -1,8 +1,8 @@
 import { usePage } from '@inertiajs/vue3';
 import {
-    ArrowLeftRight, BarChart3, Building2, CalendarDays, ChefHat, ClipboardList, Clock, FileText,
+    ArrowLeftRight, BadgePercent, BarChart3, Building2, CalendarDays, ChefHat, ClipboardList, Clock, FileText,
     FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle, ReceiptText, Settings2, Shield,
-    ShoppingCart, Sparkles, Tag, Truck, UserRound, Users, Warehouse,
+    ShoppingCart, Sparkles, Tag, Truck, UserCheck, UserRound, Users, Warehouse,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component } from 'vue';
@@ -94,6 +94,8 @@ const defs: { key: string; items: NavDef[] }[] = [
         items: [
             { key: 'members', path: 'users', icon: Users, permission: 'users.view' },
             { key: 'roles', path: 'roles', icon: Shield, permission: 'roles.view' },
+            { key: 'staff', path: 'staff', icon: UserCheck, permission: 'staff.manage', feature: 'staff_tracking' },
+            { key: 'commissions', path: 'staff/commissions', icon: BadgePercent, permission: 'staff.report', feature: 'commissions' },
             { key: 'shifts', path: 'shifts', icon: Clock, permission: 'shifts.view' },
             { key: 'schedules', path: 'shift-schedules', icon: CalendarDays, permission: 'users.edit-role' },
         ],
@@ -115,6 +117,7 @@ export function useTenantNav() {
     const { isEnabled } = useBranchSettings();
     const { tenant, tenantUrl } = useTenant();
     const page = usePage();
+    const terms = computed(() => (page.props.businessProfile as { terms?: { staff_plural?: string } } | null)?.terms);
 
     const sections = computed<NavSection[]>(() => {
         const planSlug = tenant.value?.subscription?.plan?.slug;
@@ -132,7 +135,8 @@ export function useTenantNav() {
 
                         return {
                             key: d.key,
-                            label: t(`nav.${d.key}`),
+                            // The staff page is called what this business calls them: Stylists, Barbers, Technicians...
+                            label: d.key === 'staff' ? (terms.value?.staff_plural ?? t('nav.staff')) : t(`nav.${d.key}`),
                             path: d.path,
                             icon: d.icon,
                             external: !!d.external,
@@ -146,7 +150,11 @@ export function useTenantNav() {
 
     function isActive(path: string): boolean {
         const href = tenantUrl(path);
-        return path === 'dashboard' ? page.url === href : page.url.startsWith(href);
+        // 'staff' must not also light up on its child page, staff/commissions.
+        const exact = path === 'dashboard' || path === 'staff';
+        const url = page.url.split('?')[0];
+
+        return exact ? url === href : page.url.startsWith(href);
     }
 
     return { sections, isActive, tenantUrl, can };

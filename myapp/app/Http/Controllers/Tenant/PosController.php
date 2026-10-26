@@ -10,6 +10,7 @@ use App\Http\Requests\Tenant\HoldOrderRequest;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Branch;
 use App\Models\Tenant\Order;
+use App\Models\Tenant\StaffMember;
 use App\Models\TenantUser;
 use App\Services\Tenant\CustomerService;
 use App\Services\Tenant\HeldOrderService;
@@ -47,6 +48,10 @@ class PosController extends Controller
             'tables' => app(TableService::class)->getAvailableForBranch($tenant, $branchId),
             'presetDiscounts' => $this->promotionService->getPresetDiscounts($tenant),
             'branchSettings' => $branch?->getSettings(),
+            // Who can be picked on a sale line (only when this branch tracks staff).
+            'staff' => $branch?->getSetting('staff_tracking')
+                ? StaffMember::forTenant($tenant)->active()->orderBy('name')->get(['id', 'name'])
+                : [],
         ]);
     }
 

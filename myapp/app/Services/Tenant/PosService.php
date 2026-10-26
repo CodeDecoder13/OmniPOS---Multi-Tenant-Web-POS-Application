@@ -197,6 +197,7 @@ class PosService
                     'quantity' => $item['quantity'],
                     'subtotal' => $itemSubtotal,
                     'notes' => $item['notes'] ?? null,
+                    'staff_member_id' => $item['staff_member_id'] ?? null,
                 ];
             }
 

@@ -93,7 +93,9 @@
         "openPos": "Open POS",
         "newProduct": "New product",
         "searchIn": "Search {where} for {query}",
-        "mainNav": "Main navigation"
+        "mainNav": "Main navigation",
+        "staff": "Staff",
+        "commissions": "Commissions"
     },
     "settings": {
         "title": "Settings",

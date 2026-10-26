@@ -93,7 +93,9 @@
         "openPos": "Buksan ang POS",
         "newProduct": "Bagong produkto",
         "searchIn": "Hanapin ang {query} sa {where}",
-        "mainNav": "Pangunahing nabigasyon"
+        "mainNav": "Pangunahing nabigasyon",
+        "staff": "Mga Tauhan",
+        "commissions": "Mga Komisyon"
     },
     "settings": {
         "title": "Mga Setting",

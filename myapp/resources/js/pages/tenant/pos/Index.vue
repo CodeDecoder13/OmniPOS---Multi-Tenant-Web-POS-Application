@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
 import { useEventListener } from '@vueuse/core';
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { Minus, Plus, Search, ShoppingCart, Trash2, User, UserPlus, X, Receipt, Percent, DollarSign, Printer, Download, UtensilsCrossed, ShoppingBag, Pause, Play, Tag, ScanBarcode, IdCard, History, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-vue-next';
@@ -52,6 +53,8 @@ interface CartItemAddon {
 
 interface CartItem {
     product_id: number;
+    /** Who did this line (stylist, barber...). Only used when the branch tracks staff. */
+    staff_member_id?: number | null;
     name: string;
     price: number;
     quantity: number;
@@ -73,6 +76,7 @@ const props = defineProps<{
     tables: Pick<Table, 'id' | 'name' | 'capacity' | 'status'>[];
     presetDiscounts?: { id: number; code: string; name: string; type: string; value: string }[];
     branchSettings?: Record<string, boolean> | null;
+    staff?: { id: number; name: string }[];
 }>();
 
 const { tenantUrl, tenant } = useTenant();
@@ -385,6 +389,7 @@ function confirmVariationSelection() {
 
     cart.value.push({
         product_id: product.id,
+        staff_member_id: staffEnabled.value ? currentStaffId.value : null,
         name: displayName,
         price: totalPrice,
         quantity: 1,
@@ -541,13 +546,22 @@ async function searchCustomers() {
 watch(customerSearch, searchCustomers);
 
 // Cart operations
+// Staff on sale lines (salon, barber...). Only active when this branch switched it on.
+const staffEnabled = computed(() => !!props.branchSettings?.staff_tracking);
+const staffTerm = computed(() => (usePage().props.businessProfile as { terms?: { staff?: string } } | null)?.terms?.staff ?? 'Staff member');
+// The person "serving" right now: new lines are credited to them, and each line can still be changed.
+const currentStaffId = ref<number | null>(null);
+
 function addToCart(product: Product) {
-    const existing = cart.value.find(item => item.product_id === product.id);
+    const staffId = staffEnabled.value ? currentStaffId.value : null;
+    // Same service for a different person is a separate line, so each is credited correctly.
+    const existing = cart.value.find(item => item.product_id === product.id && (item.staff_member_id ?? null) === staffId);
     if (existing) {
         existing.quantity++;
     } else {
         cart.value.push({
             product_id: product.id,
+            staff_member_id: staffId,
             name: product.name,
             price: Number(product.price),
             quantity: 1,
@@ -680,6 +694,7 @@ async function processCheckout() {
         const payload = {
             items: cart.value.map(item => ({
                 product_id: item.product_id,
+                staff_member_id: item.staff_member_id ?? null,
                 quantity: item.quantity,
                 variations: item.variations ?? [],
                 addons: item.addons ?? [],
@@ -890,6 +905,7 @@ async function holdOrder() {
         const payload = {
             items: cart.value.map(item => ({
                 product_id: item.product_id,
+                staff_member_id: item.staff_member_id ?? null,
                 product_name: item.name,
                 product_price: item.price,
                 quantity: item.quantity,
@@ -967,6 +983,7 @@ async function recallOrder(orderId: number) {
 
             return {
                 product_id: item.product_id,
+                staff_member_id: item.staff_member_id ?? null,
                 name: displayName,
                 price: item.product_price + variationTotal + addonTotal,
                 quantity: item.quantity,
@@ -1449,6 +1466,18 @@ onUnmounted(() => {
                     </div>
                 </div>
 
+                <!-- Who is serving -->
+                <div v-if="staffEnabled" class="border-b px-5 py-2">
+                    <label class="flex items-center gap-2 text-sm">
+                        <span class="shrink-0 text-muted-foreground">{{ staffTerm }}</span>
+                        <select v-model="currentStaffId" class="h-11 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm" :aria-label="`Who is serving: ${staffTerm}`">
+                            <option :value="null">Not assigned</option>
+                            <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
+                        </select>
+                    </label>
+                    <p v-if="(staff ?? []).length === 0" class="mt-1 text-xs text-muted-foreground">No staff yet. Add some under People > Staff.</p>
+                </div>
+
                 <!-- Cart items -->
                 <div class="flex-1 overflow-y-auto scrollbar-none">
                     <div v-if="cart.length === 0" class="flex h-full flex-col items-center justify-center text-muted-foreground">
@@ -1459,7 +1488,7 @@ onUnmounted(() => {
                         <p class="text-xs mt-0.5">{{ $t('pos.clickToAdd') }}</p>
                     </div>
                     <div v-else class="divide-y">
-                        <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2.5">
+                        <div v-for="(item, index) in cart" :key="`${item.product_id}-${item.staff_member_id ?? 0}`" class="px-4 py-2.5">
                             <div class="flex items-center gap-3">
                                 <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
                                     <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="h-full w-full object-cover" />
@@ -1485,6 +1514,15 @@ onUnmounted(() => {
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>
+                            <select
+                                v-if="staffEnabled"
+                                v-model="item.staff_member_id"
+                                class="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
+                                :aria-label="`${staffTerm} for ${item.name}`"
+                            >
+                                <option :value="null">Not assigned</option>
+                                <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
+                            </select>
                             <Input
                                 v-model="item.notes"
                                 placeholder="Item note (optional)"
@@ -1700,6 +1738,18 @@ onUnmounted(() => {
                     </div>
                 </div>
 
+                <!-- Who is serving -->
+                <div v-if="staffEnabled" class="border-b px-5 py-2">
+                    <label class="flex items-center gap-2 text-sm">
+                        <span class="shrink-0 text-muted-foreground">{{ staffTerm }}</span>
+                        <select v-model="currentStaffId" class="h-11 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm" :aria-label="`Who is serving: ${staffTerm}`">
+                            <option :value="null">Not assigned</option>
+                            <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
+                        </select>
+                    </label>
+                    <p v-if="(staff ?? []).length === 0" class="mt-1 text-xs text-muted-foreground">No staff yet. Add some under People > Staff.</p>
+                </div>
+
                 <!-- Cart items -->
                 <div class="flex-1 overflow-y-auto scrollbar-none">
                     <div v-if="cart.length === 0" class="flex h-full flex-col items-center justify-center text-muted-foreground">
@@ -1710,7 +1760,7 @@ onUnmounted(() => {
                         <p class="text-xs mt-0.5">{{ $t('pos.clickToAdd') }}</p>
                     </div>
                     <div v-else class="divide-y">
-                        <div v-for="(item, index) in cart" :key="item.product_id" class="px-4 py-2.5">
+                        <div v-for="(item, index) in cart" :key="`${item.product_id}-${item.staff_member_id ?? 0}`" class="px-4 py-2.5">
                             <div class="flex items-center gap-3">
                                 <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
                                     <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="h-full w-full object-cover" />
@@ -1736,6 +1786,15 @@ onUnmounted(() => {
                                     <Trash2 class="h-3 w-3 text-destructive" />
                                 </Button>
                             </div>
+                            <select
+                                v-if="staffEnabled"
+                                v-model="item.staff_member_id"
+                                class="mt-1 h-9 w-full rounded-md border bg-background px-2 text-xs"
+                                :aria-label="`${staffTerm} for ${item.name}`"
+                            >
+                                <option :value="null">Not assigned</option>
+                                <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
+                            </select>
                             <Input
                                 v-model="item.notes"
                                 placeholder="Item note (optional)"

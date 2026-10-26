@@ -40,6 +40,7 @@ class HeldOrderService
                     'quantity' => $item['quantity'],
                     'subtotal' => $item['product_price'] * $item['quantity'],
                     'notes' => $item['notes'] ?? null,
+                    'staff_member_id' => $item['staff_member_id'] ?? null,
                 ]);
 
                 if (! empty($item['variations'])) {
@@ -102,6 +103,7 @@ class HeldOrderService
                     'product_price' => (float) $item->product_price,
                     'quantity' => $item->quantity,
                     'notes' => $item->notes,
+                    'staff_member_id' => $item->staff_member_id,
                     'variations' => $item->variations->map(fn ($v) => [
                         'variation_group_name' => $v->variation_group_name,
                         'option_name' => $v->option_name,

@@ -93,7 +93,9 @@
         "openPos": "POSを開く",
         "newProduct": "新規商品",
         "searchIn": "{where}で{query}を検索",
-        "mainNav": "メインナビゲーション"
+        "mainNav": "メインナビゲーション",
+        "staff": "スタッフ",
+        "commissions": "歩合"
     },
     "settings": {
         "title": "設定",

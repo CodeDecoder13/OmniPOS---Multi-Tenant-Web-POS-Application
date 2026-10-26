@@ -57,6 +57,8 @@ class ProductRequest extends FormRequest
             'is_food' => ['sometimes', 'boolean'],
             'is_service' => ['sometimes', 'boolean'],
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:1440'],
+            // Overrides the staff member's default commission for this one service. Blank = use the default.
+            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'initial_stock' => ['nullable', 'integer', 'min:0', 'max:999999'],
             'variation_groups' => ['nullable', 'array'],
             'variation_groups.*.name' => ['required', 'string', 'max:255'],

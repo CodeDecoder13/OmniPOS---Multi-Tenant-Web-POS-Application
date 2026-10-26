@@ -8,7 +8,9 @@ use App\Http\Controllers\Tenant\BranchSettingsController;
 use App\Http\Controllers\Tenant\CategoryController;
 use App\Http\Controllers\Tenant\CustomerController;
 use App\Http\Controllers\Tenant\DashboardController;
+use App\Http\Controllers\Tenant\CommissionController;
 use App\Http\Controllers\Tenant\SetupController;
+use App\Http\Controllers\Tenant\StaffController;
 use App\Http\Controllers\Tenant\InventoryController;
 use App\Http\Controllers\Tenant\KitchenDisplayController;
 use App\Http\Controllers\Tenant\NotificationController;
@@ -76,6 +78,17 @@ Route::prefix('{tenant}')
         Route::delete('users/{user}', [UserController::class, 'remove'])
             ->middleware('can-do:users.remove')
             ->name('tenant.users.remove');
+
+        // Staff (stylists, barbers, technicians) and their commissions
+        Route::middleware(['can-do:staff.manage', 'branch-feature:staff_tracking'])->group(function () {
+            Route::get('staff', [StaffController::class, 'index'])->name('tenant.staff.index');
+            Route::post('staff', [StaffController::class, 'store'])->middleware('throttle:60,1')->name('tenant.staff.store');
+            Route::put('staff/{staff}', [StaffController::class, 'update'])->name('tenant.staff.update');
+            Route::delete('staff/{staff}', [StaffController::class, 'destroy'])->name('tenant.staff.destroy');
+        });
+        Route::get('staff/commissions', [CommissionController::class, 'index'])
+            ->middleware(['can-do:staff.report', 'branch-feature:commissions'])
+            ->name('tenant.staff.commissions');
 
         // Roles
         Route::middleware('can-do:roles.view')->group(function () {

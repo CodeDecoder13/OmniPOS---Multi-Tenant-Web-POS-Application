@@ -48,6 +48,7 @@ class CheckoutRequest extends FormRequest
             'items.*.addons.*.addon_name' => ['required_with:items.*.addons', 'string', 'max:255'],
             'items.*.addons.*.addon_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string', 'max:500'],
+            'items.*.staff_member_id' => ['nullable', 'integer', Rule::exists('staff_members', 'id')->where('tenant_id', $tenant->id)->where('is_active', true)],
             'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', $tenant->id)],
             // Split payments
             'payments' => ['required', 'array', 'min:1'],

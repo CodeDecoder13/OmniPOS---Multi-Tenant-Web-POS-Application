@@ -28,6 +28,7 @@ class Product extends Model
         'is_food',
         'is_service',
         'duration_minutes',
+        'commission_rate',
         'created_by',
     ];
 
@@ -38,6 +39,7 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'cost_price' => 'decimal:2',
+            'commission_rate' => 'decimal:2',
             'is_active' => 'boolean',
             'is_food' => 'boolean',
             'is_service' => 'boolean',
