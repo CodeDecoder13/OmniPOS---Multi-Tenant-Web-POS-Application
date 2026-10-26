@@ -99,6 +99,7 @@ function printReceipt() {
             quantity: item.quantity,
             price: Number(item.product_price),
             subtotal: Number(item.subtotal),
+            staff: staffLabel(item),
         })),
         subtotal: Number(o.subtotal),
         discount: Number(o.discount_amount) > 0 ? Number(o.discount_amount) : undefined,
@@ -122,6 +123,12 @@ function printReceipt() {
         thankYouMessage: (tenant?.settings?.receipt_thank_you_message as string) ?? '',
         width: (tenant?.settings?.receipt_width as '58mm' | '80mm') ?? '80mm',
     });
+}
+
+// "Maria" or "Maria & Ana" when the line had an assistant; null when nobody was credited.
+function staffLabel(item: any): string | null {
+    if (!item.staff) return null;
+    return item.assistant ? `${item.staff.name} & ${item.assistant.name}` : item.staff.name;
 }
 
 function formatDate(date: string) {
@@ -270,6 +277,7 @@ const breadcrumbs = [
                         <tr v-for="item in order.items" :key="item.id" class="border-b last:border-0">
                             <td class="px-4 py-3">
                                 <div>{{ item.product_name }}</div>
+                                <p v-if="staffLabel(item)" class="text-xs text-muted-foreground mt-0.5">with {{ staffLabel(item) }}</p>
                                 <p v-if="item.notes" class="text-xs text-muted-foreground italic mt-0.5">Note: {{ item.notes }}</p>
                             </td>
                             <td class="px-4 py-3 text-right">{{ formatCurrency(item.product_price) }}</td>

@@ -56,7 +56,7 @@ class OrderService
     public function findForTenant(Tenant $tenant, int $orderId, ?int $branchId = null): Order
     {
         $query = Order::forTenant($tenant)
-            ->with(['items.product:id,name', 'items.variations', 'items.itemAddons', 'payments', 'customer', 'creator:id,name', 'branch:id,name', 'voidedByUser:id,name', 'refunds.creator:id,name', 'refunds.items.orderItem']);
+            ->with(['items.product:id,name', 'items.staff:id,name', 'items.assistant:id,name', 'items.variations', 'items.itemAddons', 'payments', 'customer', 'creator:id,name', 'branch:id,name', 'voidedByUser:id,name', 'refunds.creator:id,name', 'refunds.items.orderItem']);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);

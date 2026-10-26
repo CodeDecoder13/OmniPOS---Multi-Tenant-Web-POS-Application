@@ -55,6 +55,9 @@ interface CartItem {
     product_id: number;
     /** Who did this line (stylist, barber...). Only used when the branch tracks staff. */
     staff_member_id?: number | null;
+    /** A second person who takes a percent share of this line's commission. */
+    assistant_staff_member_id?: number | null;
+    assistant_share?: number;
     name: string;
     price: number;
     quantity: number;
@@ -419,7 +422,7 @@ const splitPayments = ref<PaymentEntry[]>([]);
 const splitMode = ref(false);
 
 function addSplitPayment() {
-    const remaining = total.value - splitPayments.value.reduce((s, p) => s + p.amount, 0);
+    const remaining = amountDue.value - splitPayments.value.reduce((s, p) => s + p.amount, 0);
     splitPayments.value.push({ method: 'cash', amount: Math.max(0, remaining), reference_number: '' });
 }
 
@@ -429,13 +432,13 @@ function removeSplitPayment(index: number) {
 }
 
 const splitRemaining = computed(() => {
-    return Math.max(0, total.value - splitPayments.value.reduce((s, p) => s + p.amount, 0));
+    return Math.max(0, amountDue.value - splitPayments.value.reduce((s, p) => s + p.amount, 0));
 });
 
 function toggleSplitMode() {
     splitMode.value = !splitMode.value;
     if (splitMode.value && splitPayments.value.length === 0) {
-        splitPayments.value = [{ method: 'cash', amount: total.value, reference_number: '' }];
+        splitPayments.value = [{ method: 'cash', amount: amountDue.value, reference_number: '' }];
     }
 }
 
@@ -479,13 +482,26 @@ const total = computed(() => {
     if (taxInclusive.value || taxRate.value <= 0) return afterPromo.value;
     return afterPromo.value + taxAmount.value;
 });
-const changeAmount = computed(() => paymentMethod.value === 'cash' ? Math.max(0, amountTendered.value - total.value) : 0);
+// A tip is collected on top of the total. It is not part of the sale (so not revenue), but it is part of what the customer pays.
+const tipAmount = ref<number | string>(0);
+const tipStaffId = ref<number | null>(null);
+const tip = computed(() => Math.max(0, Math.round((Number(tipAmount.value) || 0) * 100) / 100));
+const amountDue = computed(() => Math.round((total.value + tip.value) * 100) / 100);
+function setTipPercent(percent: number) {
+    tipAmount.value = Math.round(total.value * percent) / 100;
+}
+// If the cashier already typed the exact amount due, keep it exact when the tip changes.
+watch(amountDue, (next, prev) => {
+    if (amountTendered.value === prev) amountTendered.value = next;
+});
+
+const changeAmount = computed(() => paymentMethod.value === 'cash' ? Math.max(0, amountTendered.value - amountDue.value) : 0);
 const canCheckout = computed(() => {
     if (cart.value.length === 0) return false;
     if (splitMode.value) {
         return splitRemaining.value <= 0 && splitPayments.value.length > 0;
     }
-    if (paymentMethod.value === 'cash' && amountTendered.value < total.value) return false;
+    if (paymentMethod.value === 'cash' && amountTendered.value < amountDue.value) return false;
     return true;
 });
 const cartItemCount = computed(() => cart.value.reduce((sum, item) => sum + item.quantity, 0));
@@ -549,6 +565,12 @@ watch(customerSearch, searchCustomers);
 // Staff on sale lines (salon, barber...). Only active when this branch switched it on.
 const staffEnabled = computed(() => !!props.branchSettings?.staff_tracking);
 const staffTerm = computed(() => (usePage().props.businessProfile as { terms?: { staff?: string } } | null)?.terms?.staff ?? 'Staff member');
+// Picking an assistant starts them at a 30% share, which the cashier can change.
+function onAssistantChange(item: CartItem) {
+    if (item.assistant_staff_member_id) item.assistant_share ||= 30;
+    else item.assistant_share = 0;
+}
+
 // The person "serving" right now: new lines are credited to them, and each line can still be changed.
 const currentStaffId = ref<number | null>(null);
 
@@ -655,7 +677,9 @@ function openReceiptPreview() {
 
 // Open payment dialog
 function openPaymentDialog() {
-    amountTendered.value = total.value;
+    tipAmount.value = 0;
+    tipStaffId.value = null;
+    amountTendered.value = amountDue.value;
     referenceNumber.value = '';
     paymentMethod.value = 'cash';
     splitMode.value = false;
@@ -669,7 +693,7 @@ function setQuickAmount(amount: number) {
 }
 
 const quickAmounts = computed(() => {
-    const t = total.value;
+    const t = amountDue.value;
     const amounts: number[] = [];
     amounts.push(Math.ceil(t)); // exact
     const roundups = [50, 100, 200, 500, 1000];
@@ -695,6 +719,8 @@ async function processCheckout() {
             items: cart.value.map(item => ({
                 product_id: item.product_id,
                 staff_member_id: item.staff_member_id ?? null,
+                assistant_staff_member_id: item.assistant_staff_member_id ?? null,
+                assistant_share: item.assistant_staff_member_id ? (item.assistant_share ?? 0) : 0,
                 quantity: item.quantity,
                 variations: item.variations ?? [],
                 addons: item.addons ?? [],
@@ -709,9 +735,11 @@ async function processCheckout() {
                 }))
                 : [{
                     method: paymentMethod.value,
-                    amount: paymentMethod.value === 'cash' ? amountTendered.value : total.value,
+                    amount: paymentMethod.value === 'cash' ? amountTendered.value : amountDue.value,
                     reference_number: referenceNumber.value || null,
                 }],
+            tip_amount: staffEnabled.value && tip.value > 0 ? tip.value : null,
+            tip_staff_member_id: staffEnabled.value && tip.value > 0 ? tipStaffId.value : null,
             discount_amount: discountAmount.value || null,
             discount_type: discountAmount.value ? discountType.value : null,
             notes: orderNotes.value || null,
@@ -776,6 +804,7 @@ async function processCheckout() {
                     items: (o.items ?? []).map((item: any) => ({
                         name: item.product_name,
                         quantity: item.quantity,
+                        staff: item.staff ? (item.assistant ? `${item.staff.name} & ${item.assistant.name}` : item.staff.name) : null,
                         variations: item.variations?.map((v: any) => ({
                             group_name: v.variation_group_name,
                             option_name: v.option_name,
@@ -808,6 +837,7 @@ const previewReceiptData = computed<ReceiptData>(() => ({
     customer: selectedCustomer.value?.name ?? null,
     items: cart.value.map(item => ({
         name: item.name,
+        staff: props.staff?.find(m => m.id === item.staff_member_id)?.name ?? null,
         quantity: item.quantity,
         price: item.price,
         subtotal: item.price * item.quantity,
@@ -906,6 +936,8 @@ async function holdOrder() {
             items: cart.value.map(item => ({
                 product_id: item.product_id,
                 staff_member_id: item.staff_member_id ?? null,
+                assistant_staff_member_id: item.assistant_staff_member_id ?? null,
+                assistant_share: item.assistant_staff_member_id ? (item.assistant_share ?? 0) : 0,
                 product_name: item.name,
                 product_price: item.price,
                 quantity: item.quantity,
@@ -984,6 +1016,8 @@ async function recallOrder(orderId: number) {
             return {
                 product_id: item.product_id,
                 staff_member_id: item.staff_member_id ?? null,
+                assistant_staff_member_id: item.assistant_staff_member_id ?? null,
+                assistant_share: item.assistant_share ?? 0,
                 name: displayName,
                 price: item.product_price + variationTotal + addonTotal,
                 quantity: item.quantity,
@@ -1523,6 +1557,21 @@ onUnmounted(() => {
                                 <option :value="null">Not assigned</option>
                                 <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
                             </select>
+                            <div v-if="staffEnabled && item.staff_member_id && (staff ?? []).length > 1" class="mt-1 flex items-center gap-2">
+                                <select
+                                    v-model="item.assistant_staff_member_id"
+                                    class="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs"
+                                    :aria-label="`Assistant for ${item.name}`"
+                                    @change="onAssistantChange(item)"
+                                >
+                                    <option :value="null">No assistant</option>
+                                    <option v-for="m in (staff ?? []).filter(x => x.id !== item.staff_member_id)" :key="m.id" :value="m.id">{{ m.name }}</option>
+                                </select>
+                                <template v-if="item.assistant_staff_member_id">
+                                    <Input v-model.number="item.assistant_share" type="number" min="1" max="100" class="h-9 w-20 text-xs" aria-label="Assistant share percent" />
+                                    <span class="text-xs text-muted-foreground">%</span>
+                                </template>
+                            </div>
                             <Input
                                 v-model="item.notes"
                                 placeholder="Item note (optional)"
@@ -1795,6 +1844,21 @@ onUnmounted(() => {
                                 <option :value="null">Not assigned</option>
                                 <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
                             </select>
+                            <div v-if="staffEnabled && item.staff_member_id && (staff ?? []).length > 1" class="mt-1 flex items-center gap-2">
+                                <select
+                                    v-model="item.assistant_staff_member_id"
+                                    class="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-xs"
+                                    :aria-label="`Assistant for ${item.name}`"
+                                    @change="onAssistantChange(item)"
+                                >
+                                    <option :value="null">No assistant</option>
+                                    <option v-for="m in (staff ?? []).filter(x => x.id !== item.staff_member_id)" :key="m.id" :value="m.id">{{ m.name }}</option>
+                                </select>
+                                <template v-if="item.assistant_staff_member_id">
+                                    <Input v-model.number="item.assistant_share" type="number" min="1" max="100" class="h-9 w-20 text-xs" aria-label="Assistant share percent" />
+                                    <span class="text-xs text-muted-foreground">%</span>
+                                </template>
+                            </div>
                             <Input
                                 v-model="item.notes"
                                 placeholder="Item note (optional)"
@@ -1957,7 +2021,25 @@ onUnmounted(() => {
                     <!-- Total display -->
                     <div class="rounded-lg bg-muted p-4 text-center">
                         <p class="text-sm text-muted-foreground">{{ $t('common.total') }}</p>
-                        <p class="text-3xl font-bold">{{ formatCurrency(total) }}</p>
+                        <p class="text-3xl font-bold">{{ formatCurrency(amountDue) }}</p>
+                        <p v-if="tip > 0" class="text-xs text-muted-foreground">{{ formatCurrency(total) }} + {{ formatCurrency(tip) }} tip</p>
+                    </div>
+
+                    <!-- Tip (staff businesses) -->
+                    <div v-if="staffEnabled" class="space-y-2 rounded-lg border p-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-sm font-medium">Tip (optional)</span>
+                            <div class="flex gap-1">
+                                <Button v-for="p in [0, 10, 15, 20]" :key="p" type="button" size="sm" variant="outline" class="h-9 px-2 text-xs" @click="setTipPercent(p)">
+                                    {{ p === 0 ? 'None' : p + '%' }}
+                                </Button>
+                            </div>
+                        </div>
+                        <Input v-model.number="tipAmount" type="number" min="0" step="1" placeholder="0" class="h-10" aria-label="Tip amount" />
+                        <select v-if="tip > 0" v-model="tipStaffId" class="h-10 w-full rounded-md border bg-background px-2 text-sm" aria-label="Who the tip is for">
+                            <option :value="null">Share between the people on this sale</option>
+                            <option v-for="m in staff ?? []" :key="m.id" :value="m.id">{{ m.name }}</option>
+                        </select>
                     </div>
 
                     <!-- Split toggle -->
@@ -2005,7 +2087,7 @@ onUnmounted(() => {
                                     {{ formatCurrency(amount) }}
                                 </Button>
                             </div>
-                            <div v-if="amountTendered >= total" class="rounded-lg bg-green-50 dark:bg-green-950 p-3 text-center">
+                            <div v-if="amountTendered >= amountDue" class="rounded-lg bg-green-50 dark:bg-green-950 p-3 text-center">
                                 <p class="text-sm text-green-600 dark:text-green-400">Change</p>
                                 <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ formatCurrency(changeAmount) }}</p>
                             </div>

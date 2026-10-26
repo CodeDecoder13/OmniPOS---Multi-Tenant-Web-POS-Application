@@ -25,6 +25,8 @@ class HoldOrderRequest extends FormRequest
             'items.*.product_price' => ['required', 'numeric', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.notes' => ['nullable', 'string', 'max:500'],
+            'items.*.assistant_staff_member_id' => ['nullable', 'integer', \App\Support\TenantRule::exists('staff_members', $tenant)],
+            'items.*.assistant_share' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'items.*.staff_member_id' => ['nullable', 'integer', \App\Support\TenantRule::exists('staff_members', $tenant)],
             'items.*.variations' => ['nullable', 'array'],
             'items.*.variations.*.variation_group_name' => ['required_with:items.*.variations', 'string'],

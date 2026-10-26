@@ -85,6 +85,9 @@
         <tr style="{{ $index % 2 !== 0 ? 'background-color: #f8fafc;' : '' }}">
             <td style="padding: 10px 16px; color: #334155; font-size: 13px;{{ !$loop->last ? ' border-bottom: 1px solid #e2e8f0;' : '' }}">
                 {{ $item->product_name }}
+                @if($item->staff)
+                <br /><span style="color: #64748b; font-size: 12px;">with {{ $item->staff->name }}@if($item->assistant) &amp; {{ $item->assistant->name }}@endif</span>
+                @endif
                 @if($item->variations && $item->variations->count() > 0)
                     @foreach($item->variations as $variation)
                     <br /><span style="color: #64748b; font-size: 12px;">&nbsp;&nbsp;{{ $variation->variation_group_name }}: {{ $variation->option_name }}@if($variation->price_modifier > 0) (+&#8369;{{ number_format($variation->price_modifier, 2) }})@endif</span>

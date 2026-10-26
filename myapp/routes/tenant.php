@@ -89,6 +89,11 @@ Route::prefix('{tenant}')
         Route::get('staff/commissions', [CommissionController::class, 'index'])
             ->middleware(['can-do:staff.report', 'branch-feature:commissions'])
             ->name('tenant.staff.commissions');
+        // Recording a payout moves money, so it needs the stronger permission.
+        Route::middleware(['can-do:staff.manage', 'branch-feature:commissions', 'throttle:30,1'])->group(function () {
+            Route::post('staff/commissions/payouts', [CommissionController::class, 'pay'])->name('tenant.staff.payouts.store');
+            Route::delete('staff/commissions/payouts/{payout}', [CommissionController::class, 'undoPayout'])->name('tenant.staff.payouts.destroy');
+        });
 
         // Roles
         Route::middleware('can-do:roles.view')->group(function () {

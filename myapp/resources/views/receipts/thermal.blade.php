@@ -102,7 +102,7 @@
     <table>
         @foreach($order->items as $item)
         <tr>
-            <td>{{ $item->product_name }}</td>
+            <td>{{ $item->product_name }}@if($item->staff)<br /><span class="item-detail">with {{ $item->staff->name }}@if($item->assistant) &amp; {{ $item->assistant->name }}@endif</span>@endif</td>
             <td class="right">₱{{ number_format($item->subtotal, 2) }}</td>
         </tr>
         <tr>

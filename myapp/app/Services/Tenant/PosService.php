@@ -198,6 +198,9 @@ class PosService
                     'subtotal' => $itemSubtotal,
                     'notes' => $item['notes'] ?? null,
                     'staff_member_id' => $item['staff_member_id'] ?? null,
+                    // A second person on the line, only if they actually get a share of it.
+                    'assistant_staff_member_id' => ! empty($item['assistant_share']) ? ($item['assistant_staff_member_id'] ?? null) : null,
+                    'assistant_share' => ! empty($item['assistant_staff_member_id']) ? (float) ($item['assistant_share'] ?? 0) : 0,
                 ];
             }
 
@@ -259,20 +262,25 @@ class PosService
                 $total = $afterDiscount;
             }
 
-            // Validate payments total covers order total
+            // A tip is collected on top of the total. It is not revenue, so it is kept apart from `total`.
+            $tipAmount = round(max(0, (float) ($data['tip_amount'] ?? 0)), 2);
+            $tipStaffId = $tipAmount > 0 ? ($data['tip_staff_member_id'] ?? null) : null;
+            $amountDue = round($total + $tipAmount, 2);
+
+            // Validate payments total covers order total (plus tip)
             $payments = $data['payments'] ?? [];
             $paymentSum = collect($payments)->sum('amount');
 
             // For cash-only single payment, validate tendered >= total
             if (count($payments) === 1 && ($payments[0]['method'] ?? '') === 'cash') {
-                if ($paymentSum < $total) {
+                if ($paymentSum < $amountDue) {
                     throw ValidationException::withMessages([
-                        'payments' => "Amount tendered ({$paymentSum}) is less than the total ({$total}).",
+                        'payments' => "Amount tendered ({$paymentSum}) is less than the amount due ({$amountDue}).",
                     ]);
                 }
-            } elseif ($paymentSum < $total) {
+            } elseif ($paymentSum < $amountDue) {
                 throw ValidationException::withMessages([
-                    'payments' => "Total payments ({$paymentSum}) must cover the order total ({$total}).",
+                    'payments' => "Total payments ({$paymentSum}) must cover the amount due ({$amountDue}).",
                 ]);
             }
 
@@ -295,6 +303,8 @@ class PosService
                 'promotion_discount' => $promotionDiscount,
                 'tax_amount' => $taxAmount,
                 'total' => $total,
+                'tip_amount' => $tipAmount,
+                'tip_staff_member_id' => $tipStaffId,
                 'notes' => $data['notes'] ?? null,
                 'order_type' => $data['order_type'],
                 'status' => OrderStatus::Completed,
@@ -365,11 +375,11 @@ class PosService
 
                 // For the last cash payment, calculate change
                 if ($isCash && count($payments) === 1) {
-                    $changeAmount = max(0, $amount - $total);
+                    $changeAmount = max(0, $amount - $amountDue);
                 }
 
                 $order->payments()->create([
-                    'amount' => $isCash && count($payments) === 1 ? $total : $amount,
+                    'amount' => $isCash && count($payments) === 1 ? $amountDue : $amount,
                     'method' => $method,
                     'reference_number' => $paymentData['reference_number'] ?? null,
                     'status' => PaymentStatus::Completed,
@@ -378,7 +388,7 @@ class PosService
                 ]);
             }
 
-            $order = $order->load(['items.variations', 'items.itemAddons', 'payments', 'customer:id,name', 'table:id,name', 'promotion:id,code,name']);
+            $order = $order->load(['items.variations', 'items.itemAddons', 'items.staff:id,name', 'items.assistant:id,name', 'payments', 'customer:id,name', 'table:id,name', 'promotion:id,code,name']);
 
             OrderCompleted::dispatch($order, $tenant);
 

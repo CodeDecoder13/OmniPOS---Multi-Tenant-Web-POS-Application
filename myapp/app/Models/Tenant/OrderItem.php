@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class OrderItem extends Model
 {
     protected $fillable = [
-        'order_id', 'product_id', 'staff_member_id', 'product_name',
+        'order_id', 'product_id', 'staff_member_id', 'assistant_staff_member_id', 'assistant_share', 'product_name',
         'product_price', 'quantity', 'subtotal', 'notes',
     ];
 
@@ -19,7 +19,18 @@ class OrderItem extends Model
             'product_price' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'quantity' => 'integer',
+            'assistant_share' => 'decimal:2',
         ];
+    }
+
+    public function staff(): BelongsTo
+    {
+        return $this->belongsTo(StaffMember::class, 'staff_member_id');
+    }
+
+    public function assistant(): BelongsTo
+    {
+        return $this->belongsTo(StaffMember::class, 'assistant_staff_member_id');
     }
 
     public function order(): BelongsTo

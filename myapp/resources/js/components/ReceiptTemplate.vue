@@ -16,6 +16,8 @@ export interface ReceiptData {
         quantity: number;
         price: number;
         subtotal: number;
+        /** Who did it (stylist, barber...), shown under the item. */
+        staff?: string | null;
     }[];
     subtotal: number;
     discount?: number;
@@ -103,6 +105,7 @@ function formatPaymentMethod(method: string) {
             <div v-for="(item, i) in data.items" :key="i" class="flex justify-between gap-2">
                 <div class="flex-1 min-w-0">
                     <p class="truncate">{{ item.name }}</p>
+                    <p v-if="item.staff" class="text-[10px] text-gray-600">with {{ item.staff }}</p>
                     <p class="text-[10px] text-gray-600">
                         {{ item.quantity }} x {{ formatCurrency(item.price) }}
                     </p>

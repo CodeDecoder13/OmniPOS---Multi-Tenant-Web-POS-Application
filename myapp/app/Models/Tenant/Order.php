@@ -24,6 +24,7 @@ class Order extends Model
         'voided_by', 'void_reason', 'voided_at',
         'held_at', 'receipt_token',
         'discount_customer_name', 'discount_customer_id_number', 'discount_customer_birthday',
+        'tip_amount', 'tip_staff_member_id',
     ];
 
     protected function casts(): array
@@ -38,6 +39,7 @@ class Order extends Model
             'tax_amount' => 'decimal:2',
             'total' => 'decimal:2',
             'promotion_discount' => 'decimal:2',
+            'tip_amount' => 'decimal:2',
             'refunded_amount' => 'decimal:2',
             'kitchen_sent_at' => 'datetime',
             'kitchen_completed_at' => 'datetime',

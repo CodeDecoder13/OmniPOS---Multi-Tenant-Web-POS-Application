@@ -31,6 +31,16 @@ class CommissionCalculatorTest extends TestCase
         $this->assertSame(180.0, CommissionCalculator::netLine(200, 0, 1000, 100));
     }
 
+    public function test_splits_a_line_between_the_main_person_and_an_assistant(): void
+    {
+        $this->assertSame([700.0, 300.0], CommissionCalculator::split(1000, 30));
+        $this->assertSame([1000.0, 0.0], CommissionCalculator::split(1000, 0));
+        $this->assertSame([0.0, 1000.0], CommissionCalculator::split(1000, 150));
+        // Cents never go missing: the two parts always add back up to the whole.
+        [$main, $assistant] = CommissionCalculator::split(99.99, 33.33);
+        $this->assertSame(99.99, round($main + $assistant, 2));
+    }
+
     public function test_never_goes_negative_or_pays_more_than_one_hundred_percent(): void
     {
         $this->assertSame(0.0, CommissionCalculator::netLine(100, 500, 100, 0));

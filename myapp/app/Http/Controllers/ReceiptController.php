@@ -11,7 +11,7 @@ class ReceiptController extends Controller
     public function show(string $token): Response
     {
         $order = Order::where('receipt_token', $token)
-            ->with(['items', 'payments', 'customer:id,name'])
+            ->with(['items.staff:id,name', 'items.assistant:id,name', 'payments', 'customer:id,name'])
             ->firstOrFail();
 
         $tenant = \App\Models\Tenant::findOrFail($order->tenant_id);
