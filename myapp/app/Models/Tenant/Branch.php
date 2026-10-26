@@ -25,6 +25,7 @@ class Branch extends Model
         // Services businesses (salon, barber, ...) switch these on; see BusinessType::branchSettings().
         'staff_tracking'     => false,
         'commissions'        => false,
+        'appointments'       => false,
     ];
 
     protected $fillable = [

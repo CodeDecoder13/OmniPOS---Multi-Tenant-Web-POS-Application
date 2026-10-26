@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/vue3';
 import {
-    ArrowLeftRight, BadgePercent, BarChart3, Building2, CalendarDays, ChefHat, ClipboardList, Clock, FileText,
+    ArrowLeftRight, BadgePercent, BarChart3, Building2, CalendarClock, CalendarDays, ChefHat, ClipboardList, Clock, FileText,
     FolderOpen, LayoutDashboard, LayoutGrid, Package, Puzzle, ReceiptText, Settings2, Shield,
     ShoppingCart, Sparkles, Tag, Truck, UserCheck, UserRound, Users, Warehouse,
 } from 'lucide-vue-next';
@@ -60,6 +60,7 @@ const defs: { key: string; items: NavDef[] }[] = [
         key: 'sell',
         items: [
             { key: 'orders', path: 'orders', icon: ClipboardList, permission: 'orders.view' },
+            { key: 'appointments', path: 'appointments', icon: CalendarClock, permission: 'appointments.view', feature: 'appointments' },
             { key: 'customers', path: 'customers', icon: UserRound, permission: 'orders.view' },
             { key: 'promotions', path: 'promotions', icon: Tag, permission: 'promotions.view' },
             { key: 'tables', path: 'tables', icon: LayoutGrid, permission: 'tables.view', feature: 'dine_in' },

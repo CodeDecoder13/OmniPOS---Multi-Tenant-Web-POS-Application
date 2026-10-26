@@ -74,6 +74,8 @@ class CheckoutRequest extends FormRequest
             'discount_customer_id_number' => ['nullable', 'required_with:discount_customer_name', 'string', 'max:100'],
             'discount_customer_birthday' => ['nullable', 'date', 'before_or_equal:today'],
             'order_id' => ['nullable', 'integer'],
+            // Checking out a booking: the sale completes it.
+            'appointment_id' => ['nullable', 'integer', Rule::exists('appointments', 'id')->where('tenant_id', $tenant->id)],
         ];
     }
 

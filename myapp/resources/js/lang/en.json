@@ -95,7 +95,8 @@
         "searchIn": "Search {where} for {query}",
         "mainNav": "Main navigation",
         "staff": "Staff",
-        "commissions": "Commissions"
+        "commissions": "Commissions",
+        "appointments": "Appointments"
     },
     "settings": {
         "title": "Settings",

@@ -388,6 +388,10 @@ class PosService
                 ]);
             }
 
+            if (! empty($data['appointment_id'])) {
+                app(AppointmentService::class)->completeWithOrder($tenant, (int) $data['appointment_id'], $order);
+            }
+
             $order = $order->load(['items.variations', 'items.itemAddons', 'items.staff:id,name', 'items.assistant:id,name', 'payments', 'customer:id,name', 'table:id,name', 'promotion:id,code,name']);
 
             OrderCompleted::dispatch($order, $tenant);

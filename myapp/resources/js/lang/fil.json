@@ -95,7 +95,8 @@
         "searchIn": "Hanapin ang {query} sa {where}",
         "mainNav": "Pangunahing nabigasyon",
         "staff": "Mga Tauhan",
-        "commissions": "Mga Komisyon"
+        "commissions": "Mga Komisyon",
+        "appointments": "Mga Appointment"
     },
     "settings": {
         "title": "Mga Setting",

@@ -160,6 +160,7 @@ export interface BranchSettings {
     receipt_printing: boolean;
     staff_tracking: boolean;
     commissions: boolean;
+    appointments: boolean;
 }
 
 export interface Branch {

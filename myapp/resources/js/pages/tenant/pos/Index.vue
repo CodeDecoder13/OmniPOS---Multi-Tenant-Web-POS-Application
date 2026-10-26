@@ -80,6 +80,8 @@ const props = defineProps<{
     presetDiscounts?: { id: number; code: string; name: string; type: string; value: string }[];
     branchSettings?: Record<string, boolean> | null;
     staff?: { id: number; name: string }[];
+    /** A booking being checked out: its services are put in the cart and the sale completes it. */
+    appointment?: { id: number; customer_name: string; staff_member_id: number | null; items: { product_id: number; name: string; price: number }[] } | null;
 }>();
 
 const { tenantUrl, tenant } = useTenant();
@@ -574,6 +576,17 @@ function onAssistantChange(item: CartItem) {
 // The person "serving" right now: new lines are credited to them, and each line can still be changed.
 const currentStaffId = ref<number | null>(null);
 
+// Checking out a booking: fill the cart with its services, credited to the booked person.
+const appointmentId = ref<number | null>(null);
+function loadAppointment() {
+    const a = props.appointment;
+    if (!a) return;
+    appointmentId.value = a.id;
+    currentStaffId.value = a.staff_member_id;
+    orderNotes.value = `Appointment: ${a.customer_name}`;
+    cart.value = a.items.map(i => ({ product_id: i.product_id, staff_member_id: a.staff_member_id, name: i.name, price: i.price, quantity: 1 }));
+}
+
 function addToCart(product: Product) {
     const staffId = staffEnabled.value ? currentStaffId.value : null;
     // Same service for a different person is a separate line, so each is credited correctly.
@@ -648,6 +661,7 @@ function clearCart() {
     appliedPresetDiscount.value = null;
     discountCustomer.value = null;
     recalledOrderId.value = null;
+    appointmentId.value = null;
 }
 
 // Category filter
@@ -751,6 +765,7 @@ async function processCheckout() {
             discount_customer_id_number: discountCustomer.value?.id_number ?? null,
             discount_customer_birthday: discountCustomer.value?.birthday ?? null,
             order_id: recalledOrderId.value ?? null,
+            appointment_id: appointmentId.value,
         };
 
         const res = await fetch(tenantUrl('pos/checkout'), {
@@ -1146,6 +1161,7 @@ function openReceiptPreviewMobile() {
 }
 
 onMounted(() => {
+    loadAppointment();
     fetchProducts(true);
     fetchBillingHistory();
     checkMobile();

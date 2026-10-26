@@ -18,6 +18,7 @@ const toneFor: Record<string, keyof typeof tones> = {
     pending: 'warning', draft: 'neutral', partial: 'warning', in_transit: 'info', sent: 'info', preparing: 'info', occupied: 'warning',
     voided: 'danger', cancelled: 'danger', inactive: 'neutral',
     refunded: 'accent',
+    booked: 'info', arrived: 'warning', in_service: 'accent', no_show: 'danger',
 };
 
 const text = computed(() => props.label ?? props.status.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase()));

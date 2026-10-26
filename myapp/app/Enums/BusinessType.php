@@ -266,7 +266,7 @@ enum BusinessType: string
     public function branchSettings(): array
     {
         return match ($this) {
-            self::BeautySalon, self::Barbershop => ['staff_tracking' => true, 'commissions' => true],
+            self::BeautySalon, self::Barbershop => ['staff_tracking' => true, 'commissions' => true, 'appointments' => true],
             default => [],
         };
     }

@@ -95,7 +95,8 @@
         "searchIn": "{where}で{query}を検索",
         "mainNav": "メインナビゲーション",
         "staff": "スタッフ",
-        "commissions": "歩合"
+        "commissions": "歩合",
+        "appointments": "予約"
     },
     "settings": {
         "title": "設定",

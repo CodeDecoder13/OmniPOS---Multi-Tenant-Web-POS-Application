@@ -53,6 +53,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'Manage Kitchen Orders', 'slug' => 'kitchen.manage', 'group' => 'kitchen'],
             ['name' => 'Manage Staff', 'slug' => 'staff.manage', 'group' => 'staff'],
             ['name' => 'View Staff Commissions', 'slug' => 'staff.report', 'group' => 'staff'],
+            ['name' => 'View Appointments', 'slug' => 'appointments.view', 'group' => 'appointments'],
+            ['name' => 'Manage Appointments', 'slug' => 'appointments.manage', 'group' => 'appointments'],
         ];
 
         foreach ($permissions as $permission) {

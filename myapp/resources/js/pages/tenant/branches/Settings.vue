@@ -57,6 +57,7 @@ const groups: { title: string; items: ToggleItem[] }[] = [
         items: [
             { key: 'staff_tracking', label: 'Staff on sales', description: 'Pick the staff member who did each service when selling. Adds a Staff page under People.' },
             { key: 'commissions', label: 'Commissions', description: 'Calculate what each staff member earns from their sales. Adds a Commissions page under People. Needs Staff on sales.' },
+            { key: 'appointments', label: 'Appointments', description: 'Book customers with a staff member at a set time and check them out at the POS. Adds an Appointments page under Sell. Needs Staff on sales.' },
         ],
     },
     {

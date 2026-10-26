@@ -5,6 +5,7 @@ use App\Http\Controllers\Tenant\BranchController;
 use App\Http\Controllers\Tenant\ChatController;
 use App\Http\Controllers\Tenant\BranchMenuController;
 use App\Http\Controllers\Tenant\BranchSettingsController;
+use App\Http\Controllers\Tenant\AppointmentController;
 use App\Http\Controllers\Tenant\CategoryController;
 use App\Http\Controllers\Tenant\CustomerController;
 use App\Http\Controllers\Tenant\DashboardController;
@@ -93,6 +94,17 @@ Route::prefix('{tenant}')
         Route::middleware(['can-do:staff.manage', 'branch-feature:commissions', 'throttle:30,1'])->group(function () {
             Route::post('staff/commissions/payouts', [CommissionController::class, 'pay'])->name('tenant.staff.payouts.store');
             Route::delete('staff/commissions/payouts/{payout}', [CommissionController::class, 'undoPayout'])->name('tenant.staff.payouts.destroy');
+        });
+
+        // Appointments (salon, barbershop)
+        Route::middleware('branch-feature:appointments')->group(function () {
+            Route::get('appointments', [AppointmentController::class, 'index'])
+                ->middleware('can-do:appointments.view')->name('tenant.appointments.index');
+            Route::middleware(['can-do:appointments.manage', 'throttle:60,1'])->group(function () {
+                Route::post('appointments', [AppointmentController::class, 'store'])->name('tenant.appointments.store');
+                Route::put('appointments/{appointment}', [AppointmentController::class, 'update'])->name('tenant.appointments.update');
+                Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'status'])->name('tenant.appointments.status');
+            });
         });
 
         // Roles

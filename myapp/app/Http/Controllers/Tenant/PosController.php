@@ -7,9 +7,11 @@ use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\CheckoutRequest;
 use App\Http\Requests\Tenant\HoldOrderRequest;
+use App\Models\Tenant\Appointment;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Branch;
 use App\Models\Tenant\Order;
+use App\Models\Tenant\Product;
 use App\Models\Tenant\StaffMember;
 use App\Models\TenantUser;
 use App\Services\Tenant\CustomerService;
@@ -52,7 +54,33 @@ class PosController extends Controller
             'staff' => $branch?->getSetting('staff_tracking')
                 ? StaffMember::forTenant($tenant)->active()->orderBy('name')->get(['id', 'name'])
                 : [],
+            // "Check out" from the Appointments page lands here with the booking pre-filled.
+            'appointment' => $this->appointmentToCheckOut($request, $tenant),
         ]);
+    }
+
+    private function appointmentToCheckOut(Request $request, $tenant): ?array
+    {
+        if (! $request->integer('appointment')) {
+            return null;
+        }
+
+        $appointment = Appointment::forTenant($tenant)->with('items')->find($request->integer('appointment'));
+
+        if (! $appointment || ! $appointment->status->isOpen()) {
+            return null;
+        }
+
+        return [
+            'id' => $appointment->id,
+            'customer_name' => $appointment->customer_name,
+            'staff_member_id' => $appointment->staff_member_id,
+            // Today's price, not the booked one: the server prices the sale from the product anyway.
+            'items' => Product::forTenant($tenant)->where('is_active', true)
+                ->whereIn('id', $appointment->items->pluck('product_id')->filter())
+                ->get(['id', 'name', 'price'])
+                ->map(fn ($p) => ['product_id' => $p->id, 'name' => $p->name, 'price' => (float) $p->price]),
+        ];
     }
 
     public function products(Request $request, string $tenantSlug): JsonResponse
