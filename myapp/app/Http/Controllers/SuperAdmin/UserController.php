@@ -104,7 +104,9 @@ class UserController extends Controller
     public function resetPassword(Request $request, int $id): RedirectResponse
     {
         $user = User::findOrFail($id);
-        $newPassword = $this->userService->resetPassword($user);
+
+        // Email the person a reset link. Showing a new plaintext password in a flash message put it in the session store.
+        $status = \Illuminate\Support\Facades\Password::broker()->sendResetLink(['email' => $user->email]);
 
         $this->activityLog->log(
             $request->user('admin'),
@@ -114,7 +116,9 @@ class UserController extends Controller
             $request->ip(),
         );
 
-        return back()->with('success', "Password reset. New password: {$newPassword}");
+        return $status === \Illuminate\Auth\Passwords\PasswordBroker::RESET_LINK_SENT
+            ? back()->with('success', "A password reset link was emailed to {$user->email}.")
+            : back()->with('error', 'The reset link could not be sent. Check the email address and mail settings.');
     }
 
     public function toggleVerified(Request $request, int $id): RedirectResponse

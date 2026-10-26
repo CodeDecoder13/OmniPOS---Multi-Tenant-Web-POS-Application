@@ -41,7 +41,11 @@ class SettingsController extends Controller
 
         if ($new !== $tenant->business_type) {
             $old = $tenant->business_type;
-            $categories->resetForBusinessType($tenant, $new);
+            try {
+                $categories->resetForBusinessType($tenant, $new);
+            } catch (\DomainException $e) {
+                return back()->with('error', $e->getMessage());
+            }
             $log->log($tenant, $request->user()->id, 'business_type.changed', null, null, [
                 'from' => $old->value,
                 'to' => $new->value,

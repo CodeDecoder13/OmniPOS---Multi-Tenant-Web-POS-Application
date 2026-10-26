@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\BusinessTime;
 use App\Enums\OrderStatus;
 use App\Models\Tenant;
 use App\Models\Tenant\Order;
@@ -18,12 +19,13 @@ class SendEndOfDaySummary extends Command
     public function handle(): int
     {
         $tenants = Tenant::where('is_active', true)->get();
-        $today = now()->toDateString();
+        // The shop's local day, converted to UTC edges for the query.
+        $today = BusinessTime::today()->toDateString();
         $sentCount = 0;
 
         foreach ($tenants as $tenant) {
             $orders = Order::where('tenant_id', $tenant->id)
-                ->whereDate('created_at', $today)
+                ->whereBetween('created_at', [BusinessTime::startOfDay($today), BusinessTime::endOfDay($today)])
                 ->get();
 
             $completedOrders = $orders->where('status', OrderStatus::Completed);

@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Models\Tenant;
 use App\Models\Tenant\Addon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -14,7 +15,7 @@ class AddonService
         $query = Addon::forTenant($tenant);
 
         if ($search = $request->input('search')) {
-            $query->where('name', 'like', "%{$search}%");
+            $query->where('name', Like::op(), Like::contains($search));
         }
 
         if ($request->has('is_active')) {

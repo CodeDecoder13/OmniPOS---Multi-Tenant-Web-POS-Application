@@ -28,7 +28,7 @@ class VerifyEmailOtpController extends Controller
             return back()->withErrors(['code' => 'The verification code has expired. Please request a new one.']);
         }
 
-        if ($user->email_verification_code !== $request->code) {
+        if (! hash_equals((string) $user->email_verification_code, (string) $request->code)) {
             return back()->withErrors(['code' => 'The verification code is invalid.']);
         }
 

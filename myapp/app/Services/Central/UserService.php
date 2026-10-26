@@ -2,6 +2,7 @@
 
 namespace App\Services\Central;
 
+use App\Support\Like;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Hash;
@@ -16,8 +17,8 @@ class UserService
         if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                $q->where('name', Like::op(), Like::contains($search))
+                    ->orWhere('email', Like::op(), Like::contains($search));
             });
         }
 

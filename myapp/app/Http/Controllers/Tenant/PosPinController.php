@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Support\PinGuard;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\TenantUser;
@@ -21,6 +22,8 @@ class PosPinController extends Controller
 
         $tenant = $request->attributes->get('current_tenant');
         $pin = $request->input('pin');
+
+        PinGuard::assertNotLocked($request, $tenant);
 
         $tenantUsers = TenantUser::where('tenant_id', $tenant->id)
             ->whereNotNull('pos_pin')
@@ -67,6 +70,8 @@ class PosPinController extends Controller
             }
         }
 
+        PinGuard::fail($request, $tenant);
+
         return response()->json([
             'message' => 'Invalid PIN. Please try again.',
         ], 422);
@@ -81,19 +86,14 @@ class PosPinController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $pin = $request->input('pin');
 
-        // Check uniqueness within tenant
-        $otherUsers = TenantUser::where('tenant_id', $tenant->id)
-            ->where('user_id', '!=', $request->user()->id)
-            ->whereNotNull('pos_pin')
-            ->get();
+        PinGuard::assertNotLocked($request, $tenant);
 
-        foreach ($otherUsers as $other) {
-            if (Hash::check($pin, $other->pos_pin)) {
-                return response()->json([
+        // Must be unique within the business (counts against the guess budget)
+        if (PinGuard::isTakenByOther($request, $tenant, (int) $request->user()->id, $pin)) {
+            return response()->json([
                     'message' => 'Please choose a different PIN.',
                     'errors' => ['pin' => ['Please choose a different PIN.']],
                 ], 422);
-            }
         }
 
         TenantUser::where('tenant_id', $tenant->id)
@@ -117,20 +117,15 @@ class PosPinController extends Controller
 
         $pin = $request->input('pin');
 
+        PinGuard::assertNotLocked($request, $tenant);
+
         $tenantUser = TenantUser::where('tenant_id', $tenant->id)
             ->where('user_id', $user)
             ->firstOrFail();
 
-        // Check uniqueness within tenant
-        $otherUsers = TenantUser::where('tenant_id', $tenant->id)
-            ->where('user_id', '!=', $user)
-            ->whereNotNull('pos_pin')
-            ->get();
-
-        foreach ($otherUsers as $other) {
-            if (Hash::check($pin, $other->pos_pin)) {
-                return back()->with('error', 'Please choose a different PIN.');
-            }
+        // Must be unique within the business (counts against the guess budget)
+        if (PinGuard::isTakenByOther($request, $tenant, (int) $user, $pin)) {
+            return back()->with('error', 'Please choose a different PIN.');
         }
 
         $tenantUser->update(['pos_pin' => Hash::make($pin)]);

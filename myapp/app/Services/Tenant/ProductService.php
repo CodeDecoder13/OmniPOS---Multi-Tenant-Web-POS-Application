@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Enums\AdjustmentType;
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
@@ -37,8 +38,8 @@ class ProductService
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
+                $q->where('name', Like::op(), Like::contains($search))
+                    ->orWhere('sku', Like::op(), Like::contains($search));
             });
         }
 

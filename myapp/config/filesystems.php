@@ -17,6 +17,9 @@ return [
 
     'product_disk' => env('PRODUCT_STORAGE_DISK', 'local'),
 
+    // Chat screenshots and receipt logos. Follows the product disk when that is S3 (the local disk is wiped on every deploy).
+    'uploads_disk' => env('UPLOADS_DISK', env('PRODUCT_STORAGE_DISK') === 's3' ? 's3' : 'public'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks

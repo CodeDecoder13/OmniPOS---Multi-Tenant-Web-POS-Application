@@ -15,6 +15,13 @@ class EnsureUserIsAdmin
             return redirect('/admin/login');
         }
 
+        // Deactivating an admin must also end a session that is already open.
+        if (! Auth::guard('admin')->user()->is_active) {
+            Auth::guard('admin')->logout();
+
+            return redirect('/admin/login');
+        }
+
         return $next($request);
     }
 }

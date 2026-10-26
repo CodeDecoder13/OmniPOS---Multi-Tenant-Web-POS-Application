@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Support\TenantLock;
 use App\Enums\AdjustmentType;
 use App\Enums\TransferStatus;
@@ -32,7 +33,7 @@ class StockTransferService
         }
 
         if ($search = $request->input('search')) {
-            $query->where('transfer_number', 'like', "%{$search}%");
+            $query->where('transfer_number', Like::op(), Like::contains($search));
         }
 
         return $query->latest()->paginate($perPage)->withQueryString();
@@ -137,6 +138,8 @@ class StockTransferService
                     ['tenant_id' => $transfer->tenant_id, 'quantity_on_hand' => 0, 'low_stock_threshold' => 0]
                 );
 
+                $inventory = Inventory::whereKey($inventory->id)->lockForUpdate()->first();
+
                 $qtyBefore = $inventory->quantity_on_hand;
                 $qtyAfter = $qtyBefore + $received;
                 $inventory->update(['quantity_on_hand' => $qtyAfter]);
@@ -177,6 +180,7 @@ class StockTransferService
 
                     $inventory = Inventory::where('product_id', $item->product_id)
                         ->where('branch_id', $transfer->source_branch_id)
+                        ->lockForUpdate()
                         ->first();
 
                     if ($inventory) {

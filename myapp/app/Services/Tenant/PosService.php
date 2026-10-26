@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Support\TenantLock;
 use App\Enums\KitchenStatus;
 use App\Enums\OrderStatus;
@@ -60,8 +61,8 @@ class PosService
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('products.name', 'like', "%{$search}%")
-                  ->orWhere('products.sku', 'like', "%{$search}%");
+                $q->where('products.name', Like::op(), Like::contains($search))
+                  ->orWhere('products.sku', Like::op(), Like::contains($search));
             });
         }
 
@@ -75,7 +76,7 @@ class PosService
     public function checkout(Tenant $tenant, array $data, int $userId, ?int $branchId = null): Order
     {
         if ($branchId) {
-            $branch = Branch::find($branchId);
+            $branch = Branch::forTenant($tenant)->find($branchId);
             if ($branch) {
                 if (! $branch->getSetting('pos_enabled')) {
                     throw new \Illuminate\Validation\ValidationException(
@@ -106,8 +107,6 @@ class PosService
                     $heldOrder->delete();
                 }
             }
-
-            $orderNumber = $this->generateOrderNumber($tenant);
 
             // Calculate totals from items
             $items = $data['items'];
@@ -276,6 +275,10 @@ class PosService
                 ]);
             }
 
+            // Take the next number only now: the per-tenant lock lasts until commit, so asking for it
+            // after all the pricing work keeps other checkouts waiting for as short a time as possible.
+            $orderNumber = $this->generateOrderNumber($tenant);
+
             // Create order
             $tableId = $data['table_id'] ?? null;
 
@@ -340,7 +343,7 @@ class PosService
 
             // Send to kitchen if enabled
             if ($branchId) {
-                $branch = Branch::find($branchId);
+                $branch = Branch::forTenant($tenant)->find($branchId);
                 if ($branch && $branch->getSetting('kitchen_display')) {
                     $order->update([
                         'kitchen_status' => KitchenStatus::New,

@@ -97,7 +97,7 @@ class HandleInertiaRequests extends Middleware
                     'settings' => (function () use ($tenant) {
                         $settings = $tenant->data ?? [];
                         if (! empty($settings['receipt_logo'])) {
-                            $settings['receipt_logo_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($settings['receipt_logo']);
+                            $settings['receipt_logo_url'] = \App\Support\UploadStorage::url($settings['receipt_logo']);
                         }
                         return $settings;
                     })(),
@@ -134,7 +134,8 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 }
 
-                $branch = \App\Models\Tenant\Branch::find($tenantUser->branch_id);
+                $tenant = $request->attributes->get('current_tenant');
+                $branch = $tenant ? \App\Models\Tenant\Branch::forTenant($tenant)->find($tenantUser->branch_id) : null;
 
                 return $branch?->getSettings();
             },

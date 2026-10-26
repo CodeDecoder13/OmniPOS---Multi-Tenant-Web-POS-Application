@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Support\TenantLock;
 use App\Enums\AdjustmentType;
 use App\Enums\PurchaseOrderStatus;
@@ -33,7 +34,7 @@ class PurchaseOrderService
         }
 
         if ($search = $request->input('search')) {
-            $query->where('po_number', 'like', "%{$search}%");
+            $query->where('po_number', Like::op(), Like::contains($search));
         }
 
         return $query->latest()->paginate($perPage)->withQueryString();
@@ -148,6 +149,9 @@ class PurchaseOrderService
                         ['product_id' => $item->product_id, 'branch_id' => $po->branch_id],
                         ['tenant_id' => $po->tenant_id, 'quantity_on_hand' => 0, 'low_stock_threshold' => 0]
                     );
+
+                    // Lock the row: a sale at the same moment must not be overwritten by this absolute write.
+                    $inventory = Inventory::whereKey($inventory->id)->lockForUpdate()->first();
 
                     $qtyBefore = $inventory->quantity_on_hand;
                     $qtyAfter = $qtyBefore + $received;

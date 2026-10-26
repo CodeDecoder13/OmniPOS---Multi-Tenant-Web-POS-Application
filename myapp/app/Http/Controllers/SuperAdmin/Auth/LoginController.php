@@ -22,7 +22,8 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
+        // A deactivated admin can no longer sign in.
+        if (Auth::guard('admin')->attempt([...$credentials, 'is_active' => true], $request->boolean('remember'))) {
             $request->session()->regenerate();
 
             return redirect()->intended('/admin');

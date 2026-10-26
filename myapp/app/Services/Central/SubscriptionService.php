@@ -2,6 +2,7 @@
 
 namespace App\Services\Central;
 
+use App\Support\Like;
 use App\Enums\SubscriptionStatus;
 use App\Models\TenantSubscription;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -14,7 +15,7 @@ class SubscriptionService
 
         if (! empty($filters['search'])) {
             $search = $filters['search'];
-            $query->whereHas('tenant', fn ($q) => $q->where('name', 'like', "%{$search}%"));
+            $query->whereHas('tenant', fn ($q) => $q->where('name', Like::op(), Like::contains($search)));
         }
 
         if (! empty($filters['status'])) {

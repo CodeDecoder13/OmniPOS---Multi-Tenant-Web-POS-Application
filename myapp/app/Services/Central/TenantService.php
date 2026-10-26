@@ -2,6 +2,7 @@
 
 namespace App\Services\Central;
 
+use App\Support\Like;
 use App\Enums\BusinessType;
 use App\Models\Plan;
 use App\Models\Tenant;
@@ -32,8 +33,8 @@ class TenantService
         if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('slug', 'like', "%{$search}%");
+                $q->where('name', Like::op(), Like::contains($search))
+                    ->orWhere('slug', Like::op(), Like::contains($search));
             });
         }
 

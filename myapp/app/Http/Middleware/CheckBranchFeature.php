@@ -17,7 +17,8 @@ class CheckBranchFeature
             abort(403, 'You must be assigned to a branch to access this feature.');
         }
 
-        $branch = Branch::find($tenantUser->branch_id);
+        // Scoped to the tenant: a branch id that belongs to another business is "not found".
+        $branch = Branch::forTenant($request->attributes->get('current_tenant'))->find($tenantUser->branch_id);
 
         if (! $branch) {
             abort(403, 'Your assigned branch was not found.');

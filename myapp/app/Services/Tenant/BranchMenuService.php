@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Models\Tenant;
 use App\Models\Tenant\Branch;
 use App\Models\Tenant\Product;
@@ -33,8 +34,8 @@ class BranchMenuService
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('products.name', 'like', "%{$search}%")
-                  ->orWhere('products.sku', 'like', "%{$search}%");
+                $q->where('products.name', Like::op(), Like::contains($search))
+                  ->orWhere('products.sku', Like::op(), Like::contains($search));
             });
         }
 

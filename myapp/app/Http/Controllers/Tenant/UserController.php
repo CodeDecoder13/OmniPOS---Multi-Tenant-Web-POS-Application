@@ -13,6 +13,7 @@ use App\Services\Tenant\ActivityLogService;
 use App\Services\Tenant\UserImportService;
 use DomainException;
 use App\Support\PermissionCeiling;
+use App\Support\TenantRule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -280,10 +281,10 @@ class UserController extends Controller
         $request->validate([
             'rows' => ['required', 'array', 'min:1'],
             'rows.*.name' => ['required', 'string'],
-            'rows.*.email' => ['required', 'email'],
-            'rows.*.role_id' => ['required', 'integer'],
+            'rows.*.email' => ['required', 'email', 'distinct', 'unique:users,email'],
+            'rows.*.role_id' => ['required', 'integer', TenantRule::exists('roles', $tenant)],
             'rows.*.role_name' => ['required', 'string'],
-            'rows.*.branch_id' => ['nullable', 'integer'],
+            'rows.*.branch_id' => ['nullable', 'integer', TenantRule::exists('branches', $tenant)],
         ]);
 
         try {

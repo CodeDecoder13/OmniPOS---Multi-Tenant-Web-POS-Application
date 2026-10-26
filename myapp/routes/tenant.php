@@ -182,7 +182,7 @@ Route::prefix('{tenant}')
             Route::get('orders', [OrderController::class, 'index'])->name('tenant.orders.index');
             Route::get('orders/{order}', [OrderController::class, 'show'])->name('tenant.orders.show');
             Route::get('orders/{order}/receipt/pdf', [OrderController::class, 'receiptPdf'])->name('tenant.orders.receipt.pdf');
-            Route::post('orders/{order}/receipt/email', [OrderController::class, 'emailReceipt'])->name('tenant.orders.receipt.email');
+            Route::post('orders/{order}/receipt/email', [OrderController::class, 'emailReceipt'])->middleware('throttle:10,1')->name('tenant.orders.receipt.email');
             Route::get('orders/{order}/receipt/link', [OrderController::class, 'receiptLink'])->name('tenant.orders.receipt.link');
         });
         Route::post('orders/{order}/void', [OrderController::class, 'void'])

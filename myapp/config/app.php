@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // The shops' local day. Storage stays UTC; reports, dashboards and daily jobs convert to this.
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'Asia/Manila'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

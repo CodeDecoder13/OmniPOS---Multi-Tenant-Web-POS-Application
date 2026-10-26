@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Support\BusinessTime;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant\Branch;
 use App\Services\Tenant\ReportExportService;
@@ -18,19 +19,30 @@ class ReportController extends Controller
         private readonly ReportExportService $exportService,
     ) {}
 
+    /** Reports scan every order in range, so a range is capped at a year. */
+    private function maxRange(Request $request): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($request) {
+            $from = $request->input('date_from');
+            if ($from && $value && Carbon::parse($from)->diffInDays(Carbon::parse($value)) > 366) {
+                $fail('The date range cannot be longer than one year.');
+            }
+        };
+    }
+
     public function index(Request $request, string $tenantSlug): Response
     {
         $request->validate([
             'date_from' => 'nullable|date',
-            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from', $this->maxRange($request)],
             'period' => 'nullable|in:daily,weekly,monthly',
             'branch_id' => 'nullable|integer',
         ]);
 
         $tenant = $request->attributes->get('current_tenant');
 
-        $dateFrom = Carbon::parse($request->input('date_from', now()->subDays(30)->toDateString()));
-        $dateTo = Carbon::parse($request->input('date_to', now()->toDateString()));
+        $dateFrom = Carbon::parse($request->input('date_from', BusinessTime::today()->subDays(30)->toDateString()));
+        $dateTo = Carbon::parse($request->input('date_to', BusinessTime::today()->toDateString()));
 
         $period = $request->input('period', 'daily');
         $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : null;
@@ -64,15 +76,15 @@ class ReportController extends Controller
             'type' => 'required|in:sales_summary,products,payments,operators,branches,inventory,tax',
             'format' => 'required|in:csv,pdf',
             'date_from' => 'nullable|date',
-            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from', $this->maxRange($request)],
             'period' => 'nullable|in:daily,weekly,monthly',
             'branch_id' => 'nullable|integer',
         ]);
 
         $tenant = $request->attributes->get('current_tenant');
 
-        $dateFrom = Carbon::parse($request->input('date_from', now()->subDays(30)->toDateString()));
-        $dateTo = Carbon::parse($request->input('date_to', now()->toDateString()));
+        $dateFrom = Carbon::parse($request->input('date_from', BusinessTime::today()->subDays(30)->toDateString()));
+        $dateTo = Carbon::parse($request->input('date_to', BusinessTime::today()->toDateString()));
         $period = $request->input('period', 'daily');
         $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : null;
         $type = $request->input('type');

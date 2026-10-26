@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Support\Like;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,9 +36,9 @@ class Customer extends Model
         }
 
         return $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%");
+            $q->where('name', Like::op(), Like::contains($search))
+              ->orWhere('email', Like::op(), Like::contains($search))
+              ->orWhere('phone', Like::op(), Like::contains($search));
         });
     }
 

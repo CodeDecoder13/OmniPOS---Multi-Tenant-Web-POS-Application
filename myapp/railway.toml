@@ -4,7 +4,7 @@ buildCommand = "composer install --no-dev --optimize-autoloader && npm install -
 
 [deploy]
 preDeployCommand = ["php artisan migrate --force"]
-startCommand = "PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=0.0.0.0 --port=${PORT:-8080} & while true; do php artisan queue:work --stop-when-empty --max-time=60 --tries=3 --sleep=3; sleep 5; done"
-healthcheckPath = "/"
+startCommand = "php artisan schedule:work & PHP_CLI_SERVER_WORKERS=4 php artisan serve --host=0.0.0.0 --port=${PORT:-8080} & while true; do php artisan queue:work --stop-when-empty --max-time=60 --tries=3 --sleep=3; sleep 5; done"
+healthcheckPath = "/up"
 healthcheckTimeout = 100
 restartPolicyType = "on_failure"

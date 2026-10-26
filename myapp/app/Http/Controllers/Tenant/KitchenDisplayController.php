@@ -27,7 +27,7 @@ class KitchenDisplayController extends Controller
         $tenantUser = $request->attributes->get('current_tenant_user');
         $branchId = $tenantUser->branch_id ?? null;
 
-        $branch = $branchId ? Branch::find($branchId) : null;
+        $branch = $branchId ? Branch::forTenant($tenant)->find($branchId) : null;
 
         $orders = $branchId
             ? $this->kitchenService->getActiveOrders($tenant, $branchId)
@@ -50,6 +50,7 @@ class KitchenDisplayController extends Controller
             return response()->json(['orders' => []]);
         }
 
+        $request->validate(['since' => ['nullable', 'date']]);
         $since = $request->query('since');
 
         $orders = $this->kitchenService->getOrdersForPolling($tenant, $branchId, $since);

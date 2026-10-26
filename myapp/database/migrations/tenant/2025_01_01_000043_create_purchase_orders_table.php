@@ -31,6 +31,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('purchase_orders');
+        // Intentionally empty. These tables existed in production before this migration was ever
+        // recorded, so rolling back must never drop them. Drop them by hand if you really mean to.
     }
 };

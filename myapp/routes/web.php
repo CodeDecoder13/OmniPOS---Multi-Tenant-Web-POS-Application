@@ -124,6 +124,7 @@ if (app()->isLocal()) {
 
 // Public receipt route (no auth required)
 Route::get('/receipts/{token}', [\App\Http\Controllers\ReceiptController::class, 'show'])
+    ->middleware('throttle:60,1')
     ->name('receipts.show')
     ->where('token', '[A-Za-z0-9]{64}');
 

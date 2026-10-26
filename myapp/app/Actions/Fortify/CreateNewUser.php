@@ -10,6 +10,7 @@ use App\Models\PromoCode;
 use App\Models\User;
 use App\Notifications\WelcomeNotification;
 use App\Services\Central\RegisterService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
@@ -70,28 +71,36 @@ class CreateNewUser implements CreatesNewUsers
             }
         }
 
-        $user = User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'password' => $isGoogleRegistration ? null : $input['password'],
-        ]);
+        // User and business are created together: if the business step fails (for example the promo
+        // code ran out a moment ago), the user must not be left behind with no business and a taken email.
+        $user = DB::transaction(function () use ($input, $isGoogleRegistration, $googleUser) {
+            $user = User::create([
+                'name' => $input['name'],
+                'email' => $input['email'],
+                'password' => $isGoogleRegistration ? null : $input['password'],
+            ]);
+
+            if ($isGoogleRegistration) {
+                $user->forceFill([
+                    'google_id' => $googleUser['id'],
+                    'email_verified_at' => now(),
+                ])->save();
+            }
+
+            $this->registerService->createTenantForUser(
+                $user,
+                $input['store_name'],
+                $input['plan'],
+                BusinessType::from($input['business_type']),
+                $input['promo_code'] ?? null,
+            );
+
+            return $user;
+        });
 
         if ($isGoogleRegistration) {
-            $user->forceFill([
-                'google_id' => $googleUser['id'],
-                'email_verified_at' => now(),
-            ])->save();
-
             session()->forget('google_user');
         }
-
-        $this->registerService->createTenantForUser(
-            $user,
-            $input['store_name'],
-            $input['plan'],
-            BusinessType::from($input['business_type']),
-            $input['promo_code'] ?? null,
-        );
 
         $user->notify(new WelcomeNotification($input['store_name']));
 

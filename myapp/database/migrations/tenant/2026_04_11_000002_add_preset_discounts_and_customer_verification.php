@@ -84,15 +84,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Remove seeded preset promotions
-        DB::table('promotions')->where('is_preset', true)->delete();
-
-        Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn(['discount_customer_name', 'discount_customer_id_number', 'discount_customer_birthday']);
-        });
-
-        Schema::table('promotions', function (Blueprint $table) {
-            $table->dropColumn('is_preset');
-        });
+        // Intentionally empty. These tables existed in production before this migration was ever
+        // recorded, so rolling back must never drop them. Drop them by hand if you really mean to.
     }
 };

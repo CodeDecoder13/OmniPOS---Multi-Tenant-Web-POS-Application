@@ -2,6 +2,7 @@
 
 namespace App\Services\Central;
 
+use App\Support\UploadStorage;
 use App\Enums\ChatStatus;
 use App\Mail\NewChatMessageMail;
 use App\Models\ChatConversation;
@@ -76,7 +77,7 @@ class ChatService
         if ($attachment) {
             $attachmentPath = $attachment->store(
                 "chat/{$user->id}/{$conversation->id}",
-                'public',
+                UploadStorage::disk(),
             );
         }
 

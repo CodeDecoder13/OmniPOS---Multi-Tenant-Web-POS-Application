@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\BusinessTime;
 use App\Enums\AdjustmentType;
 use App\Enums\OrderStatus;
 use App\Models\Tenant;
@@ -55,10 +56,10 @@ class ReportService
         };
 
         $results = $this->baseDbQuery($tenant, $dateFrom, $dateTo, $branchId)
-            ->selectRaw("date_trunc('{$truncFormat}', created_at) as period_date")
+            ->selectRaw("date_trunc('{$truncFormat}', " . BusinessTime::localSql('created_at') . ") as period_date")
             ->selectRaw('COALESCE(SUM(total - COALESCE(refunded_amount, 0)), 0) as revenue')
             ->selectRaw('COUNT(*) as order_count')
-            ->groupByRaw("date_trunc('{$truncFormat}', created_at)")
+            ->groupByRaw("date_trunc('{$truncFormat}', " . BusinessTime::localSql('created_at') . ")")
             ->orderBy('period_date')
             ->get();
 
@@ -129,8 +130,8 @@ class ReportService
         $results = $this->baseDbQuery($tenant, $dateFrom, $dateTo, $branchId)
             ->select('created_by')
             ->selectRaw('COUNT(*) as order_count')
-            ->selectRaw('COALESCE(SUM(total), 0) as total_revenue')
-            ->selectRaw('COALESCE(AVG(total), 0) as avg_order_value')
+            ->selectRaw('COALESCE(SUM(total - COALESCE(refunded_amount, 0)), 0) as total_revenue')
+            ->selectRaw('COALESCE(AVG(total - COALESCE(refunded_amount, 0)), 0) as avg_order_value')
             ->whereNotNull('created_by')
             ->groupBy('created_by')
             ->orderByDesc('total_revenue')
@@ -154,14 +155,14 @@ class ReportService
             ->where('orders.tenant_id', $tenant->id)
             ->where('orders.status', OrderStatus::Completed->value)
             ->whereBetween('orders.created_at', [
-                Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                BusinessTime::startOfDay($dateFrom),
+                BusinessTime::endOfDay($dateTo),
             ])
             ->join('branches', 'orders.branch_id', '=', 'branches.id')
             ->select('orders.branch_id', 'branches.name as branch_name')
             ->selectRaw('COUNT(*) as order_count')
-            ->selectRaw('COALESCE(SUM(orders.total), 0) as total_revenue')
-            ->selectRaw('COALESCE(AVG(orders.total), 0) as avg_order_value')
+            ->selectRaw('COALESCE(SUM(orders.total - COALESCE(orders.refunded_amount, 0)), 0) as total_revenue')
+            ->selectRaw('COALESCE(AVG(orders.total - COALESCE(orders.refunded_amount, 0)), 0) as avg_order_value')
             ->groupBy('orders.branch_id', 'branches.name')
             ->orderByDesc('total_revenue')
             ->get()
@@ -217,8 +218,8 @@ class ReportService
             ->join('inventory', 'inventory_adjustments.inventory_id', '=', 'inventory.id')
             ->where('inventory.tenant_id', $tenant->id)
             ->whereBetween('inventory_adjustments.created_at', [
-                Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                BusinessTime::startOfDay($dateFrom),
+                BusinessTime::endOfDay($dateTo),
             ])
             ->select('inventory_adjustments.type')
             ->selectRaw('SUM(ABS(inventory_adjustments.quantity_change)) as total_quantity')
@@ -282,11 +283,11 @@ class ReportService
 
         // Tax by period
         $byPeriod = $this->baseDbQuery($tenant, $dateFrom, $dateTo, $branchId)
-            ->selectRaw("date_trunc('{$truncFormat}', created_at) as period_date")
+            ->selectRaw("date_trunc('{$truncFormat}', " . BusinessTime::localSql('created_at') . ") as period_date")
             ->selectRaw('COUNT(*) as order_count')
             ->selectRaw('COALESCE(SUM(subtotal - discount_amount - promotion_discount), 0) as taxable_amount')
             ->selectRaw('COALESCE(SUM(tax_amount), 0) as tax_amount')
-            ->groupByRaw("date_trunc('{$truncFormat}', created_at)")
+            ->groupByRaw("date_trunc('{$truncFormat}', " . BusinessTime::localSql('created_at') . ")")
             ->orderBy('period_date')
             ->get()
             ->map(fn ($row) => [
@@ -338,9 +339,9 @@ class ReportService
     {
         // Get daily revenue for historical data
         $dailyRevenue = $this->baseDbQuery($tenant, $dateFrom, $dateTo, $branchId)
-            ->selectRaw("date_trunc('day', created_at) as period_date")
+            ->selectRaw("date_trunc('day', " . BusinessTime::localSql('created_at') . ") as period_date")
             ->selectRaw('COALESCE(SUM(total), 0) as revenue')
-            ->groupByRaw("date_trunc('day', created_at)")
+            ->groupByRaw("date_trunc('day', " . BusinessTime::localSql('created_at') . ")")
             ->orderBy('period_date')
             ->get();
 
@@ -447,8 +448,8 @@ class ReportService
         $query = Order::where('tenant_id', $tenant->id)
             ->where('status', OrderStatus::Completed->value)
             ->whereBetween('created_at', [
-                Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                BusinessTime::startOfDay($dateFrom),
+                BusinessTime::endOfDay($dateTo),
             ]);
 
         if ($branchId) {
@@ -464,8 +465,8 @@ class ReportService
             ->where('tenant_id', $tenant->id)
             ->where('status', OrderStatus::Completed->value)
             ->whereBetween('created_at', [
-                Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                BusinessTime::startOfDay($dateFrom),
+                BusinessTime::endOfDay($dateTo),
             ]);
 
         if ($branchId) {

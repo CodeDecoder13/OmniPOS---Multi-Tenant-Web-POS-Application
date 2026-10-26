@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
+            \App\Http\Middleware\ThrottleRegistration::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
@@ -38,5 +39,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Business-rule failures thrown as abort(422, '...') (for example "Only a pending transfer can be shipped")
+        // would otherwise show Inertia's generic error page. Send the person back with the message as a toast instead.
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() === 422 && $e->getMessage() !== '' && $request->header('X-Inertia')) {
+                return back()->with('error', $e->getMessage());
+            }
+        });
     })->create();

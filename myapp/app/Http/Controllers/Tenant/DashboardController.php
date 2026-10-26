@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Support\BusinessTime;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ReleaseNote;
@@ -50,38 +51,40 @@ class DashboardController extends Controller
         $plan = $tenant->subscription?->plan;
 
         // Today's metrics
-        $today = Carbon::today();
+        // "Today" is the shop's local day; stored times are UTC, so use the local day's UTC edges.
+        $today = BusinessTime::today();
         $todayOrders = Order::forTenant($tenant)
             ->where('status', OrderStatus::Completed)
-            ->whereDate('created_at', $today);
+            ->whereBetween('created_at', [BusinessTime::startOfDay($today), BusinessTime::endOfDay($today)]);
 
         $todayRevenue = (clone $todayOrders)->sum('total');
         $todayOrderCount = (clone $todayOrders)->count();
 
         // Yesterday for comparison
-        $yesterday = Carbon::yesterday();
+        $yesterday = $today->copy()->subDay();
         $yesterdayRevenue = Order::forTenant($tenant)
             ->where('status', OrderStatus::Completed)
-            ->whereDate('created_at', $yesterday)
+            ->whereBetween('created_at', [BusinessTime::startOfDay($yesterday), BusinessTime::endOfDay($yesterday)])
             ->sum('total');
 
         // Last 7 days sales trend (single query)
-        $sevenDaysAgo = Carbon::today()->subDays(6);
+        $sevenDaysAgo = $today->copy()->subDays(6);
+        $localDay = BusinessTime::localSql('created_at');
         $trendData = Order::forTenant($tenant)
             ->where('status', OrderStatus::Completed)
-            ->whereDate('created_at', '>=', $sevenDaysAgo)
+            ->where('created_at', '>=', BusinessTime::startOfDay($sevenDaysAgo))
             ->select(
-                DB::raw('DATE(created_at) as date'),
+                DB::raw("DATE({$localDay}) as date"),
                 DB::raw('SUM(total) as revenue'),
                 DB::raw('COUNT(*) as orders')
             )
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->groupBy(DB::raw("DATE({$localDay})"))
             ->get()
             ->keyBy('date');
 
         $salesTrend = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
+            $date = $today->copy()->subDays($i);
             $dateKey = $date->format('Y-m-d');
             $row = $trendData->get($dateKey);
 

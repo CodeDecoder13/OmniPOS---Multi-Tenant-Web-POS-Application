@@ -9,6 +9,7 @@ use App\Models\Tenant\Branch;
 use App\Models\Tenant\Inventory;
 use App\Services\Tenant\InventoryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class InventoryController extends Controller
@@ -34,30 +35,30 @@ class InventoryController extends Controller
         // Resolve inside this tenant: a bare route-bound model would accept another tenant's id.
         $inventory = $this->inventoryService->findForTenant($request->attributes->get('current_tenant'), $inventory);
 
-        // Thresholds and reorder settings can be saved without changing stock.
-        if ((int) $request->validated('quantity_change') !== 0) {
-            $this->inventoryService->adjust(
-                $inventory,
-                AdjustmentType::from($request->validated('type')),
-                $request->validated('quantity_change'),
-                $request->validated('reason'),
-                $request->user()->id,
-            );
+        $updateFields = [];
+        foreach (['low_stock_threshold', 'reorder_point', 'reorder_quantity'] as $field) {
+            if ($request->filled($field)) {
+                $updateFields[$field] = $request->validated($field);
+            }
         }
 
-        $updateFields = [];
-        if ($request->filled('low_stock_threshold')) {
-            $updateFields['low_stock_threshold'] = $request->validated('low_stock_threshold');
-        }
-        if ($request->filled('reorder_point')) {
-            $updateFields['reorder_point'] = $request->validated('reorder_point');
-        }
-        if ($request->filled('reorder_quantity')) {
-            $updateFields['reorder_quantity'] = $request->validated('reorder_quantity');
-        }
-        if (! empty($updateFields)) {
-            $inventory->update($updateFields);
-        }
+        // One transaction: the stock change and the settings either both save or neither does.
+        DB::transaction(function () use ($request, $inventory, $updateFields) {
+            // Thresholds and reorder settings can be saved without changing stock.
+            if ((int) $request->validated('quantity_change') !== 0) {
+                $this->inventoryService->adjust(
+                    $inventory,
+                    AdjustmentType::from($request->validated('type')),
+                    $request->validated('quantity_change'),
+                    $request->validated('reason'),
+                    $request->user()->id,
+                );
+            }
+
+            if ($updateFields !== []) {
+                $inventory->update($updateFields);
+            }
+        });
 
         return redirect()->back()->with('success', 'Inventory updated successfully.');
     }

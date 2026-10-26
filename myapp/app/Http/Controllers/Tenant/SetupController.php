@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Support\PinGuard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\BranchRequest;
 use App\Models\TenantUser;
@@ -73,16 +74,11 @@ class SetupController extends Controller
         $tenant = $request->attributes->get('current_tenant');
         $pin = $request->input('pin');
 
-        // Check uniqueness within tenant
-        $otherUsers = TenantUser::where('tenant_id', $tenant->id)
-            ->where('user_id', '!=', $request->user()->id)
-            ->whereNotNull('pos_pin')
-            ->get();
+        PinGuard::assertNotLocked($request, $tenant);
 
-        foreach ($otherUsers as $other) {
-            if (Hash::check($pin, $other->pos_pin)) {
-                return back()->withErrors(['pin' => 'Please choose a different PIN.']);
-            }
+        // Must be unique within the business (counts against the guess budget)
+        if (PinGuard::isTakenByOther($request, $tenant, (int) $request->user()->id, $pin)) {
+            return back()->withErrors(['pin' => 'Please choose a different PIN.']);
         }
 
         TenantUser::where('tenant_id', $tenant->id)

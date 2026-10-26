@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('shifts:close-stale')->hourly();
-Schedule::command('reports:daily-summary')->dailyAt('23:30');
+// 23:30 shop time (Manila), not 23:30 server time (UTC), so the summary covers the finished local day.
+Schedule::command('reports:daily-summary')->dailyAt('23:30')->timezone(config('app.business_timezone'));

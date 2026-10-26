@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Support\UploadStorage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\ReceiptCustomizationRequest;
 use Illuminate\Http\RedirectResponse;
@@ -28,7 +29,7 @@ class ReceiptCustomizationController extends Controller
 
         // Add logo URL if logo path exists
         if (! empty($settings['receipt_logo'])) {
-            $settings['receipt_logo_url'] = Storage::disk('public')->url($settings['receipt_logo']);
+            $settings['receipt_logo_url'] = UploadStorage::url($settings['receipt_logo']);
         }
 
         return Inertia::render('tenant/receipt-customization/Index', [
@@ -54,12 +55,12 @@ class ReceiptCustomizationController extends Controller
         if ($request->hasFile('receipt_logo')) {
             // Delete old logo if exists
             if (! empty($data['receipt_logo'])) {
-                Storage::disk('public')->delete($data['receipt_logo']);
+                UploadStorage::delete($data['receipt_logo']);
             }
 
             $path = $request->file('receipt_logo')->store(
                 "tenants/{$tenant->id}/receipt",
-                'public'
+                UploadStorage::disk()
             );
             $data['receipt_logo'] = $path;
         }
@@ -67,7 +68,7 @@ class ReceiptCustomizationController extends Controller
         // Handle logo removal
         if ($request->boolean('remove_logo')) {
             if (! empty($data['receipt_logo'])) {
-                Storage::disk('public')->delete($data['receipt_logo']);
+                UploadStorage::delete($data['receipt_logo']);
             }
             $data['receipt_logo'] = null;
         }

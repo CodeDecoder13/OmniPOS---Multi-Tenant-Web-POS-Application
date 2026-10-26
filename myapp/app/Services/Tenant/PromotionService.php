@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\Like;
 use App\Enums\PromotionType;
 use App\Models\Tenant;
 use App\Models\Tenant\Promotion;
@@ -16,8 +17,8 @@ class PromotionService
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
+                $q->where('code', Like::op(), Like::contains($search))
+                    ->orWhere('name', Like::op(), Like::contains($search));
             });
         }
 

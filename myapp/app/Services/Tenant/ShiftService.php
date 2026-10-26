@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\BusinessTime;
 use App\Support\TenantLock;
 use App\Enums\OrderStatus;
 use App\Enums\ShiftStatus;
@@ -76,7 +77,9 @@ class ShiftService
                 ->sum('payments.amount');
 
             $expectedCash = round((float) $shift->starting_cash + (float) $cashPayments, 2);
-            $endingCash = round((float) $data['ending_cash'], 2);
+            // An auto-closed shift has no real count. Record the expected amount (difference 0) instead of a
+            // fake 0 that would show up as the whole drawer being stolen.
+            $endingCash = isset($data['ending_cash']) ? round((float) $data['ending_cash'], 2) : $expectedCash;
             $cashDifference = round($endingCash - $expectedCash, 2);
 
             $shift->update([
@@ -125,11 +128,11 @@ class ShiftService
         }
 
         if ($dateFrom = $request->input('date_from')) {
-            $query->whereDate('opened_at', '>=', $dateFrom);
+            $query->where('opened_at', '>=', BusinessTime::startOfDay($dateFrom));
         }
 
         if ($dateTo = $request->input('date_to')) {
-            $query->whereDate('opened_at', '<=', $dateTo);
+            $query->where('opened_at', '<=', BusinessTime::endOfDay($dateTo));
         }
 
         return $query->latest('opened_at')->paginate($perPage)->withQueryString();

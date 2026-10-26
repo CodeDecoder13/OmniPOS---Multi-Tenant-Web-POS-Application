@@ -30,8 +30,8 @@ class CloseStaleShifts extends Command
 
         foreach ($staleShifts as $shift) {
             $shiftService->closeShift($shift, [
-                'ending_cash' => 0,
-                'notes' => "Auto-closed: shift was open for more than {$hours} hours.",
+                'ending_cash' => null,
+                'notes' => "Auto-closed: shift was open for more than {$hours} hours. Cash was not counted.",
             ]);
 
             $this->line("Closed shift #{$shift->id} (opened at {$shift->opened_at})");

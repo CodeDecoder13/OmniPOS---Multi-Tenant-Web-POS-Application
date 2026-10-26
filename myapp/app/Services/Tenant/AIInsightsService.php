@@ -2,6 +2,7 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\BusinessTime;
 use App\Enums\OrderStatus;
 use App\Models\Tenant;
 use App\Models\Tenant\OrderItem;
@@ -12,7 +13,7 @@ class AIInsightsService
 {
     public function getSummary(Tenant $tenant): array
     {
-        $now = Carbon::now();
+        $now = BusinessTime::now();
         $thisMonthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
@@ -36,9 +37,9 @@ class AIInsightsService
 
         // 7-day projection using last 14 days trend
         $last14 = $this->baseDbQuery($tenant, $now->copy()->subDays(13), $now)
-            ->selectRaw("date_trunc('day', created_at) as d")
+            ->selectRaw("date_trunc('day', " . BusinessTime::localSql('created_at') . ") as d")
             ->selectRaw('COALESCE(SUM(total), 0) as revenue')
-            ->groupByRaw("date_trunc('day', created_at)")
+            ->groupByRaw("date_trunc('day', " . BusinessTime::localSql('created_at') . ")")
             ->orderBy('d')
             ->get();
 
@@ -62,13 +63,13 @@ class AIInsightsService
 
     public function getForecast(Tenant $tenant): array
     {
-        $now = Carbon::now();
+        $now = BusinessTime::now();
         $dateFrom = $now->copy()->subDays(89);
 
         $dailyRevenue = $this->baseDbQuery($tenant, $dateFrom, $now)
-            ->selectRaw("date_trunc('day', created_at) as period_date")
+            ->selectRaw("date_trunc('day', " . BusinessTime::localSql('created_at') . ") as period_date")
             ->selectRaw('COALESCE(SUM(total), 0) as revenue')
-            ->groupByRaw("date_trunc('day', created_at)")
+            ->groupByRaw("date_trunc('day', " . BusinessTime::localSql('created_at') . ")")
             ->orderBy('period_date')
             ->get();
 
@@ -134,15 +135,15 @@ class AIInsightsService
 
     public function getPeakHours(Tenant $tenant): array
     {
-        $now = Carbon::now();
+        $now = BusinessTime::now();
         $thirtyDaysAgo = $now->copy()->subDays(30);
         $totalDays = 30;
 
         $results = $this->baseDbQuery($tenant, $thirtyDaysAgo, $now)
-            ->selectRaw('EXTRACT(HOUR FROM created_at)::int as hour')
+            ->selectRaw('EXTRACT(HOUR FROM '.BusinessTime::localSql('created_at').')::int as hour')
             ->selectRaw('COUNT(*) as total_orders')
             ->selectRaw('COALESCE(SUM(total), 0) as total_revenue')
-            ->groupByRaw('EXTRACT(HOUR FROM created_at)::int')
+            ->groupByRaw('EXTRACT(HOUR FROM '.BusinessTime::localSql('created_at').')::int')
             ->orderBy('hour')
             ->get();
 
@@ -162,7 +163,7 @@ class AIInsightsService
 
     public function getProductTrends(Tenant $tenant): array
     {
-        $now = Carbon::now();
+        $now = BusinessTime::now();
         $thisMonthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
@@ -207,7 +208,7 @@ class AIInsightsService
     public function generateInsights(Tenant $tenant): array
     {
         $insights = [];
-        $now = Carbon::now();
+        $now = BusinessTime::now();
         $thisMonthStart = $now->copy()->startOfMonth();
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
@@ -250,9 +251,9 @@ class AIInsightsService
 
         // Best day of week
         $dowData = $this->baseDbQuery($tenant, $now->copy()->subDays(30), $now)
-            ->selectRaw("EXTRACT(DOW FROM created_at)::int as dow")
+            ->selectRaw('EXTRACT(DOW FROM '.BusinessTime::localSql('created_at').')::int as dow')
             ->selectRaw('COALESCE(SUM(total), 0) as revenue')
-            ->groupByRaw("EXTRACT(DOW FROM created_at)::int")
+            ->groupByRaw('EXTRACT(DOW FROM '.BusinessTime::localSql('created_at').')::int')
             ->orderByDesc('revenue')
             ->first();
 
@@ -269,9 +270,9 @@ class AIInsightsService
 
         // Peak hour insight
         $peakHour = $this->baseDbQuery($tenant, $now->copy()->subDays(30), $now)
-            ->selectRaw('EXTRACT(HOUR FROM created_at)::int as hour')
+            ->selectRaw('EXTRACT(HOUR FROM '.BusinessTime::localSql('created_at').')::int as hour')
             ->selectRaw('COUNT(*) as cnt')
-            ->groupByRaw('EXTRACT(HOUR FROM created_at)::int')
+            ->groupByRaw('EXTRACT(HOUR FROM '.BusinessTime::localSql('created_at').')::int')
             ->orderByDesc('cnt')
             ->first();
 
@@ -360,9 +361,9 @@ class AIInsightsService
     private function generateSecondaryInsight(Tenant $tenant, Carbon $now): string
     {
         $dowData = $this->baseDbQuery($tenant, $now->copy()->subDays(30), $now)
-            ->selectRaw("EXTRACT(DOW FROM created_at)::int as dow")
+            ->selectRaw('EXTRACT(DOW FROM '.BusinessTime::localSql('created_at').')::int as dow')
             ->selectRaw('COALESCE(SUM(total), 0) as revenue')
-            ->groupByRaw("EXTRACT(DOW FROM created_at)::int")
+            ->groupByRaw('EXTRACT(DOW FROM '.BusinessTime::localSql('created_at').')::int')
             ->orderByDesc('revenue')
             ->first();
 
@@ -430,8 +431,8 @@ class AIInsightsService
         return \App\Models\Tenant\Order::where('tenant_id', $tenant->id)
             ->where('status', OrderStatus::Completed->value)
             ->whereBetween('created_at', [
-                Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                BusinessTime::startOfDay($dateFrom),
+                BusinessTime::endOfDay($dateTo),
             ]);
     }
 
@@ -441,8 +442,8 @@ class AIInsightsService
             ->where('tenant_id', $tenant->id)
             ->where('status', OrderStatus::Completed->value)
             ->whereBetween('created_at', [
-                Carbon::parse($dateFrom)->startOfDay(),
-                Carbon::parse($dateTo)->endOfDay(),
+                BusinessTime::startOfDay($dateFrom),
+                BusinessTime::endOfDay($dateTo),
             ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tenant;
 
+use App\Support\BusinessTime;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\CheckoutRequest;
@@ -35,7 +36,7 @@ class PosController extends Controller
         $tenantUser = $request->attributes->get('current_tenant_user');
         $branchId = $tenantUser->branch_id ?? null;
 
-        $branch = $branchId ? Branch::find($branchId) : null;
+        $branch = $branchId ? Branch::forTenant($tenant)->find($branchId) : null;
 
         return Inertia::render('tenant/pos/Index', [
             'categories' => Category::forTenant($tenant)
@@ -193,7 +194,7 @@ class PosController extends Controller
         $query = Order::forTenant($tenant)
             ->where('status', OrderStatus::Completed)
             ->whereNull('held_at')
-            ->whereDate('created_at', now()->toDateString())
+            ->whereBetween('created_at', [BusinessTime::startOfDay(BusinessTime::today()), BusinessTime::endOfDay(BusinessTime::today())])
             ->with('customer:id,name')
             ->withCount('items')
             ->select(['id', 'order_number', 'customer_id', 'total', 'created_at'])

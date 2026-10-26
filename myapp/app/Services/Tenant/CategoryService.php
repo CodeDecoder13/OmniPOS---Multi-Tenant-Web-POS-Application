@@ -5,6 +5,10 @@ namespace App\Services\Tenant;
 use App\Enums\BusinessType;
 use App\Models\Tenant;
 use App\Enums\OrderStatus;
+use App\Enums\PurchaseOrderStatus;
+use App\Enums\TransferStatus;
+use App\Models\Tenant\PurchaseOrder;
+use App\Models\Tenant\StockTransfer;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\Product;
@@ -36,6 +40,19 @@ class CategoryService
      */
     public function resetForBusinessType(Tenant $tenant, BusinessType $businessType): void
     {
+        // Open purchase orders and transfers are work in progress; wiping their lines would corrupt it.
+        // Finished ones are history and are cleared along with the products (the modal says so).
+        $openPurchaseOrders = PurchaseOrder::forTenant($tenant)
+            ->whereIn('status', [PurchaseOrderStatus::Draft, PurchaseOrderStatus::Sent, PurchaseOrderStatus::Partial])
+            ->count();
+        $openTransfers = StockTransfer::forTenant($tenant)
+            ->whereIn('status', [TransferStatus::Pending, TransferStatus::InTransit])
+            ->count();
+
+        if ($openPurchaseOrders + $openTransfers > 0) {
+            throw new \DomainException("You still have {$openPurchaseOrders} open purchase order(s) and {$openTransfers} open stock transfer(s). Receive, complete or cancel them first, then change the business type.");
+        }
+
         $imagePaths = Product::forTenant($tenant)->whereNotNull('image_path')->pluck('image_path')->all();
 
         DB::transaction(function () use ($tenant, $businessType) {

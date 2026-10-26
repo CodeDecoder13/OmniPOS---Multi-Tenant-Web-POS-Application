@@ -2,6 +2,8 @@
 
 namespace App\Services\Tenant;
 
+use App\Support\BusinessTime;
+use App\Support\Like;
 use App\Enums\OrderStatus;
 use App\Enums\TableStatus;
 use App\Events\OrderVoided;
@@ -29,9 +31,9 @@ class OrderService
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('order_number', 'like', "%{$search}%")
+                $q->where('order_number', Like::op(), Like::contains($search))
                   ->orWhereHas('customer', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
+                      $q->where('name', Like::op(), Like::contains($search));
                   });
             });
         }
@@ -41,11 +43,11 @@ class OrderService
         }
 
         if ($dateFrom = $request->input('date_from')) {
-            $query->whereDate('created_at', '>=', $dateFrom);
+            $query->where('created_at', '>=', BusinessTime::startOfDay($dateFrom));
         }
 
         if ($dateTo = $request->input('date_to')) {
-            $query->whereDate('created_at', '<=', $dateTo);
+            $query->where('created_at', '<=', BusinessTime::endOfDay($dateTo));
         }
 
         return $query->latest()->paginate($perPage)->withQueryString();
