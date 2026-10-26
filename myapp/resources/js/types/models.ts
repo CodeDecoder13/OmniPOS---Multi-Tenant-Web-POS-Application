@@ -158,6 +158,8 @@ export interface BranchSettings {
     delivery: boolean;
     kitchen_display: boolean;
     receipt_printing: boolean;
+    staff_tracking: boolean;
+    commissions: boolean;
 }
 
 export interface Branch {
@@ -223,6 +225,8 @@ export interface Product {
     cost_price: string | null;
     is_active: boolean;
     is_food: boolean;
+    is_service: boolean;
+    duration_minutes: number | null;
     created_by: number | null;
     category?: { id: number; name: string };
     creator?: { id: number; name: string };

@@ -26,6 +26,8 @@ class Product extends Model
         'cost_price',
         'is_active',
         'is_food',
+        'is_service',
+        'duration_minutes',
         'created_by',
     ];
 
@@ -38,7 +40,14 @@ class Product extends Model
             'cost_price' => 'decimal:2',
             'is_active' => 'boolean',
             'is_food' => 'boolean',
+            'is_service' => 'boolean',
         ];
+    }
+
+    /** Only physical goods have a stock count. Made-to-order items and services do not. */
+    public function tracksStock(): bool
+    {
+        return ! $this->is_food && ! $this->is_service;
     }
 
     protected function imageUrl(): Attribute

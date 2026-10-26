@@ -21,7 +21,7 @@ class InventoryService
     private function scopedQuery(Tenant $tenant, Request $request)
     {
         $query = Inventory::forTenant($tenant)
-            ->whereHas('product', fn ($q) => $q->where('is_food', false));
+            ->whereHas('product', fn ($q) => $q->where('is_food', false)->where('is_service', false));
 
         if ($branchId = $request->input('branch_id')) {
             $query->where('branch_id', $branchId);
@@ -110,7 +110,7 @@ class InventoryService
             $quantity = $item['quantity'];
 
             $product = Product::find($productId);
-            if ($product && $product->is_food) {
+            if ($product && ! $product->tracksStock()) {
                 continue;
             }
 
@@ -184,7 +184,7 @@ class InventoryService
             }
 
             $product = Product::find($item->product_id);
-            if ($product && $product->is_food) {
+            if ($product && ! $product->tracksStock()) {
                 continue;
             }
 

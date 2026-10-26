@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import TenantLayout from '@/layouts/TenantLayout.vue';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import InfoTip from '@/components/InfoTip.vue';
+import ProductKindField from '@/components/ProductKindField.vue';
 import type { BreadcrumbItem, Category, Addon, Branch } from '@/types';
 import type { AcceptableValue } from 'reka-ui';
 import { useTenant } from '@/composables/useTenant';
@@ -42,6 +43,9 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Create', href: tenantUrl('products/create') },
 ];
 
+// New products start as the kind this business usually sells (a salon: service, a cafe: made to order).
+const businessKind = (usePage().props.businessProfile as { defaultProductKind?: string } | null)?.defaultProductKind ?? 'goods';
+
 const form = useForm({
     category_id: null as number | null,
     name: '',
@@ -49,7 +53,9 @@ const form = useForm({
     sku: '',
     description: '',
     image: null as File | null,
-    is_food: false,
+    is_food: businessKind === 'prepared',
+    is_service: businessKind === 'service',
+    duration_minutes: null as number | null,
     initial_stock: 0,
     price: 0,
     cost_price: undefined as number | undefined,
@@ -401,24 +407,9 @@ function submit() {
                                 </div>
 
                                 <div class="rounded-lg border p-4">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <div class="flex items-center gap-1">
-                                                <Label>Product Type</Label>
-                                                <InfoTip text="Food items are made to order with no stock tracking. Non-food items are physical goods that require inventory management." />
-                                            </div>
-                                            <p class="text-sm text-muted-foreground">
-                                                {{ form.is_food ? 'Made to order — no stock tracking' : 'Physical goods — requires stock count' }}
-                                            </p>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm" :class="!form.is_food ? 'font-medium' : 'text-muted-foreground'">Non-Food</span>
-                                            <Switch :model-value="form.is_food" @update:model-value="form.is_food = !!$event" />
-                                            <span class="text-sm" :class="form.is_food ? 'font-medium' : 'text-muted-foreground'">Food</span>
-                                        </div>
-                                    </div>
+                                    <ProductKindField v-model:is-food="form.is_food" v-model:is-service="form.is_service" v-model:duration="form.duration_minutes" />
 
-                                    <div v-if="!form.is_food" class="mt-3">
+                                    <div v-if="!form.is_food && !form.is_service" class="mt-3">
                                         <div class="flex items-center gap-1">
                                             <Label for="initial_stock">Initial Stock</Label>
                                             <InfoTip text="Starting inventory count for your current branch" />

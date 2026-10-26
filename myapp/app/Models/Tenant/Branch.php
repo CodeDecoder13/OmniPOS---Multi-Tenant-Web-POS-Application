@@ -22,6 +22,9 @@ class Branch extends Model
         'delivery'           => false,
         'kitchen_display'    => true,
         'receipt_printing'   => true,
+        // Services businesses (salon, barber, ...) switch these on; see BusinessType::branchSettings().
+        'staff_tracking'     => false,
+        'commissions'        => false,
     ];
 
     protected $fillable = [

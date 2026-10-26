@@ -10,6 +10,8 @@ export interface BranchSettings {
     delivery: boolean;
     kitchen_display: boolean;
     receipt_printing: boolean;
+    staff_tracking: boolean;
+    commissions: boolean;
 }
 
 export function useBranchSettings() {

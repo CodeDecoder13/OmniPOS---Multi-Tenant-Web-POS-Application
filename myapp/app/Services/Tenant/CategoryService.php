@@ -9,6 +9,7 @@ use App\Enums\PurchaseOrderStatus;
 use App\Enums\TransferStatus;
 use App\Models\Tenant\PurchaseOrder;
 use App\Models\Tenant\StockTransfer;
+use App\Models\Tenant\Branch;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Order;
 use App\Models\Tenant\Product;
@@ -75,6 +76,15 @@ class CategoryService
 
             $tenant->update(['business_type' => $businessType]);
             $this->seedDefaults($tenant, $businessType);
+
+            // Offer the new type's recommended switches, but never override a choice the owner already made:
+            // existing values win, so only switches that were never set get turned on.
+            $recommended = $businessType->branchSettings();
+            if ($recommended !== []) {
+                foreach (Branch::forTenant($tenant)->get() as $branch) {
+                    $branch->update(['settings' => array_merge($recommended, $branch->settings ?? [])]);
+                }
+            }
         });
 
         // Photos go last, after the data change committed, so a failure never leaves rows pointing at missing files.

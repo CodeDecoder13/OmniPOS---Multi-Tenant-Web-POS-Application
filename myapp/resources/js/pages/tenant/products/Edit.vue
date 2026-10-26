@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import InfoTip from '@/components/InfoTip.vue';
+import ProductKindField from '@/components/ProductKindField.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,6 +58,8 @@ const form = useForm({
     cost_price: props.product.cost_price ? Number(props.product.cost_price) : undefined,
     is_active: props.product.is_active,
     is_food: props.product.is_food,
+    is_service: props.product.is_service ?? false,
+    duration_minutes: (props.product.duration_minutes ?? null) as number | null,
     initial_stock: 0,
     variation_groups: (props.product.variation_groups ?? []).map(g => ({
         name: g.name,
@@ -422,24 +425,9 @@ function submit() {
                                 </div>
 
                                 <div class="rounded-lg border p-4">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <div class="flex items-center gap-1">
-                                                <Label>Product Type</Label>
-                                                <InfoTip text="Food items are made to order with no stock tracking. Non-food items are physical goods that require inventory management." />
-                                            </div>
-                                            <p class="text-sm text-muted-foreground">
-                                                {{ form.is_food ? 'Made to order — no stock tracking' : 'Physical goods — requires stock count' }}
-                                            </p>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-sm" :class="!form.is_food ? 'font-medium' : 'text-muted-foreground'">Non-Food</span>
-                                            <Switch :model-value="form.is_food" @update:model-value="form.is_food = !!$event" />
-                                            <span class="text-sm" :class="form.is_food ? 'font-medium' : 'text-muted-foreground'">Food</span>
-                                        </div>
-                                    </div>
+                                    <ProductKindField v-model:is-food="form.is_food" v-model:is-service="form.is_service" v-model:duration="form.duration_minutes" />
 
-                                    <div v-if="!form.is_food" class="mt-3">
+                                    <div v-if="!form.is_food && !form.is_service" class="mt-3">
                                         <div class="flex items-center gap-1">
                                             <Label for="initial_stock">Initial Stock</Label>
                                             <InfoTip text="Starting inventory count for your current branch" />

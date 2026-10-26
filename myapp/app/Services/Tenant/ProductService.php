@@ -75,7 +75,7 @@ class ProductService
             $this->storeImage($product, $image);
         }
 
-        if (!$product->is_food && $initialStock !== null && $branchId) {
+        if ($product->tracksStock() && $initialStock !== null && $branchId) {
             $inventory = Inventory::create([
                 'tenant_id' => $tenant->id,
                 'product_id' => $product->id,
@@ -107,7 +107,7 @@ class ProductService
         $product->update($data);
 
         // Create initial inventory when toggling to non-food, only if no inventory exists yet
-        if (!$product->is_food && $initialStock !== null && $initialStock > 0 && $branchId) {
+        if ($product->tracksStock() && $initialStock !== null && $initialStock > 0 && $branchId) {
             $exists = Inventory::where('product_id', $product->id)
                 ->where('branch_id', $branchId)
                 ->exists();

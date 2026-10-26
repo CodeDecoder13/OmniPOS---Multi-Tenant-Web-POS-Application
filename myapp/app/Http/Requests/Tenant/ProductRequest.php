@@ -15,7 +15,7 @@ class ProductRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->sometimes('initial_stock', 'required|integer|min:0', function ($input) {
-            return $this->isMethod('POST') && !$input->is_food;
+            return $this->isMethod('POST') && ! $input->is_food && ! $input->is_service;
         });
     }
 
@@ -55,6 +55,8 @@ class ProductRequest extends FormRequest
             'cost_price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99', 'lte:price'],
             'is_active' => ['sometimes', 'boolean'],
             'is_food' => ['sometimes', 'boolean'],
+            'is_service' => ['sometimes', 'boolean'],
+            'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:1440'],
             'initial_stock' => ['nullable', 'integer', 'min:0', 'max:999999'],
             'variation_groups' => ['nullable', 'array'],
             'variation_groups.*.name' => ['required', 'string', 'max:255'],

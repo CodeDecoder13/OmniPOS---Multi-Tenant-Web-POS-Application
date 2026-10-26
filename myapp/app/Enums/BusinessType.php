@@ -244,6 +244,51 @@ enum BusinessType: string
     }
 
     /**
+     * What a new product of this business should default to: 'goods', 'service' or 'prepared'
+     * (made to order). It only pre-selects the choice on the product form; the owner can change it.
+     */
+    public function defaultProductKind(): string
+    {
+        return match ($this) {
+            self::BeautySalon, self::Barbershop, self::Laundry => 'service',
+            self::Cafe, self::MilkTea, self::Restaurant => 'prepared',
+            default => 'goods',
+        };
+    }
+
+    /**
+     * Branch feature switches this kind of business should have ON by default.
+     * Everything not listed keeps the normal default. Owners can change any of them in
+     * Branches > Feature Settings, so this is a starting point, never a lock.
+     *
+     * @return array<string, bool>
+     */
+    public function branchSettings(): array
+    {
+        return match ($this) {
+            self::BeautySalon, self::Barbershop => ['staff_tracking' => true, 'commissions' => true],
+            default => [],
+        };
+    }
+
+    /**
+     * The words this kind of business uses, so the app does not say "waiter" to a hair salon.
+     *
+     * @return array{staff: string, staff_plural: string, service: string}
+     */
+    public function terms(): array
+    {
+        return match ($this) {
+            self::BeautySalon => ['staff' => 'Stylist', 'staff_plural' => 'Stylists', 'service' => 'Service'],
+            self::Barbershop => ['staff' => 'Barber', 'staff_plural' => 'Barbers', 'service' => 'Service'],
+            self::Electronics => ['staff' => 'Technician', 'staff_plural' => 'Technicians', 'service' => 'Repair'],
+            self::Laundry => ['staff' => 'Attendant', 'staff_plural' => 'Attendants', 'service' => 'Service'],
+            self::Restaurant, self::Cafe, self::MilkTea, self::Bar => ['staff' => 'Staff member', 'staff_plural' => 'Staff', 'service' => 'Service'],
+            default => ['staff' => 'Staff member', 'staff_plural' => 'Staff', 'service' => 'Service'],
+        };
+    }
+
+    /**
      * @return array<array{value: string, label: string, icon: string}>
      */
     public static function options(): array

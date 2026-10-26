@@ -124,6 +124,17 @@ class HandleInertiaRequests extends Middleware
                 ] : null;
             },
             'tenantPermissions' => fn () => $request->attributes->get('current_permissions', []),
+            // What kind of business this is, in terms the screens can use (words, default product kind).
+            'businessProfile' => function () use ($request) {
+                $tenant = $request->attributes->get('current_tenant');
+
+                return $tenant ? [
+                    'type' => $tenant->business_type->value,
+                    'label' => $tenant->business_type->label(),
+                    'defaultProductKind' => $tenant->business_type->defaultProductKind(),
+                    'terms' => $tenant->business_type->terms(),
+                ] : null;
+            },
             'plans' => fn () => $request->attributes->get('current_tenant')
                 ? Plan::active()->orderBy('price')->get(['name', 'slug', 'price', 'features', 'max_branches', 'max_users', 'max_products'])
                 : [],

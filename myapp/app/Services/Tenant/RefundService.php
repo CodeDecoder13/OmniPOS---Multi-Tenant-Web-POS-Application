@@ -149,7 +149,7 @@ class RefundService
             }
 
             $product = Product::find($orderItem->product_id);
-            if ($product && $product->is_food) {
+            if ($product && ! $product->tracksStock()) {
                 continue;
             }
 

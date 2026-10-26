@@ -33,6 +33,8 @@ class BranchService
             ...$data,
             'tenant_id' => $tenant->id,
             'created_by' => $userId,
+            // Start with the switches this kind of business normally wants (null keeps the usual defaults).
+            'settings' => $tenant->business_type->branchSettings() ?: null,
         ]);
 
         // Auto-initialize inventory records for all existing products in the new branch
